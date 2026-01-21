@@ -4,57 +4,187 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pack Math</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
     <link rel="stylesheet" href="css/styles.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen">
-    <div class="w-full min-h-screen px-4 py-6 sm:px-6 md:px-8 lg:px-12 max-w-6xl mx-auto">
-        
-        <header class="mb-8">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl font-bold text-white">Pack Math</h1>
-                    <p class="text-zinc-500 text-sm mt-1">Trading Card Odds Visualizer</p>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar Overlay (mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Left Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">PM</div>
+                    <span>Pack Math</span>
                 </div>
-                
-                <div class="flex flex-col sm:flex-row gap-2">
-                    <select id="sportSelect" class="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-zinc-500">
-                        <option value="" disabled selected>Sport...</option>
+                <p class="sidebar-subtitle">Trading Card Odds Visualizer</p>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="sidebar-section">
+                <h2 class="sidebar-section-title">Filters</h2>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="sportSelect">Sport</label>
+                    <select id="sportSelect" class="filter-select">
+                        <option value="" disabled selected>Select sport...</option>
                     </select>
-                    <select id="yearSelect" disabled class="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-zinc-500 disabled:opacity-50">
-                        <option value="" disabled selected>Year...</option>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="yearSelect">Year</label>
+                    <select id="yearSelect" class="filter-select" disabled>
+                        <option value="" disabled selected>Select year...</option>
                     </select>
-                    <select id="productSelect" disabled class="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-zinc-500 disabled:opacity-50">
-                        <option value="" disabled selected>Product...</option>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label" for="productSelect">Product</label>
+                    <select id="productSelect" class="filter-select" disabled>
+                        <option value="" disabled selected>Select product...</option>
                     </select>
                 </div>
             </div>
-        </header>
 
-        <main>
-            <div id="loadingState" class="flex flex-col items-center justify-center py-20">
-                <div class="text-4xl mb-4 loading-pulse">🎴</div>
-                <p class="text-zinc-500 text-sm">Loading data from Google Sheets...</p>
+            <!-- Navigation Section -->
+            <div class="sidebar-section">
+                <h2 class="sidebar-section-title">Views</h2>
+                <nav>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-view="compare">
+                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 20V10M12 20V4M6 20v-6"/>
+                                </svg>
+                                Compare
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-view="bubbles">
+                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <circle cx="12" cy="12" r="4"/>
+                                </svg>
+                                Bubbles
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-view="calculator">
+                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="4" y="2" width="16" height="20" rx="2"/>
+                                    <line x1="8" y1="6" x2="16" y2="6"/>
+                                    <line x1="8" y1="10" x2="8" y2="10.01"/>
+                                    <line x1="12" y1="10" x2="12" y2="10.01"/>
+                                    <line x1="16" y1="10" x2="16" y2="10.01"/>
+                                    <line x1="8" y1="14" x2="8" y2="14.01"/>
+                                    <line x1="12" y1="14" x2="12" y2="14.01"/>
+                                    <line x1="16" y1="14" x2="16" y2="14.01"/>
+                                    <line x1="8" y1="18" x2="8" y2="18.01"/>
+                                    <line x1="12" y1="18" x2="16" y2="18"/>
+                                </svg>
+                                Calculator
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-view="checklist">
+                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 11l3 3L22 4"/>
+                                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                                </svg>
+                                Checklist
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-view="insights">
+                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="16" x2="12" y2="12"/>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                </svg>
+                                Insights
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
             </div>
+        </aside>
 
-            <div id="errorState" class="hidden flex flex-col items-center justify-center py-20">
-                <div class="text-4xl mb-4">⚠️</div>
-                <h2 class="text-xl font-semibold text-zinc-300 mb-2">Unable to Load Data</h2>
-                <p class="text-zinc-500 text-sm text-center max-w-md mb-4">Google Sheets can't be accessed from this preview due to browser restrictions.</p>
-                <p class="text-zinc-600 text-xs text-center max-w-md">This will work when hosted on GitHub Pages or your own domain.</p>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Mobile Header -->
+            <header class="mobile-header">
+                <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <span class="mobile-title">Pack Math</span>
+                <div style="width: 40px;"></div>
+            </header>
+
+            <!-- Content Wrapper -->
+            <div class="content-wrapper">
+                <!-- Loading State -->
+                <div id="loadingState" class="loading-state">
+                    <div class="state-icon loading-pulse">PM</div>
+                    <p class="state-title">Loading Data</p>
+                    <p class="state-description">Fetching product data from Google Sheets...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="errorState" class="error-state hidden">
+                    <div class="state-icon">!</div>
+                    <p class="state-title">Unable to Load Data</p>
+                    <p class="state-description">Google Sheets can't be accessed from this preview. This will work when hosted on a live domain.</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="empty-state hidden">
+                    <div class="state-icon">PM</div>
+                    <p class="state-title">Select a Product</p>
+                    <p class="state-description">Choose a trading card product from the sidebar to explore pack odds and statistics.</p>
+                </div>
+
+                <!-- Widget Grid (Product Content) -->
+                <div id="productContent" class="widget-grid hidden">
+                    <!-- Widgets will be dynamically inserted here -->
+                </div>
             </div>
-
-            <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20">
-                <div class="text-6xl mb-6">🎴</div>
-                <h2 class="text-xl font-semibold text-zinc-300 mb-2">Select a Product</h2>
-                <p class="text-zinc-500 text-sm text-center max-w-md">Choose a trading card product to explore pack odds.</p>
-            </div>
-
-            <div id="productContent" class="hidden"></div>
         </main>
     </div>
 
     <script type="module" src="js/app.js"></script>
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        function openSidebar() {
+            sidebar.classList.add('open');
+            overlay.classList.add('active');
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        }
+
+        menuToggle.addEventListener('click', openSidebar);
+        overlay.addEventListener('click', closeSidebar);
+
+        // Close sidebar when a nav link is clicked (mobile)
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    closeSidebar();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
