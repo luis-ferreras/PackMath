@@ -7,46 +7,46 @@ function onSportChange(sport, doUpdateUrl = true) {
     state.sport = sport;
     state.year = null;
     state.product = null;
-    
+
     const yearSelect = document.getElementById('yearSelect');
     const years = getYearsBySport(sport);
-    yearSelect.innerHTML = '<option value="" disabled selected>Year...</option>';
+    yearSelect.innerHTML = '<option value="" disabled selected>Select year...</option>';
     years.forEach(y => yearSelect.innerHTML += `<option value="${y}">${y}</option>`);
     yearSelect.disabled = false;
-    
-    document.getElementById('productSelect').innerHTML = '<option value="" disabled selected>Product...</option>';
+
+    document.getElementById('productSelect').innerHTML = '<option value="" disabled selected>Select product...</option>';
     document.getElementById('productSelect').disabled = true;
     document.getElementById('emptyState').classList.remove('hidden');
     document.getElementById('productContent').classList.add('hidden');
-    
+
     if (doUpdateUrl) updateURL();
 }
 
 function onYearChange(year, doUpdateUrl = true) {
     state.year = year;
     state.product = null;
-    
+
     const productSelect = document.getElementById('productSelect');
     const products = getProducts(state.sport, year);
-    productSelect.innerHTML = '<option value="" disabled selected>Product...</option>';
+    productSelect.innerHTML = '<option value="" disabled selected>Select product...</option>';
     products.forEach(p => productSelect.innerHTML += `<option value="${p.id}">${p.brand}</option>`);
     productSelect.disabled = false;
-    
+
     if (doUpdateUrl) updateURL();
 }
 
 function onProductChange(productId, doUpdateUrl = true) {
     state.product = productId;
-    
+
     const availableConfigs = getAvailableConfigs(productId);
     if (availableConfigs.length > 0 && !availableConfigs.includes(state.config)) {
         state.config = availableConfigs[0];
     }
-    
+
     document.getElementById('emptyState').classList.add('hidden');
     document.getElementById('productContent').classList.remove('hidden');
     renderProductContent();
-    
+
     if (doUpdateUrl) updateURL();
 }
 
@@ -58,6 +58,7 @@ function setConfig(config) {
 
 function setView(view) {
     state.view = view;
+    updateNavActiveState();
     renderProductContent();
     updateURL();
 }
@@ -92,6 +93,18 @@ function setChecklistSearch(query) {
     renderProductContent();
 }
 
+// Update active state on nav buttons
+function updateNavActiveState() {
+    document.querySelectorAll('.nav-link').forEach(link => {
+        const view = link.getAttribute('data-view');
+        if (view === state.view) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+}
+
 // Make handlers available globally for onclick
 window.setConfig = setConfig;
 window.setView = setView;
@@ -110,10 +123,13 @@ function loadStateFromURL() {
     const product = params.get('product');
     const config = params.get('config');
     const view = params.get('view');
-    
+
     if (config) state.config = config;
-    if (view && ['compare', 'bubbles', 'calculator', 'checklist', 'insights'].includes(view)) state.view = view;
-    
+    if (view && ['compare', 'bubbles', 'calculator', 'checklist', 'insights'].includes(view)) {
+        state.view = view;
+        updateNavActiveState();
+    }
+
     if (sport && getAvailableSports().includes(sport)) {
         document.getElementById('sportSelect').value = sport;
         onSportChange(sport, false);
@@ -128,32 +144,47 @@ function loadStateFromURL() {
     }
 }
 
+// Initialize nav button listeners
+function initNavigation() {
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            const view = link.getAttribute('data-view');
+            if (view) {
+                setView(view);
+            }
+        });
+    });
+}
+
 // Initialize
 async function init() {
     const loadingState = document.getElementById('loadingState');
     const errorState = document.getElementById('errorState');
     const emptyState = document.getElementById('emptyState');
-    
+
     const success = await loadData();
-    
+
     loadingState.classList.add('hidden');
-    
+
     if (!success) {
         errorState.classList.remove('hidden');
         return;
     }
-    
+
     emptyState.classList.remove('hidden');
-    
+
     const sportSelect = document.getElementById('sportSelect');
     getAvailableSports().forEach(sport => {
         sportSelect.innerHTML += `<option value="${sport}">${sport}</option>`;
     });
-    
+
     sportSelect.addEventListener('change', e => onSportChange(e.target.value));
     document.getElementById('yearSelect').addEventListener('change', e => onYearChange(e.target.value));
     document.getElementById('productSelect').addEventListener('change', e => onProductChange(e.target.value));
-    
+
+    // Initialize sidebar navigation
+    initNavigation();
+
     loadStateFromURL();
 }
 

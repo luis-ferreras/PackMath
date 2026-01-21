@@ -1,17 +1,17 @@
 // Odds parsing and formatting
 // Converts any odds format to a "1 in X" number for calculations
-// Examples: "1:4" → 4, "2:1" → 0.5, "1:50" → 50, "3:1" → 0.33
+// Examples: "1:4" -> 4, "2:1" -> 0.5, "1:50" -> 50, "3:1" -> 0.33
 export function parseOdds(oddsStr) {
     if (!oddsStr) return null;
-    
+
     // Handle string input
     const str = String(oddsStr).trim();
-    
+
     // Filter out spreadsheet errors (#DIV/0!, #N/A, #REF!, #VALUE!, etc.)
     if (str.startsWith('#') || str === '' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') {
         return null;
     }
-    
+
     // If it contains a colon, parse as ratio
     if (str.includes(':')) {
         const parts = str.split(':');
@@ -22,11 +22,11 @@ export function parseOdds(oddsStr) {
         // "2:1" means 2 in 1, so return 0.5 (1 in 0.5)
         return right / left;
     }
-    
+
     // If it's just a number, assume it's "1:X"
     const num = parseFloat(str);
     if (!isNaN(num) && num > 0) return num;
-    
+
     return null;
 }
 
@@ -34,33 +34,46 @@ export function formatOdds(oddsStr) {
     return oddsStr || '—';
 }
 
-// Rarity helpers
+// Color constants
+const colors = {
+    emerald: '#10b981',
+    blue: '#3b82f6',
+    violet: '#8b5cf6',
+    amber: '#f59e0b',
+    orange: '#f97316',
+    red: '#ef4444'
+};
+
+// Rarity helpers - return inline style colors
 export function getRarityColor(oddsStr) {
     const odds = parseOdds(oddsStr);
-    if (!odds || odds < 1) return 'text-emerald-400';
-    if (odds <= 20) return 'text-emerald-400';
-    if (odds <= 100) return 'text-blue-400';
-    if (odds <= 500) return 'text-violet-400';
-    if (odds <= 2000) return 'text-amber-400';
-    if (odds <= 10000) return 'text-orange-400';
-    return 'text-red-400';
+    if (!odds || odds < 1) return colors.emerald;
+    if (odds <= 20) return colors.emerald;
+    if (odds <= 100) return colors.blue;
+    if (odds <= 500) return colors.violet;
+    if (odds <= 2000) return colors.amber;
+    if (odds <= 10000) return colors.orange;
+    return colors.red;
 }
 
 export function getRarityBg(oddsStr) {
     const odds = parseOdds(oddsStr);
-    if (!odds || odds < 1) return 'bg-emerald-500';
-    if (odds <= 20) return 'bg-emerald-500';
-    if (odds <= 100) return 'bg-blue-500';
-    if (odds <= 500) return 'bg-violet-500';
-    if (odds <= 2000) return 'bg-amber-500';
-    if (odds <= 10000) return 'bg-orange-500';
-    return 'bg-red-500';
+    if (!odds || odds < 1) return colors.emerald;
+    if (odds <= 20) return colors.emerald;
+    if (odds <= 100) return colors.blue;
+    if (odds <= 500) return colors.violet;
+    if (odds <= 2000) return colors.amber;
+    if (odds <= 10000) return colors.orange;
+    return colors.red;
 }
 
 export function getRarityTier(oddsStr) {
     const odds = parseOdds(oddsStr);
-    if (!odds || odds <= 10) return { name: 'Common', emoji: '🟢', color: 'emerald' };
-    if (odds <= 50) return { name: 'Uncommon', emoji: '🔵', color: 'blue' };
-    if (odds <= 200) return { name: 'Rare', emoji: '🟣', color: 'violet' };
-    return { name: 'Chase', emoji: '🟠', color: 'orange' };
+    if (!odds || odds <= 10) return { name: 'Common', color: 'emerald', hex: colors.emerald };
+    if (odds <= 50) return { name: 'Uncommon', color: 'blue', hex: colors.blue };
+    if (odds <= 200) return { name: 'Rare', color: 'violet', hex: colors.violet };
+    return { name: 'Chase', color: 'orange', hex: colors.orange };
 }
+
+// Export colors for use in other modules
+export { colors };
