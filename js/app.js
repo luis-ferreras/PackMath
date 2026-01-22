@@ -43,6 +43,18 @@ function onProductChange(productId, doUpdateUrl = true) {
         state.config = availableConfigs[0];
     }
 
+    // Populate and show config selector in sidebar
+    const configGroup = document.getElementById('configGroup');
+    const configSelect = document.getElementById('configSelect');
+    if (availableConfigs.length > 0) {
+        configSelect.innerHTML = availableConfigs.map(c =>
+            `<option value="${c}" ${c === state.config ? 'selected' : ''}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
+        ).join('');
+        configGroup.style.display = 'block';
+    } else {
+        configGroup.style.display = 'none';
+    }
+
     document.getElementById('emptyState').classList.add('hidden');
     document.getElementById('productContent').classList.remove('hidden');
     renderProductContent();
@@ -52,6 +64,9 @@ function onProductChange(productId, doUpdateUrl = true) {
 
 function setConfig(config) {
     state.config = config;
+    // Update sidebar config select if it exists
+    const configSelect = document.getElementById('configSelect');
+    if (configSelect) configSelect.value = config;
     renderProductContent();
     updateURL();
 }
@@ -124,7 +139,11 @@ function loadStateFromURL() {
     const config = params.get('config');
     const view = params.get('view');
 
-    if (config) state.config = config;
+    if (config) {
+        state.config = config;
+        const configSelect = document.getElementById('configSelect');
+        if (configSelect) configSelect.value = config;
+    }
     if (view && ['compare', 'bubbles', 'calculator', 'checklist', 'insights'].includes(view)) {
         state.view = view;
         updateNavActiveState();
@@ -181,6 +200,7 @@ async function init() {
     sportSelect.addEventListener('change', e => onSportChange(e.target.value));
     document.getElementById('yearSelect').addEventListener('change', e => onYearChange(e.target.value));
     document.getElementById('productSelect').addEventListener('change', e => onProductChange(e.target.value));
+    document.getElementById('configSelect').addEventListener('change', e => setConfig(e.target.value));
 
     // Initialize sidebar navigation
     initNavigation();
