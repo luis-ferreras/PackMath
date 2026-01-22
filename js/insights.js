@@ -30,11 +30,11 @@ export function findBestValueConfig(productId, parallelName) {
     configs.forEach(config => {
         const row = ODDS_RAW.find(r => r.product_id === productId && r.config === config && (r.parallel === parallelName || r.card_type === parallelName));
         if (row && row.odds) {
-            const odds = parseFloat(row.odds);
-            if (odds < bestOdds) { bestOdds = odds; bestConfig = config; }
+            const odds = parseOdds(row.odds);
+            if (odds && odds < bestOdds) { bestOdds = odds; bestConfig = config; }
         }
     });
-    return bestConfig ? { config: bestConfig, odds: `1:${bestOdds}` } : null;
+    return bestConfig ? { config: bestConfig, odds: formatOddsValue(`1:${bestOdds}`) } : null;
 }
 
 export function findChaseCards(productId, config) {
@@ -43,8 +43,8 @@ export function findChaseCards(productId, config) {
         name: row.parallel || row.card_type,
         category: row.category,
         odds: formatOddsValue(row.odds),
-        oddsNum: parseFloat(row.odds)
-    })).filter(c => c.oddsNum >= 200).sort((a, b) => b.oddsNum - a.oddsNum).slice(0, 5);
+        oddsNum: parseOdds(row.odds)
+    })).filter(c => c.oddsNum && c.oddsNum >= 200).sort((a, b) => b.oddsNum - a.oddsNum).slice(0, 5);
 }
 
 export function calculateExpectedHits(productId, config) {
@@ -56,7 +56,8 @@ export function calculateExpectedHits(productId, config) {
     const totalPacks = configInfo.packs;
     const filtered = ODDS_RAW.filter(row => row.product_id === productId && row.config === config && row.category === 'base' && row.odds);
     return filtered.map(row => {
-        const odds = parseFloat(row.odds);
+        const odds = parseOdds(row.odds);
+        if (!odds) return null;
         const expected = totalPacks / odds;
         return {
             name: row.parallel || row.card_type,
@@ -64,14 +65,15 @@ export function calculateExpectedHits(productId, config) {
             expected: expected,
             display: expected >= 1 ? expected.toFixed(1) : `${(expected * 100).toFixed(0)}%`
         };
-    }).sort((a, b) => b.expected - a.expected);
+    }).filter(Boolean).sort((a, b) => b.expected - a.expected);
 }
 
 export function groupByRarityTier(productId, config) {
     const filtered = ODDS_RAW.filter(row => row.product_id === productId && row.config === config && row.odds);
     const tiers = { common: [], uncommon: [], rare: [], chase: [] };
     filtered.forEach(row => {
-        const odds = parseFloat(row.odds);
+        const odds = parseOdds(row.odds);
+        if (!odds) return;
         const item = { name: row.parallel || row.card_type, category: row.category, odds: formatOddsValue(row.odds) };
         if (odds <= 10) tiers.common.push(item);
         else if (odds <= 50) tiers.uncommon.push(item);
