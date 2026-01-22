@@ -295,9 +295,11 @@ function renderBubbleChart() {
 export function renderCalculatorView() {
     const product = PRODUCTS[state.product];
     const configInfo = product.configs[state.config] || {};
-    const totalCards = (configInfo.packs || 0) * (configInfo.cardsPerPack || 0);
+    const packsPerBox = configInfo.packs || 0;
+    const cardsPerPack = configInfo.cardsPerPack || 0;
     const boxCount = state.boxCount || 1;
-    const totalCardsMulti = totalCards * boxCount;
+    const totalPacks = packsPerBox * boxCount;
+    const totalCards = totalPacks * cardsPerPack;
 
     const allCards = ODDS_RAW.filter(row =>
         row.product_id === state.product && row.config === state.config && row.odds
@@ -308,8 +310,9 @@ export function renderCalculatorView() {
         oddsDisplay: formatOddsValue(row.odds)
     })).sort((a, b) => a.odds - b.odds);
 
+    // Calculate expected hits using PACKS (odds are per pack, not per card)
     const expected = allCards.map(card => {
-        const exp = totalCardsMulti / card.odds;
+        const exp = totalPacks / card.odds;
         return { ...card, expected: exp, display: exp >= 1 ? exp.toFixed(1) : (exp * 100).toFixed(1) + '%' };
     });
 
@@ -321,7 +324,7 @@ export function renderCalculatorView() {
         else tiers.chase += e.expected;
     });
 
-    window.calculatorData = { tiers, totalCards: totalCardsMulti, boxCount };
+    window.calculatorData = { tiers, totalPacks, totalCards, boxCount };
     setTimeout(() => renderDonutChart(), 0);
 
     const chaseCards = allCards.filter(c => c.odds >= 100).slice(-10).reverse();
@@ -342,15 +345,15 @@ export function renderCalculatorView() {
         <div style="border-top: 1px solid ${styles.border}; padding-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center;">
             <div>
                 <div style="font-size: 11px; color: ${styles.text.muted}; text-transform: uppercase;">Packs</div>
-                <div style="font-size: 20px; font-weight: 700; color: ${styles.text.primary};">${(configInfo.packs || 0) * boxCount}</div>
+                <div style="font-size: 20px; font-weight: 700; color: ${colors.emerald};">${totalPacks}</div>
             </div>
             <div>
                 <div style="font-size: 11px; color: ${styles.text.muted}; text-transform: uppercase;">Cards/Pack</div>
-                <div style="font-size: 20px; font-weight: 700; color: ${styles.text.primary};">${configInfo.cardsPerPack || 0}</div>
+                <div style="font-size: 20px; font-weight: 700; color: ${styles.text.primary};">${cardsPerPack}</div>
             </div>
             <div>
                 <div style="font-size: 11px; color: ${styles.text.muted}; text-transform: uppercase;">Total Cards</div>
-                <div style="font-size: 20px; font-weight: 700; color: ${colors.emerald};">${totalCardsMulti}</div>
+                <div style="font-size: 20px; font-weight: 700; color: ${styles.text.primary};">${totalCards}</div>
             </div>
         </div>
         ${renderConfigSelector(state.product)}
@@ -369,10 +372,10 @@ export function renderCalculatorView() {
 
     // Chase Odds Widget
     const chaseOddsWidget = widget('Chase Card Odds', `
-        <p style="color: ${styles.text.muted}; font-size: 11px; margin-bottom: 12px;">Probability of pulling at least one in ${boxCount} box${boxCount > 1 ? 'es' : ''}</p>
+        <p style="color: ${styles.text.muted}; font-size: 11px; margin-bottom: 12px;">Probability of pulling at least one in ${boxCount} box${boxCount > 1 ? 'es' : ''} (${totalPacks} packs)</p>
         <div style="display: flex; flex-direction: column; gap: 12px; max-height: 280px; overflow-y: auto;">
             ${chaseCards.map(card => {
-                const prob = 1 - Math.pow(1 - (1 / card.odds), totalCardsMulti);
+                const prob = 1 - Math.pow(1 - (1 / card.odds), totalPacks);
                 const probPercent = (prob * 100).toFixed(1);
                 const barWidth = Math.min(100, prob * 100);
                 const probColor = prob >= 0.5 ? colors.emerald : prob >= 0.1 ? colors.amber : colors.red;
@@ -456,8 +459,8 @@ function renderDonutChart() {
         .attr('stroke-width', 2)
         .style('opacity', 0.85);
 
-    svg.append('text').attr('text-anchor', 'middle').attr('dy', '-0.2em').attr('fill', 'white').attr('font-size', '20px').attr('font-weight', 'bold').text(data.totalCards);
-    svg.append('text').attr('text-anchor', 'middle').attr('dy', '1.2em').attr('fill', styles.text.muted).attr('font-size', '10px').text('total cards');
+    svg.append('text').attr('text-anchor', 'middle').attr('dy', '-0.2em').attr('fill', 'white').attr('font-size', '20px').attr('font-weight', 'bold').text(data.totalPacks);
+    svg.append('text').attr('text-anchor', 'middle').attr('dy', '1.2em').attr('fill', styles.text.muted).attr('font-size', '10px').text('total packs');
 }
 
 // Insights View
