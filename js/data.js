@@ -134,7 +134,7 @@ export function getOddsForProduct(productId, config) {
         type: row.parallel === 'SSP' ? 'ssp' : 'insert',
         checklist: row.checklist ? parseInt(row.checklist) : null
     }));
-    const autographs = filtered.filter(row => row.category === 'auto').map(row => ({
+    const autographs = filtered.filter(row => row.category === 'autograph').map(row => ({
         name: row.card_type,
         odds: row.odds ? formatOddsValue(row.odds) : null,
         checklist: row.checklist ? parseInt(row.checklist) : null
@@ -168,7 +168,7 @@ export function getAllInsertsForProduct(productId) {
 
 export function getAllAutographsForProduct(productId) {
     const autos = new Map();
-    ODDS_RAW.filter(row => row.product_id === productId && row.category === 'auto').forEach(row => {
+    ODDS_RAW.filter(row => row.product_id === productId && row.category === 'autograph').forEach(row => {
         const name = row.card_type;
         if (!autos.has(name)) autos.set(name, {});
         autos.get(name)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
