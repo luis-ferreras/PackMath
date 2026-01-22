@@ -304,9 +304,9 @@ export function renderCalculatorView() {
     ).map(row => ({
         name: row.parallel || row.card_type,
         category: row.category,
-        odds: parseFloat(row.odds),
+        odds: parseOdds(row.odds),
         oddsDisplay: formatOddsValue(row.odds)
-    })).sort((a, b) => a.odds - b.odds);
+    })).filter(c => c.odds).sort((a, b) => a.odds - b.odds);
 
     // Calculate expected hits using PACKS
     const expected = allCards.map(card => {
