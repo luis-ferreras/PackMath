@@ -36,20 +36,20 @@ function widget(title, content, badge = null) {
     `;
 }
 
-// Compact product banner (not a full widget)
+// Product banner - full width above grid
 function renderProductBanner() {
     const product = PRODUCTS[state.product];
     if (!product) return '';
     return `
-        <div style="grid-column: 1 / -1; background: linear-gradient(135deg, ${styles.accentMuted} 0%, ${styles.bg.widget} 100%);
-                    border: 1px solid ${styles.accent}40; border-radius: 12px; padding: 16px 20px; margin-bottom: 8px;
+        <div class="product-banner" style="background: linear-gradient(135deg, ${styles.accentMuted} 0%, ${styles.bg.widget} 100%);
+                    border: 1px solid ${styles.accent}40; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px;
                     display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
             <div>
-                <h2 style="font-size: 16px; font-weight: 600; color: ${styles.text.primary}; margin: 0;">${product.name}</h2>
+                <h2 style="font-size: 18px; font-weight: 600; color: ${styles.text.primary}; margin: 0;">${product.name}</h2>
                 <p style="color: ${styles.text.muted}; font-size: 12px; margin: 4px 0 0 0;">${product.sport} • ${product.brand} • ${product.year}</p>
             </div>
-            <div style="display: flex; gap: 16px; font-size: 12px;">
-                <span style="color: ${styles.text.muted};">Config: <strong style="color: ${styles.accent}; text-transform: capitalize;">${state.config}</strong></span>
+            <div style="display: flex; gap: 16px; font-size: 13px;">
+                <span style="color: ${styles.text.muted};">Box Type: <strong style="color: ${styles.accent}; text-transform: capitalize;">${state.config}</strong></span>
             </div>
         </div>
     `;
@@ -655,7 +655,7 @@ export function renderProductContent() {
         return;
     }
 
-    // Compact product banner
+    // Full-width product banner
     const banner = renderProductBanner();
 
     let viewContent = '';
@@ -667,5 +667,11 @@ export function renderProductContent() {
         default: viewContent = renderCompareView();
     }
 
-    document.getElementById('productContent').innerHTML = banner + viewContent;
+    // Banner outside grid, widgets inside grid
+    document.getElementById('productContent').innerHTML = `
+        ${banner}
+        <div class="widget-grid">
+            ${viewContent}
+        </div>
+    `;
 }
