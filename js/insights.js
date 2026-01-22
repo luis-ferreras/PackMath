@@ -52,11 +52,12 @@ export function calculateExpectedHits(productId, config) {
     if (!product) return [];
     const configInfo = product.configs[config];
     if (!configInfo) return [];
-    const totalCards = configInfo.packs * configInfo.cardsPerPack;
+    // Use packs for calculation (odds are per pack, not per card)
+    const totalPacks = configInfo.packs;
     const filtered = ODDS_RAW.filter(row => row.product_id === productId && row.config === config && row.category === 'base' && row.odds);
     return filtered.map(row => {
         const odds = parseFloat(row.odds);
-        const expected = totalCards / odds;
+        const expected = totalPacks / odds;
         return {
             name: row.parallel || row.card_type,
             odds: formatOddsValue(row.odds),
