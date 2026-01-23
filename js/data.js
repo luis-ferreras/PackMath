@@ -175,3 +175,23 @@ export function getAllAutographsForProduct(productId) {
     });
     return autos;
 }
+
+export function getAllRelicsForProduct(productId) {
+    const relics = new Map();
+    ODDS_RAW.filter(row => row.product_id === productId && row.category === 'relic').forEach(row => {
+        const name = row.card_type;
+        if (!relics.has(name)) relics.set(name, {});
+        relics.get(name)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
+    });
+    return relics;
+}
+
+export function getAllAutoRelicsForProduct(productId) {
+    const autoRelics = new Map();
+    ODDS_RAW.filter(row => row.product_id === productId && row.category === 'autograph_relic').forEach(row => {
+        const name = row.card_type;
+        if (!autoRelics.has(name)) autoRelics.set(name, {});
+        autoRelics.get(name)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
+    });
+    return autoRelics;
+}

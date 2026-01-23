@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { PRODUCTS, ODDS_RAW, CHECKLIST, getAvailableConfigs, getOddsForProduct, getAllParallelsForProduct, getAllInsertsForProduct, getAllAutographsForProduct, formatOddsValue } from './data.js';
+import { PRODUCTS, ODDS_RAW, CHECKLIST, getAvailableConfigs, getOddsForProduct, getAllParallelsForProduct, getAllInsertsForProduct, getAllAutographsForProduct, getAllRelicsForProduct, getAllAutoRelicsForProduct, formatOddsValue } from './data.js';
 import { parseOdds, formatOdds, getRarityColor, getRarityBg, getRarityTier, colors } from './utils.js';
 import {
     findSleeperHit, findBestValueConfig, findChaseCards, calculateExpectedHits, groupByRarityTier,
@@ -79,19 +79,26 @@ export function renderCompareView() {
     const parallels = getAllParallelsForProduct(state.product);
     const inserts = getAllInsertsForProduct(state.product);
     const autographs = getAllAutographsForProduct(state.product);
+    const relics = getAllRelicsForProduct(state.product);
+    const autoRelics = getAllAutoRelicsForProduct(state.product);
     const configs = getAvailableConfigs(state.product);
     const subTab = state.compareTab || 'base';
 
+    // Build tabs array - only show tabs that have data
+    const allTabs = [
+        { id: 'base', label: 'Parallels', count: parallels.size },
+        { id: 'inserts', label: 'Inserts', count: inserts.size },
+        { id: 'autos', label: 'Autos', count: autographs.size },
+        { id: 'relics', label: 'Relics', count: relics.size },
+        { id: 'auto_relics', label: 'Auto Relics', count: autoRelics.size }
+    ].filter(tab => tab.count > 0);
+
     // Sub-tab buttons
     const tabButtons = `
-        <div style="display: flex; gap: 4px; background: ${styles.bg.base}; padding: 4px; border-radius: 8px; margin-bottom: 12px;">
-            ${[
-                { id: 'base', label: 'Parallels', count: parallels.size },
-                { id: 'inserts', label: 'Inserts', count: inserts.size },
-                { id: 'autos', label: 'Autos', count: autographs.size }
-            ].map(tab => `
+        <div style="display: flex; gap: 4px; background: ${styles.bg.base}; padding: 4px; border-radius: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+            ${allTabs.map(tab => `
                 <button onclick="setCompareTab('${tab.id}')"
-                    style="flex: 1; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
+                    style="flex: 1; min-width: 80px; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
                            border: none; cursor: pointer; transition: all 150ms;
                            background: ${subTab === tab.id ? styles.bg.input : 'transparent'};
                            color: ${subTab === tab.id ? styles.text.primary : styles.text.muted};">
@@ -103,13 +110,25 @@ export function renderCompareView() {
 
     // Get table data based on selected tab
     let dataMap, showSSP = false;
-    if (subTab === 'base') {
-        dataMap = parallels;
-    } else if (subTab === 'inserts') {
-        dataMap = inserts;
-        showSSP = true;
-    } else {
-        dataMap = autographs;
+    switch (subTab) {
+        case 'base':
+            dataMap = parallels;
+            break;
+        case 'inserts':
+            dataMap = inserts;
+            showSSP = true;
+            break;
+        case 'autos':
+            dataMap = autographs;
+            break;
+        case 'relics':
+            dataMap = relics;
+            break;
+        case 'auto_relics':
+            dataMap = autoRelics;
+            break;
+        default:
+            dataMap = parallels;
     }
 
     // Build table (limit to 15 rows)
