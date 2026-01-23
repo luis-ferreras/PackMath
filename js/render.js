@@ -650,13 +650,12 @@ export function renderChecklistView() {
         </div>
     `;
 
-    // Cards List Widget - Full width with expanded details
-    const limitedCards = filteredChecklist.slice(0, 25);
+    // Cards List Widget - Full width with scrollable table
     const cardsWidget = widgetFullWidth('Browse', `
         <p style="color: ${styles.text.muted}; font-size: 10px; margin-bottom: 10px;">${filteredChecklist.length} of ${totalCards} cards</p>
-        <div style="overflow-x: auto;">
+        <div style="max-height: 400px; overflow-y: auto; overflow-x: auto; border-radius: 6px;">
             <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-                <thead>
+                <thead style="position: sticky; top: 0; background: ${styles.bg.widget}; z-index: 1;">
                     <tr style="border-bottom: 1px solid ${styles.border};">
                         <th style="text-align: left; padding: 10px 8px; color: ${styles.text.muted}; font-weight: 500;">Set</th>
                         <th style="text-align: center; padding: 10px 8px; color: ${styles.text.muted}; font-weight: 500; width: 60px;">#</th>
@@ -665,7 +664,7 @@ export function renderChecklistView() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${limitedCards.length > 0 ? limitedCards.map(card => {
+                    ${filteredChecklist.length > 0 ? filteredChecklist.map(card => {
                         const isRookie = ['TRUE', 'true', '1', 'Yes', 'yes'].includes(card.rookie);
                         const setName = card.set_name || card.set_type || 'Base';
                         return `
@@ -690,7 +689,6 @@ export function renderChecklistView() {
                 </tbody>
             </table>
         </div>
-        ${filteredChecklist.length > 25 ? `<p style="text-align: center; color: ${styles.text.muted}; font-size: 10px; margin-top: 10px;">Showing 25 of ${filteredChecklist.length}</p>` : ''}
     `, `${filteredChecklist.length}`);
 
     return statsFiltersRow + cardsWidget;
