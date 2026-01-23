@@ -696,10 +696,10 @@ export function renderChecklistView() {
         ${col === 'card_num' ? 'width: 60px;' : ''}
     `;
 
-    // Cards List Widget - Full width with scrollable table
+    // Cards List Widget - Full width with scrollable table (dynamic height)
     const cardsWidget = widgetFullWidth('Browse', `
         <p style="color: ${styles.text.muted}; font-size: 10px; margin-bottom: 10px;">${filteredChecklist.length} of ${totalCards} cards</p>
-        <div style="max-height: 400px; overflow-y: auto; overflow-x: auto; border-radius: 6px;">
+        <div style="height: calc(100vh - 380px); min-height: 300px; overflow-y: auto; overflow-x: auto; border-radius: 6px;">
             <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
                 <thead style="position: sticky; top: 0; background: ${styles.bg.widget}; z-index: 1;">
                     <tr style="border-bottom: 1px solid ${styles.border};">
