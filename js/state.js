@@ -10,7 +10,9 @@ export const state = {
     checklistSet: 'all',
     checklistTeam: 'all',
     checklistRookieOnly: false,
-    checklistSearch: ''
+    checklistSearch: '',
+    checklistSortBy: 'card_num',
+    checklistSortDir: 'asc'
 };
 
 // URL Management

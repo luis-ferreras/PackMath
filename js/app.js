@@ -128,6 +128,18 @@ function setChecklistSearch(query) {
     }, 150);
 }
 
+// Sort checklist by column
+function setChecklistSort(column) {
+    if (state.checklistSortBy === column) {
+        // Toggle direction if same column
+        state.checklistSortDir = state.checklistSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        state.checklistSortBy = column;
+        state.checklistSortDir = 'asc';
+    }
+    renderProductContent();
+}
+
 // Update active state on nav buttons
 function updateNavActiveState() {
     document.querySelectorAll('.nav-link').forEach(link => {
@@ -148,6 +160,7 @@ window.setBoxCount = setBoxCount;
 window.setChecklistSet = setChecklistSet;
 window.setChecklistTeam = setChecklistTeam;
 window.setChecklistRookieOnly = setChecklistRookieOnly;
+window.setChecklistSort = setChecklistSort;
 window.setChecklistSearch = setChecklistSearch;
 
 // URL loading helper
