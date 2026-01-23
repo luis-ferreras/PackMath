@@ -650,6 +650,52 @@ export function renderChecklistView() {
         </div>
     `;
 
+    // Sort the filtered checklist
+    const sortBy = state.checklistSortBy || 'card_num';
+    const sortDir = state.checklistSortDir || 'asc';
+    const sortedChecklist = [...filteredChecklist].sort((a, b) => {
+        let valA, valB;
+        switch (sortBy) {
+            case 'set':
+                valA = (a.set_name || a.set_type || 'Base').toLowerCase();
+                valB = (b.set_name || b.set_type || 'Base').toLowerCase();
+                break;
+            case 'card_num':
+                valA = parseInt(a.card_num) || 9999;
+                valB = parseInt(b.card_num) || 9999;
+                break;
+            case 'player':
+                valA = (a.player || '').toLowerCase();
+                valB = (b.player || '').toLowerCase();
+                break;
+            case 'team':
+                valA = (a.team || '').toLowerCase();
+                valB = (b.team || '').toLowerCase();
+                break;
+            default:
+                valA = a.card_num;
+                valB = b.card_num;
+        }
+        if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    // Sort indicator helper
+    const sortArrow = (col) => {
+        if (sortBy !== col) return '';
+        return sortDir === 'asc' ? ' ▲' : ' ▼';
+    };
+    const headerStyle = (col) => `
+        text-align: ${col === 'card_num' ? 'center' : 'left'};
+        padding: 10px 8px;
+        color: ${sortBy === col ? styles.accent : styles.text.muted};
+        font-weight: 500;
+        cursor: pointer;
+        user-select: none;
+        ${col === 'card_num' ? 'width: 60px;' : ''}
+    `;
+
     // Cards List Widget - Full width with scrollable table
     const cardsWidget = widgetFullWidth('Browse', `
         <p style="color: ${styles.text.muted}; font-size: 10px; margin-bottom: 10px;">${filteredChecklist.length} of ${totalCards} cards</p>
@@ -657,14 +703,14 @@ export function renderChecklistView() {
             <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
                 <thead style="position: sticky; top: 0; background: ${styles.bg.widget}; z-index: 1;">
                     <tr style="border-bottom: 1px solid ${styles.border};">
-                        <th style="text-align: left; padding: 10px 8px; color: ${styles.text.muted}; font-weight: 500;">Set</th>
-                        <th style="text-align: center; padding: 10px 8px; color: ${styles.text.muted}; font-weight: 500; width: 60px;">#</th>
-                        <th style="text-align: left; padding: 10px 8px; color: ${styles.text.muted}; font-weight: 500;">Player</th>
-                        <th style="text-align: left; padding: 10px 8px; color: ${styles.text.muted}; font-weight: 500;">Team</th>
+                        <th style="${headerStyle('set')}" onclick="setChecklistSort('set')">Set${sortArrow('set')}</th>
+                        <th style="${headerStyle('card_num')}" onclick="setChecklistSort('card_num')">#${sortArrow('card_num')}</th>
+                        <th style="${headerStyle('player')}" onclick="setChecklistSort('player')">Player${sortArrow('player')}</th>
+                        <th style="${headerStyle('team')}" onclick="setChecklistSort('team')">Team${sortArrow('team')}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${filteredChecklist.length > 0 ? filteredChecklist.map(card => {
+                    ${sortedChecklist.length > 0 ? sortedChecklist.map(card => {
                         const isRookie = ['TRUE', 'true', '1', 'Yes', 'yes'].includes(card.rookie);
                         const setName = card.set_name || card.set_type || 'Base';
                         return `
