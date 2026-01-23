@@ -103,9 +103,29 @@ function setChecklistRookieOnly(checked) {
     renderProductContent();
 }
 
+// Debounce helper
+let searchTimeout = null;
 function setChecklistSearch(query) {
     state.checklistSearch = query;
-    renderProductContent();
+
+    // Debounce the re-render to avoid losing focus
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        const activeEl = document.activeElement;
+        const isSearchFocused = activeEl && activeEl.id === 'checklistSearchInput';
+        const cursorPos = isSearchFocused ? activeEl.selectionStart : 0;
+
+        renderProductContent();
+
+        // Restore focus and cursor position
+        if (isSearchFocused) {
+            const searchInput = document.getElementById('checklistSearchInput');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.setSelectionRange(cursorPos, cursorPos);
+            }
+        }
+    }, 150);
 }
 
 // Update active state on nav buttons

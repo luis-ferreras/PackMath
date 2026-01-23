@@ -637,7 +637,7 @@ export function renderChecklistView() {
                             </select>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="text" placeholder="Search player..." value="${searchQuery}" oninput="setChecklistSearch(this.value)"
+                            <input type="text" id="checklistSearchInput" placeholder="Search player..." value="${searchQuery}" oninput="setChecklistSearch(this.value)"
                                 class="filter-select" style="flex: 1; font-size: 12px; padding: 8px;">
                             <label style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: ${styles.text.secondary}; cursor: pointer; white-space: nowrap;">
                                 <input type="checkbox" ${rookieFilter ? 'checked' : ''} onchange="setChecklistRookieOnly(this.checked)" style="accent-color: ${colors.emerald};">
