@@ -1,7 +1,11 @@
 import { state } from './state.js';
 import { PRODUCTS, ODDS_RAW, CHECKLIST, getAvailableConfigs, getOddsForProduct, getAllParallelsForProduct, getAllInsertsForProduct, getAllAutographsForProduct, formatOddsValue } from './data.js';
 import { parseOdds, formatOdds, getRarityColor, getRarityBg, getRarityTier, colors } from './utils.js';
-import { findSleeperHit, findBestValueConfig, findChaseCards, calculateExpectedHits, groupByRarityTier } from './insights.js';
+import {
+    findSleeperHit, findBestValueConfig, findChaseCards, calculateExpectedHits, groupByRarityTier,
+    calculateProductScore, calculateVariance, calculateBreakeven, compareConfigs,
+    findSweetSpot, estimateSetCompletion, getRookieInsights, getWhaleCard, rankParallels
+} from './insights.js';
 
 // Styles object for inline styling
 const styles = {
@@ -474,20 +478,101 @@ function renderDonutChart() {
     svg.append('text').attr('text-anchor', 'middle').attr('dy', '1.1em').attr('fill', styles.text.muted).attr('font-size', '9px').text('packs');
 }
 
-// Insights View - Simplified
+// Insights View - Comprehensive
 export function renderInsightsView() {
-    const chaseCards = findChaseCards(state.product, state.config);
-    const tiers = groupByRarityTier(state.product, state.config);
+    const productScore = calculateProductScore(state.product, state.config);
+    const variance = calculateVariance(state.product, state.config);
+    const breakeven = calculateBreakeven(state.product, state.config);
+    const configComparison = compareConfigs(state.product);
+    const sweetSpot = findSweetSpot(state.product, state.config);
+    const setCompletion = estimateSetCompletion(state.product, state.config);
+    const rookieInsights = getRookieInsights(state.product, state.config);
+    const whaleCard = getWhaleCard(state.product, state.config);
     const sleeperHit = findSleeperHit(state.product, state.config);
-    const parallels = getAllParallelsForProduct(state.product);
-
-    const bestValues = [];
-    parallels.forEach((configOdds, name) => {
-        const best = findBestValueConfig(state.product, name);
-        if (best) bestValues.push({ name, ...best });
-    });
+    const parallelRanking = rankParallels(state.product, state.config);
+    const tiers = groupByRarityTier(state.product, state.config);
 
     let widgets = '';
+
+    // Product Score Widget - Featured
+    if (productScore) {
+        const scoreColor = productScore.score >= 7 ? colors.emerald : productScore.score >= 5 ? colors.amber : colors.red;
+        widgets += `
+            <div class="widget" style="background: linear-gradient(135deg, ${styles.bg.widget} 0%, ${scoreColor}15 100%); border: 1px solid ${scoreColor}40;">
+                <div class="widget-header">
+                    <span class="widget-title">Product Rating</span>
+                    <span class="widget-badge">${productScore.verdict}</span>
+                </div>
+                <div class="widget-content">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="position: relative; width: 70px; height: 70px;">
+                            <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                      fill="none" stroke="${styles.bg.input}" stroke-width="3"/>
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                      fill="none" stroke="${scoreColor}" stroke-width="3"
+                                      stroke-dasharray="${productScore.score * 10}, 100"/>
+                            </svg>
+                            <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+                                <span style="font-size: 18px; font-weight: 700; color: ${scoreColor};">${productScore.score}</span>
+                            </div>
+                        </div>
+                        <div style="flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 10px;">
+                            <div style="display: flex; justify-content: space-between;"><span style="color: ${styles.text.muted};">Variety</span><span style="color: ${styles.text.primary};">${productScore.breakdown.variety}/10</span></div>
+                            <div style="display: flex; justify-content: space-between;"><span style="color: ${styles.text.muted};">Chase</span><span style="color: ${styles.text.primary};">${productScore.breakdown.chase}/10</span></div>
+                            <div style="display: flex; justify-content: space-between;"><span style="color: ${styles.text.muted};">Hits</span><span style="color: ${styles.text.primary};">${productScore.breakdown.hits}/10</span></div>
+                            <div style="display: flex; justify-content: space-between;"><span style="color: ${styles.text.muted};">Value</span><span style="color: ${styles.text.primary};">${productScore.breakdown.value}/10</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Variance/Risk Widget
+    if (variance) {
+        const riskColor = variance.riskLevel === 'High' ? colors.red : variance.riskLevel === 'Medium' ? colors.amber : colors.emerald;
+        const riskIcon = variance.riskLevel === 'High' ? '🎰' : variance.riskLevel === 'Medium' ? '⚖️' : '📊';
+        widgets += widget('Risk Profile', `
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                <span style="font-size: 24px;">${riskIcon}</span>
+                <div>
+                    <div style="font-size: 16px; font-weight: 700; color: ${riskColor};">${variance.riskLevel} Variance</div>
+                    <div style="font-size: 11px; color: ${styles.text.muted};">${variance.description}</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; font-size: 10px; color: ${styles.text.muted};">
+                <span>Chase cards: <strong style="color: ${styles.text.primary};">${variance.chaseCards}</strong></span>
+                <span>Guaranteed: <strong style="color: ${styles.text.primary};">${variance.guaranteedHits}</strong></span>
+            </div>
+        `, variance.riskLevel);
+    }
+
+    // Whale Card Spotlight
+    if (whaleCard) {
+        widgets += `
+            <div class="widget" style="background: linear-gradient(135deg, ${colors.violet}20 0%, ${styles.bg.widget} 100%); border: 1px solid ${colors.violet}40;">
+                <div class="widget-header">
+                    <span class="widget-title">🐋 The Whale</span>
+                    <span class="widget-badge">${whaleCard.context}</span>
+                </div>
+                <div class="widget-content">
+                    <div style="font-size: 15px; font-weight: 700; color: ${styles.text.primary}; margin-bottom: 4px;">${whaleCard.name}</div>
+                    <div style="font-size: 20px; font-weight: 700; color: ${colors.violet}; margin-bottom: 8px;">${whaleCard.odds}</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px;">
+                        <div style="background: ${styles.bg.base}; padding: 8px; border-radius: 6px; text-align: center;">
+                            <div style="color: ${styles.text.muted};">50% chance</div>
+                            <div style="font-weight: 600; color: ${colors.amber};">${whaleCard.boxesFor50Percent} boxes</div>
+                        </div>
+                        <div style="background: ${styles.bg.base}; padding: 8px; border-radius: 6px; text-align: center;">
+                            <div style="color: ${styles.text.muted};">10% chance</div>
+                            <div style="font-weight: 600; color: ${colors.emerald};">${whaleCard.boxesFor10Percent} boxes</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 
     // Sleeper Hit Widget
     if (sleeperHit) {
@@ -508,58 +593,130 @@ export function renderInsightsView() {
         `;
     }
 
-    // Rarity Breakdown Widget
+    // Sweet Spot Analysis
+    if (sweetSpot) {
+        widgets += widget('Sweet Spot', `
+            <div style="margin-bottom: 10px;">
+                <div style="font-size: 11px; color: ${styles.text.muted}; margin-bottom: 4px;">Target: ${sweetSpot.targetCard}</div>
+                <div style="font-size: 13px; color: ${styles.text.secondary};">${sweetSpot.advice}</div>
+            </div>
+            <div style="display: flex; gap: 4px; align-items: end;">
+                ${sweetSpot.probabilities.slice(0, 5).map(p => `
+                    <div style="flex: 1; text-align: center;">
+                        <div style="height: ${Math.max(8, p.probability * 0.6)}px; background: ${p.probability >= 50 ? colors.emerald : colors.blue}; border-radius: 3px 3px 0 0; margin-bottom: 4px;"></div>
+                        <div style="font-size: 9px; color: ${styles.text.muted};">${p.boxes}box</div>
+                        <div style="font-size: 10px; font-weight: 600; color: ${p.probability >= 50 ? colors.emerald : styles.text.secondary};">${p.probability}%</div>
+                    </div>
+                `).join('')}
+            </div>
+        `, `${sweetSpot.sweetSpotBoxes} boxes`);
+    }
+
+    // Break-even Calculator
+    if (breakeven && breakeven.length > 0) {
+        widgets += widget('Break-even Analysis', `
+            <p style="font-size: 10px; color: ${styles.text.muted}; margin-bottom: 10px;">Boxes needed for 50% chance at chase cards</p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                ${breakeven.map(b => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: ${styles.bg.base}; border-radius: 6px;">
+                        <span style="color: ${styles.text.secondary}; font-size: 12px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${b.name}</span>
+                        <div style="text-align: right;">
+                            <span style="font-weight: 600; color: ${colors.amber};">${b.boxesFor50} boxes</span>
+                            <span style="font-size: 10px; color: ${styles.text.muted}; margin-left: 4px;">(${b.odds})</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `, 'Chase odds');
+    }
+
+    // Config Comparison
+    if (configComparison && configComparison.configs.length >= 2) {
+        widgets += widget('Config Showdown', `
+            <div style="display: grid; grid-template-columns: repeat(${configComparison.configs.length}, 1fr); gap: 8px; margin-bottom: 10px;">
+                ${configComparison.configs.map(c => `
+                    <div style="text-align: center; padding: 10px; background: ${c.config === configComparison.bestForAutos ? colors.emerald + '15' : styles.bg.base}; border-radius: 6px; border: 1px solid ${c.config === configComparison.bestForAutos ? colors.emerald + '40' : 'transparent'};">
+                        <div style="font-size: 11px; font-weight: 600; color: ${styles.text.primary}; text-transform: capitalize; margin-bottom: 6px;">${c.config}</div>
+                        <div style="font-size: 10px; color: ${styles.text.muted};">Packs: <strong>${c.packs}</strong></div>
+                        <div style="font-size: 10px; color: ${styles.text.muted};">Auto: <strong style="color: ${c.config === configComparison.bestForAutos ? colors.emerald : styles.text.primary};">${c.autoOdds}</strong></div>
+                    </div>
+                `).join('')}
+            </div>
+            <p style="font-size: 11px; color: ${styles.text.secondary}; text-align: center;">💡 ${configComparison.insight}</p>
+        `, 'vs');
+    }
+
+    // Rookie Insights
+    if (rookieInsights) {
+        widgets += widget('Rookie Report', `
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                <div style="font-size: 28px; font-weight: 700; color: ${colors.orange};">${rookieInsights.totalRookies}</div>
+                <div>
+                    <div style="font-size: 12px; color: ${styles.text.primary};">Rookies in set</div>
+                    <div style="font-size: 11px; color: ${styles.text.muted};">${rookieInsights.rookiePercentage}% of checklist</div>
+                </div>
+            </div>
+            <div style="padding: 8px; background: ${colors.orange}15; border-radius: 6px; font-size: 11px; color: ${colors.orange};">
+                ${rookieInsights.highlight}
+            </div>
+        `, `${rookieInsights.rookiePercentage}%`);
+    }
+
+    // Set Completion Estimate
+    if (setCompletion) {
+        widgets += widget('Set Builder', `
+            <div style="text-align: center; margin-bottom: 10px;">
+                <div style="font-size: 11px; color: ${styles.text.muted};">Base set size</div>
+                <div style="font-size: 24px; font-weight: 700; color: ${styles.text.primary};">${setCompletion.baseSetSize} cards</div>
+            </div>
+            <div style="padding: 10px; background: ${styles.bg.base}; border-radius: 6px; text-align: center;">
+                <div style="font-size: 10px; color: ${styles.text.muted};">Estimated to complete</div>
+                <div style="font-size: 16px; font-weight: 600; color: ${colors.blue};">~${setCompletion.estimatedBoxes} boxes</div>
+                <div style="font-size: 9px; color: ${styles.text.muted}; margin-top: 4px;">(${setCompletion.cardsPerBox} cards/box avg)</div>
+            </div>
+        `, 'Collector');
+    }
+
+    // Parallel Ranking
+    if (parallelRanking && parallelRanking.length > 0) {
+        const topParallels = parallelRanking.slice(0, 8);
+        widgets += widget('Parallel Hierarchy', `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                ${topParallels.map((p, i) => {
+                    const tierColor = p.tier === 'chase' ? colors.orange : p.tier === 'rare' ? colors.violet : p.tier === 'uncommon' ? colors.blue : colors.emerald;
+                    return `
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: ${i === 0 ? tierColor + '15' : 'transparent'}; border-radius: 4px;">
+                            <span style="width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; background: ${tierColor}30; color: ${tierColor}; font-size: 10px; font-weight: 600; border-radius: 50%;">${i + 1}</span>
+                            <span style="flex: 1; color: ${styles.text.secondary}; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${p.name}</span>
+                            <span style="font-family: monospace; font-size: 10px; color: ${tierColor};">${p.odds}</span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `, `Top ${topParallels.length}`);
+    }
+
+    // Rarity Breakdown
     widgets += widget('Rarity Breakdown', `
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
-            <div style="text-align: center; padding: 10px; background: ${colors.emerald}15; border-radius: 6px;">
-                <div style="font-size: 20px; font-weight: 700; color: ${colors.emerald};">${tiers.common.length}</div>
-                <div style="font-size: 10px; color: ${styles.text.muted};">Common</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+            <div style="text-align: center; padding: 8px; background: ${colors.emerald}15; border-radius: 6px;">
+                <div style="font-size: 16px; font-weight: 700; color: ${colors.emerald};">${tiers.common.length}</div>
+                <div style="font-size: 9px; color: ${styles.text.muted};">Common</div>
             </div>
-            <div style="text-align: center; padding: 10px; background: ${colors.blue}15; border-radius: 6px;">
-                <div style="font-size: 20px; font-weight: 700; color: ${colors.blue};">${tiers.uncommon.length}</div>
-                <div style="font-size: 10px; color: ${styles.text.muted};">Uncommon</div>
+            <div style="text-align: center; padding: 8px; background: ${colors.blue}15; border-radius: 6px;">
+                <div style="font-size: 16px; font-weight: 700; color: ${colors.blue};">${tiers.uncommon.length}</div>
+                <div style="font-size: 9px; color: ${styles.text.muted};">Uncommon</div>
             </div>
-            <div style="text-align: center; padding: 10px; background: ${colors.violet}15; border-radius: 6px;">
-                <div style="font-size: 20px; font-weight: 700; color: ${colors.violet};">${tiers.rare.length}</div>
-                <div style="font-size: 10px; color: ${styles.text.muted};">Rare</div>
+            <div style="text-align: center; padding: 8px; background: ${colors.violet}15; border-radius: 6px;">
+                <div style="font-size: 16px; font-weight: 700; color: ${colors.violet};">${tiers.rare.length}</div>
+                <div style="font-size: 9px; color: ${styles.text.muted};">Rare</div>
             </div>
-            <div style="text-align: center; padding: 10px; background: ${colors.orange}15; border-radius: 6px;">
-                <div style="font-size: 20px; font-weight: 700; color: ${colors.orange};">${tiers.chase.length}</div>
-                <div style="font-size: 10px; color: ${styles.text.muted};">Chase</div>
+            <div style="text-align: center; padding: 8px; background: ${colors.orange}15; border-radius: 6px;">
+                <div style="font-size: 16px; font-weight: 700; color: ${colors.orange};">${tiers.chase.length}</div>
+                <div style="font-size: 9px; color: ${styles.text.muted};">Chase</div>
             </div>
         </div>
     `);
-
-    // Chase Cards Widget - Limited to 5
-    if (chaseCards.length > 0) {
-        widgets += widget('Chase Cards', `
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-                ${chaseCards.slice(0, 5).map(c => `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: ${styles.text.secondary}; font-size: 12px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.name}</span>
-                        <span style="font-family: monospace; font-size: 11px; color: ${getRarityColor(c.odds)};">${c.odds}</span>
-                    </div>
-                `).join('')}
-            </div>
-        `, '1:200+');
-    }
-
-    // Best Value Config Widget - Limited to 5
-    if (bestValues.length > 0) {
-        widgets += widget('Best Value', `
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-                ${bestValues.slice(0, 5).map(v => `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: ${styles.text.secondary}; font-size: 12px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${v.name}</span>
-                        <span style="font-size: 11px;">
-                            <span style="color: ${colors.emerald}; font-weight: 500; text-transform: capitalize;">${v.config}</span>
-                            <span style="color: ${styles.text.muted}; margin-left: 4px;">${v.odds}</span>
-                        </span>
-                    </div>
-                `).join('')}
-            </div>
-        `, 'By config');
-    }
 
     return widgets;
 }
