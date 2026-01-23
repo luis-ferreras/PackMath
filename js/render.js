@@ -596,70 +596,104 @@ export function renderChecklistView() {
         filteredChecklist = filteredChecklist.filter(c => (c.player?.toLowerCase().includes(query)) || (c.team?.toLowerCase().includes(query)));
     }
 
-    // Stats Widget - Full width
-    const statsWidget = widgetFullWidth('Stats', `
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">
-            <div style="background: ${styles.bg.base}; padding: 10px; border-radius: 6px;">
-                <div style="font-size: 18px; font-weight: 700; color: ${styles.text.primary};">${totalCards}</div>
-                <div style="font-size: 9px; color: ${styles.text.muted};">TOTAL</div>
+    // Stats & Filters Row - Side by side (50/50)
+    const statsFiltersRow = `
+        <div style="display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+            <div class="widget" style="flex: 1; min-width: 280px;">
+                <div class="widget-header">
+                    <span class="widget-title">Stats</span>
+                </div>
+                <div class="widget-content">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">
+                        <div style="background: ${styles.bg.base}; padding: 10px; border-radius: 6px;">
+                            <div style="font-size: 18px; font-weight: 700; color: ${styles.text.primary};">${totalCards}</div>
+                            <div style="font-size: 9px; color: ${styles.text.muted};">TOTAL</div>
+                        </div>
+                        <div style="background: ${styles.bg.base}; padding: 10px; border-radius: 6px;">
+                            <div style="font-size: 18px; font-weight: 700; color: ${colors.orange};">${rookies.length}</div>
+                            <div style="font-size: 9px; color: ${styles.text.muted};">ROOKIES</div>
+                        </div>
+                        <div style="background: ${styles.bg.base}; padding: 10px; border-radius: 6px;">
+                            <div style="font-size: 18px; font-weight: 700; color: ${colors.emerald};">${teams.length}</div>
+                            <div style="font-size: 9px; color: ${styles.text.muted};">TEAMS</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div style="background: ${styles.bg.base}; padding: 10px; border-radius: 6px;">
-                <div style="font-size: 18px; font-weight: 700; color: ${colors.orange};">${rookies.length}</div>
-                <div style="font-size: 9px; color: ${styles.text.muted};">ROOKIES</div>
-            </div>
-            <div style="background: ${styles.bg.base}; padding: 10px; border-radius: 6px;">
-                <div style="font-size: 18px; font-weight: 700; color: ${colors.emerald};">${teams.length}</div>
-                <div style="font-size: 9px; color: ${styles.text.muted};">TEAMS</div>
+            <div class="widget" style="flex: 1; min-width: 280px;">
+                <div class="widget-header">
+                    <span class="widget-title">Filters</span>
+                </div>
+                <div class="widget-content">
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <select onchange="setChecklistSet(this.value)" class="filter-select" style="width: 100%; font-size: 12px; padding: 8px;">
+                                <option value="all" ${setFilter === 'all' ? 'selected' : ''}>All Sets</option>
+                                ${sets.map(s => `<option value="${s}" ${setFilter === s ? 'selected' : ''}>${s}</option>`).join('')}
+                            </select>
+                            <select onchange="setChecklistTeam(this.value)" class="filter-select" style="width: 100%; font-size: 12px; padding: 8px;">
+                                <option value="all" ${teamFilter === 'all' ? 'selected' : ''}>All Teams</option>
+                                ${teams.map(t => `<option value="${t}" ${teamFilter === t ? 'selected' : ''}>${t}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" placeholder="Search player..." value="${searchQuery}" oninput="setChecklistSearch(this.value)"
+                                class="filter-select" style="flex: 1; font-size: 12px; padding: 8px;">
+                            <label style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: ${styles.text.secondary}; cursor: pointer; white-space: nowrap;">
+                                <input type="checkbox" ${rookieFilter ? 'checked' : ''} onchange="setChecklistRookieOnly(this.checked)" style="accent-color: ${colors.emerald};">
+                                RC only
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    `);
+    `;
 
-    // Filters Widget - Full width
-    const filtersWidget = widgetFullWidth('Filters', `
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <select onchange="setChecklistSet(this.value)" class="filter-select" style="width: 100%; font-size: 12px; padding: 8px;">
-                    <option value="all" ${setFilter === 'all' ? 'selected' : ''}>All Sets</option>
-                    ${sets.map(s => `<option value="${s}" ${setFilter === s ? 'selected' : ''}>${s}</option>`).join('')}
-                </select>
-                <select onchange="setChecklistTeam(this.value)" class="filter-select" style="width: 100%; font-size: 12px; padding: 8px;">
-                    <option value="all" ${teamFilter === 'all' ? 'selected' : ''}>All Teams</option>
-                    ${teams.map(t => `<option value="${t}" ${teamFilter === t ? 'selected' : ''}>${t}</option>`).join('')}
-                </select>
-            </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="text" placeholder="Search player..." value="${searchQuery}" oninput="setChecklistSearch(this.value)"
-                    class="filter-select" style="flex: 1; font-size: 12px; padding: 8px;">
-                <label style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: ${styles.text.secondary}; cursor: pointer; white-space: nowrap;">
-                    <input type="checkbox" ${rookieFilter ? 'checked' : ''} onchange="setChecklistRookieOnly(this.checked)" style="accent-color: ${colors.emerald};">
-                    RC only
-                </label>
-            </div>
-        </div>
-    `);
-
-    // Cards List Widget - Full width, limited to 25
+    // Cards List Widget - Full width with expanded details
     const limitedCards = filteredChecklist.slice(0, 25);
     const cardsWidget = widgetFullWidth('Browse', `
         <p style="color: ${styles.text.muted}; font-size: 10px; margin-bottom: 10px;">${filteredChecklist.length} of ${totalCards} cards</p>
-        <div style="display: flex; flex-direction: column; gap: 2px;">
-            ${limitedCards.length > 0 ? limitedCards.map(card => {
-                const isRookie = ['TRUE', 'true', '1', 'Yes', 'yes'].includes(card.rookie);
-                return `
-                    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; font-size: 12px;"
-                         onmouseover="this.style.background='${styles.bg.input}'" onmouseout="this.style.background='transparent'">
-                        <span style="color: ${styles.text.muted}; font-size: 10px; width: 28px;">#${card.card_num || '-'}</span>
-                        <span style="flex: 1; color: ${styles.text.primary}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${card.player || 'Unknown'}</span>
-                        <span style="color: ${styles.text.muted}; font-size: 11px; width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${card.team || '-'}</span>
-                        ${isRookie ? `<span style="font-size: 9px; background: ${colors.orange}30; color: ${colors.orange}; padding: 2px 5px; border-radius: 3px;">RC</span>` : '<span style="width: 26px;"></span>'}
-                    </div>
-                `;
-            }).join('') : `<p style="text-align: center; color: ${styles.text.muted}; padding: 20px; font-size: 12px;">No cards match filters</p>`}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 1px solid ${styles.border};">
+                        <th style="text-align: left; padding: 10px 8px; color: ${styles.text.muted}; font-weight: 500;">Set</th>
+                        <th style="text-align: center; padding: 10px 8px; color: ${styles.text.muted}; font-weight: 500; width: 60px;">#</th>
+                        <th style="text-align: left; padding: 10px 8px; color: ${styles.text.muted}; font-weight: 500;">Player</th>
+                        <th style="text-align: left; padding: 10px 8px; color: ${styles.text.muted}; font-weight: 500;">Team</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${limitedCards.length > 0 ? limitedCards.map(card => {
+                        const isRookie = ['TRUE', 'true', '1', 'Yes', 'yes'].includes(card.rookie);
+                        const setName = card.set_name || card.set_type || 'Base';
+                        return `
+                            <tr style="border-bottom: 1px solid ${styles.border}30;"
+                                onmouseover="this.style.background='${styles.bg.input}'" onmouseout="this.style.background='transparent'">
+                                <td style="padding: 10px 8px; color: ${styles.text.secondary}; font-size: 11px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${setName}
+                                </td>
+                                <td style="text-align: center; padding: 10px 8px; color: ${styles.text.muted}; font-family: monospace; font-size: 11px;">
+                                    ${card.card_num || '-'}
+                                </td>
+                                <td style="padding: 10px 8px; color: ${styles.text.primary};">
+                                    ${card.player || 'Unknown'}
+                                    ${isRookie ? `<span style="margin-left: 6px; font-size: 9px; background: ${colors.orange}30; color: ${colors.orange}; padding: 2px 5px; border-radius: 3px;">RC</span>` : ''}
+                                </td>
+                                <td style="padding: 10px 8px; color: ${styles.text.muted}; font-size: 11px;">
+                                    ${card.team || '-'}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('') : `<tr><td colspan="4" style="text-align: center; color: ${styles.text.muted}; padding: 20px; font-size: 12px;">No cards match filters</td></tr>`}
+                </tbody>
+            </table>
         </div>
         ${filteredChecklist.length > 25 ? `<p style="text-align: center; color: ${styles.text.muted}; font-size: 10px; margin-top: 10px;">Showing 25 of ${filteredChecklist.length}</p>` : ''}
     `, `${filteredChecklist.length}`);
 
-    return statsWidget + filtersWidget + cardsWidget;
+    return statsFiltersRow + cardsWidget;
 }
 
 // Main render function
