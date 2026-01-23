@@ -79,7 +79,14 @@ export function calculateProductScore(productId, config) {
     // Score components (each 0-10, weighted)
     let varietyScore = Math.min(10, allCards.length / 5); // More variety = better
     let chaseScore = Math.min(10, chaseCount * 2); // Chase cards add excitement
-    let hitScore = autoOdds ? Math.min(10, 10 - (parseOdds(autoOdds.odds) / 50)) : 3; // Better auto odds = better
+
+    // Hit score uses log scale: 1:4=10, 1:16=8, 1:64=6, 1:256=4, 1:1024=2, 1:4096+=0
+    let hitScore = 3; // Default if no autos
+    if (autoOdds) {
+        const oddsNum = parseOdds(autoOdds.odds);
+        hitScore = Math.max(0, Math.min(10, 12 - Math.log2(oddsNum)));
+    }
+
     let valueScore = Math.min(10, packsPerBox / 2); // More packs = better base value
 
     const totalScore = (varietyScore * 0.2 + chaseScore * 0.3 + hitScore * 0.3 + valueScore * 0.2);
