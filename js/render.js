@@ -36,6 +36,21 @@ function widget(title, content, badge = null) {
     `;
 }
 
+// Full-width widget helper (for tables, etc.)
+function widgetFullWidth(title, content, badge = null) {
+    return `
+        <div class="widget" style="width: 100%; margin-bottom: 16px;">
+            <div class="widget-header">
+                <span class="widget-title">${title}</span>
+                ${badge ? `<span class="widget-badge">${badge}</span>` : ''}
+            </div>
+            <div class="widget-content">
+                ${content}
+            </div>
+        </div>
+    `;
+}
+
 // Product banner - full width above grid
 function renderProductBanner() {
     const product = PRODUCTS[state.product];
@@ -149,7 +164,7 @@ export function renderCompareView() {
         tableContent = `<p style="color: ${styles.text.muted}; text-align: center; padding: 24px; font-size: 13px;">No data for this category</p>`;
     }
 
-    return widget('Compare Odds', tabButtons + tableContent, `${entries.length} cards`);
+    return widgetFullWidth('Compare Odds', tabButtons + tableContent, `${entries.length} cards`);
 }
 
 // Bubbles View
@@ -659,19 +674,30 @@ export function renderProductContent() {
     const banner = renderProductBanner();
 
     let viewContent = '';
+    let isFullWidth = false;
     switch (state.view) {
         case 'bubbles': viewContent = renderBubblesView(); break;
         case 'calculator': viewContent = renderCalculatorView(); break;
         case 'checklist': viewContent = renderChecklistView(); break;
         case 'insights': viewContent = renderInsightsView(); break;
-        default: viewContent = renderCompareView();
+        default:
+            viewContent = renderCompareView();
+            isFullWidth = true;
+            break;
     }
 
-    // Banner outside grid, widgets inside grid
-    document.getElementById('productContent').innerHTML = `
-        ${banner}
-        <div class="widget-grid">
+    // Banner always outside grid; Compare view also outside grid (full-width)
+    if (isFullWidth) {
+        document.getElementById('productContent').innerHTML = `
+            ${banner}
             ${viewContent}
-        </div>
-    `;
+        `;
+    } else {
+        document.getElementById('productContent').innerHTML = `
+            ${banner}
+            <div class="widget-grid">
+                ${viewContent}
+            </div>
+        `;
+    }
 }
