@@ -188,7 +188,11 @@ export function getAllRelicsForProduct(productId) {
 
 export function getAllAutoRelicsForProduct(productId) {
     const autoRelics = new Map();
-    ODDS_RAW.filter(row => row.product_id === productId && (row.category === 'autograph_relic' || row.category === 'autograph relic')).forEach(row => {
+    ODDS_RAW.filter(row => {
+        if (row.product_id !== productId) return false;
+        const cat = (row.category || '').toLowerCase().trim();
+        return cat === 'autograph_relic' || cat === 'autograph relic' || cat === 'auto relic' || cat === 'auto_relic';
+    }).forEach(row => {
         const name = row.card_type;
         if (!autoRelics.has(name)) autoRelics.set(name, {});
         autoRelics.get(name)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
