@@ -596,8 +596,8 @@ export function renderChecklistView() {
         filteredChecklist = filteredChecklist.filter(c => (c.player?.toLowerCase().includes(query)) || (c.team?.toLowerCase().includes(query)));
     }
 
-    // Stats Widget - Compact
-    const statsWidget = widget('Stats', `
+    // Stats Widget - Full width
+    const statsWidget = widgetFullWidth('Stats', `
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">
             <div style="background: ${styles.bg.base}; padding: 10px; border-radius: 6px;">
                 <div style="font-size: 18px; font-weight: 700; color: ${styles.text.primary};">${totalCards}</div>
@@ -614,8 +614,8 @@ export function renderChecklistView() {
         </div>
     `);
 
-    // Filters Widget - Compact
-    const filtersWidget = widget('Filters', `
+    // Filters Widget - Full width
+    const filtersWidget = widgetFullWidth('Filters', `
         <div style="display: flex; flex-direction: column; gap: 10px;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                 <select onchange="setChecklistSet(this.value)" class="filter-select" style="width: 100%; font-size: 12px; padding: 8px;">
@@ -638,9 +638,9 @@ export function renderChecklistView() {
         </div>
     `);
 
-    // Cards List Widget - Limited to 25
+    // Cards List Widget - Full width, limited to 25
     const limitedCards = filteredChecklist.slice(0, 25);
-    const cardsWidget = widget('Browse', `
+    const cardsWidget = widgetFullWidth('Browse', `
         <p style="color: ${styles.text.muted}; font-size: 10px; margin-bottom: 10px;">${filteredChecklist.length} of ${totalCards} cards</p>
         <div style="display: flex; flex-direction: column; gap: 2px;">
             ${limitedCards.length > 0 ? limitedCards.map(card => {
@@ -678,7 +678,10 @@ export function renderProductContent() {
     switch (state.view) {
         case 'bubbles': viewContent = renderBubblesView(); break;
         case 'calculator': viewContent = renderCalculatorView(); break;
-        case 'checklist': viewContent = renderChecklistView(); break;
+        case 'checklist':
+            viewContent = renderChecklistView();
+            isFullWidth = true;
+            break;
         case 'insights': viewContent = renderInsightsView(); break;
         default:
             viewContent = renderCompareView();
