@@ -121,7 +121,34 @@ export function formatOddsValue(odds) {
     if (str.startsWith('#') || str === '' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') {
         return null;
     }
-    // Return the value as-is - user enters the actual ratio like "1:4" or "2:1"
+
+    // Parse and round odds intelligently
+    // Format: "1:X" where X might have many decimals
+    if (str.includes(':')) {
+        const parts = str.split(':');
+        if (parts.length === 2) {
+            const prefix = parts[0].trim();
+            const num = parseFloat(parts[1].trim());
+
+            if (!isNaN(num)) {
+                let formatted;
+                if (num < 10) {
+                    // Small odds: keep 1 decimal if not whole
+                    formatted = num % 1 === 0 ? num.toString() : num.toFixed(1);
+                } else if (num < 100) {
+                    // Medium odds: round to whole or .5
+                    const rounded = Math.round(num * 2) / 2;
+                    formatted = rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
+                } else {
+                    // Large odds: round to whole number
+                    formatted = Math.round(num).toString();
+                }
+                return `${prefix}:${formatted}`;
+            }
+        }
+    }
+
+    // Return as-is if not standard format
     return str;
 }
 
