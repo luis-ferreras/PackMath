@@ -78,6 +78,10 @@ export async function loadData() {
         ODDS_RAW = oddsData;
         CHECKLIST = checklistData;
         console.log('✓ Data loaded from Google Sheets');
+        // Debug: show all unique categories
+        const categories = [...new Set(ODDS_RAW.map(r => r.category))];
+        console.log('📊 All categories in odds:', categories);
+        console.log('📊 Relic-related rows:', ODDS_RAW.filter(r => r.category && r.category.toLowerCase().includes('relic')).map(r => ({ category: r.category, card_type: r.card_type })));
         return true;
     } catch (error) {
         console.error('✗ Failed to load from Google Sheets:', error.message);
