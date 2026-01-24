@@ -122,8 +122,8 @@ export function formatOddsValue(odds) {
         return null;
     }
 
-    // Parse and round odds intelligently
-    // Format: "1:X" where X might have many decimals
+    // Parse and format odds with abbreviations for large numbers
+    // Format: "1:X" where X might be very large
     if (str.includes(':')) {
         const parts = str.split(':');
         if (parts.length === 2) {
@@ -132,16 +132,20 @@ export function formatOddsValue(odds) {
 
             if (!isNaN(num)) {
                 let formatted;
-                if (num < 10) {
-                    // Small odds: keep 1 decimal if not whole
-                    formatted = num % 1 === 0 ? num.toString() : num.toFixed(1);
-                } else if (num < 100) {
-                    // Medium odds: round to whole or .5
-                    const rounded = Math.round(num * 2) / 2;
-                    formatted = rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
-                } else {
-                    // Large odds: round to whole number
+                if (num >= 1000000) {
+                    // Millions: 1:4.3M
+                    const millions = num / 1000000;
+                    formatted = millions >= 10 ? Math.round(millions) + 'M' : millions.toFixed(1) + 'M';
+                } else if (num >= 1000) {
+                    // Thousands: 1:42K or 1:4.3K
+                    const thousands = num / 1000;
+                    formatted = thousands >= 10 ? Math.round(thousands) + 'K' : thousands.toFixed(1) + 'K';
+                } else if (num >= 100) {
+                    // Hundreds: round to whole
                     formatted = Math.round(num).toString();
+                } else {
+                    // Under 100: show as-is (already clean)
+                    formatted = num % 1 === 0 ? num.toString() : num.toFixed(1);
                 }
                 return `${prefix}:${formatted}`;
             }
