@@ -121,7 +121,38 @@ export function formatOddsValue(odds) {
     if (str.startsWith('#') || str === '' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') {
         return null;
     }
-    // Return the value as-is - user enters the actual ratio like "1:4" or "2:1"
+
+    // Parse and format odds with abbreviations for large numbers
+    // Format: "1:X" where X might be very large
+    if (str.includes(':')) {
+        const parts = str.split(':');
+        if (parts.length === 2) {
+            const prefix = parts[0].trim();
+            const num = parseFloat(parts[1].trim());
+
+            if (!isNaN(num)) {
+                let formatted;
+                if (num >= 1000000) {
+                    // Millions: 1:4.3M
+                    const millions = num / 1000000;
+                    formatted = millions >= 10 ? Math.round(millions) + 'M' : millions.toFixed(1) + 'M';
+                } else if (num >= 1000) {
+                    // Thousands: 1:42K or 1:4.3K
+                    const thousands = num / 1000;
+                    formatted = thousands >= 10 ? Math.round(thousands) + 'K' : thousands.toFixed(1) + 'K';
+                } else if (num >= 100) {
+                    // Hundreds: round to whole
+                    formatted = Math.round(num).toString();
+                } else {
+                    // Under 100: show as-is (already clean)
+                    formatted = num % 1 === 0 ? num.toString() : num.toFixed(1);
+                }
+                return `${prefix}:${formatted}`;
+            }
+        }
+    }
+
+    // Return as-is if not standard format
     return str;
 }
 
