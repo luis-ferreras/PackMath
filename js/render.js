@@ -131,24 +131,23 @@ export function renderCompareView() {
             dataMap = parallels;
     }
 
-    // Build table (limit to 15 rows)
+    // Build table (all rows, scrollable)
     const entries = Array.from(dataMap.entries());
-    const limitedEntries = entries.slice(0, 15);
-    const hasMore = entries.length > 15;
 
     let tableContent = '';
     if (dataMap.size > 0) {
         tableContent = `
-            <div style="overflow-x: auto;">
+            <p style="color: ${styles.text.muted}; font-size: 10px; margin-bottom: 10px;">Green = best odds for that card across configs</p>
+            <div style="height: calc(100vh - 380px); min-height: 300px; overflow-y: auto; overflow-x: auto; border-radius: 6px;">
                 <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-                    <thead>
+                    <thead style="position: sticky; top: 0; background: ${styles.bg.widget}; z-index: 1;">
                         <tr style="border-bottom: 1px solid ${styles.border};">
                             <th style="text-align: left; padding: 10px 8px; color: ${styles.text.muted}; font-weight: 500;">Name</th>
                             ${configs.map(c => `<th style="text-align: center; padding: 10px 6px; color: ${styles.text.muted}; font-weight: 500; text-transform: capitalize; font-size: 11px;">${c}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
-                        ${limitedEntries.map(([name, configOdds]) => {
+                        ${entries.map(([name, configOdds]) => {
                             let bestConfig = null;
                             let bestOddsNum = Infinity;
                             configs.forEach(c => {
@@ -159,9 +158,10 @@ export function renderCompareView() {
                             });
                             const isSSP = showSSP && configOdds.isSSP;
                             return `
-                                <tr style="border-bottom: 1px solid ${styles.border}30;">
+                                <tr style="border-bottom: 1px solid ${styles.border}30;"
+                                    onmouseover="this.style.background='${styles.bg.input}'" onmouseout="this.style.background='transparent'">
                                     <td style="padding: 10px 8px; color: ${styles.text.primary}; font-size: 12px;">
-                                        ${name.length > 25 ? name.slice(0, 22) + '...' : name}
+                                        ${name}
                                         ${isSSP ? `<span style="margin-left: 6px; font-size: 9px; background: ${colors.orange}30; color: ${colors.orange}; padding: 2px 5px; border-radius: 3px;">SSP</span>` : ''}
                                     </td>
                                     ${configs.map(c => {
@@ -180,8 +180,6 @@ export function renderCompareView() {
                     </tbody>
                 </table>
             </div>
-            ${hasMore ? `<p style="text-align: center; color: ${styles.text.muted}; font-size: 11px; margin-top: 12px;">Showing 15 of ${entries.length} • Best odds highlighted in green</p>` :
-                       `<p style="margin-top: 10px; font-size: 10px; color: ${styles.text.muted};">Green = best odds for that card</p>`}
         `;
     } else {
         tableContent = `<p style="color: ${styles.text.muted}; text-align: center; padding: 24px; font-size: 13px;">No data for this category</p>`;
