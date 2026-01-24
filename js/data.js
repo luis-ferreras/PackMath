@@ -4,6 +4,7 @@ import { getSheetURL, DEFAULT_CONFIGS } from './config.js';
 export let PRODUCTS = {};
 export let ODDS_RAW = [];
 export let CHECKLIST = [];
+export let CONFIGURATIONS = [];
 
 // CSV Parsing
 function parseCSVLine(line) {
@@ -55,33 +56,68 @@ function processProducts(rows) {
     const products = {};
     rows.forEach(row => {
         if (row.product_id) {
+            // Build configs from Configuration sheet for this product
+            const productConfigs = {};
+            CONFIGURATIONS
+                .filter(c => c.product_id === row.product_id)
+                .forEach(c => {
+                    productConfigs[c.config] = {
+                        name: c.config,
+                        packs: parseInt(c.packs_per_box) || 0,
+                        cardsPerPack: parseInt(c.cards_per_pack) || 0,
+                        boxesPerCase: parseInt(c.boxes_per_case) || 0
+                    };
+                });
+
+            // Fall back to DEFAULT_CONFIGS if no Configuration data exists
+            const configs = Object.keys(productConfigs).length > 0
+                ? productConfigs
+                : { ...DEFAULT_CONFIGS };
+
             products[row.product_id] = {
                 name: row.name || '',
                 sport: row.sport || '',
                 brand: row.brand || '',
                 year: row.year || '',
-                configs: { ...DEFAULT_CONFIGS }
+                configs
             };
         }
     });
     return products;
 }
 
+// Get configuration info for a specific product and config
+export function getConfigInfo(productId, config) {
+    const product = PRODUCTS[productId];
+    if (!product) return null;
+
+    // Check product's configs first
+    if (product.configs[config]) {
+        return product.configs[config];
+    }
+
+    // Fall back to DEFAULT_CONFIGS
+    if (DEFAULT_CONFIGS[config]) {
+        return DEFAULT_CONFIGS[config];
+    }
+
+    return { packs: 0, cardsPerPack: 0, boxesPerCase: 0 };
+}
+
 export async function loadData() {
     try {
-        const [productsData, oddsData, checklistData] = await Promise.all([
+        const [productsData, oddsData, checklistData, configData] = await Promise.all([
             fetchSheet('products'),
             fetchSheet('odds'),
-            fetchSheet('checklist')
+            fetchSheet('checklist'),
+            fetchSheet('Configuration')
         ]);
+        CONFIGURATIONS = configData;
         PRODUCTS = processProducts(productsData);
         ODDS_RAW = oddsData;
         CHECKLIST = checklistData;
         console.log('✓ Data loaded from Google Sheets');
-        // Debug: show all unique categories
-        const categories = [...new Set(ODDS_RAW.map(r => r.category))];
-        console.log('📊 All categories in odds:', categories);
-        console.log('📊 Relic-related rows:', ODDS_RAW.filter(r => r.category && r.category.toLowerCase().includes('relic')).map(r => ({ category: r.category, card_type: r.card_type })));
+        console.log('📦 Configurations loaded:', CONFIGURATIONS.length, 'entries');
         return true;
     } catch (error) {
         console.error('✗ Failed to load from Google Sheets:', error.message);

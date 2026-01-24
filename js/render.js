@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { PRODUCTS, ODDS_RAW, CHECKLIST, getAvailableConfigs, getOddsForProduct, getAllParallelsForProduct, getAllInsertsForProduct, getAllAutographsForProduct, getAllRelicsForProduct, getAllAutoRelicsForProduct, formatOddsValue } from './data.js';
+import { PRODUCTS, ODDS_RAW, CHECKLIST, getAvailableConfigs, getOddsForProduct, getAllParallelsForProduct, getAllInsertsForProduct, getAllAutographsForProduct, getAllRelicsForProduct, getAllAutoRelicsForProduct, formatOddsValue, getConfigInfo } from './data.js';
 import { parseOdds, formatOdds, getRarityColor, getRarityBg, getRarityTier, colors } from './utils.js';
 import {
     findSleeperHit, findBestValueConfig, findChaseCards, calculateExpectedHits, groupByRarityTier,
@@ -328,7 +328,7 @@ function renderBubbleChart() {
 // Calculator View - Simplified
 export function renderCalculatorView() {
     const product = PRODUCTS[state.product];
-    const configInfo = product.configs[state.config] || {};
+    const configInfo = getConfigInfo(state.product, state.config);
     const packsPerBox = configInfo.packs || 0;
     const cardsPerPack = configInfo.cardsPerPack || 0;
     const boxCount = state.boxCount || 1;

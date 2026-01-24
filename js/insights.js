@@ -1,4 +1,4 @@
-import { PRODUCTS, ODDS_RAW, CHECKLIST, getOddsForProduct, getAvailableConfigs, getAllParallelsForProduct, getAllAutographsForProduct, formatOddsValue } from './data.js';
+import { PRODUCTS, ODDS_RAW, CHECKLIST, getOddsForProduct, getAvailableConfigs, getAllParallelsForProduct, getAllAutographsForProduct, formatOddsValue, getConfigInfo } from './data.js';
 import { parseOdds } from './utils.js';
 
 // Improved Sleeper Hit - finds undervalued cards that aren't obvious
@@ -60,9 +60,7 @@ export function calculateProductScore(productId, config) {
     const product = PRODUCTS[productId];
     if (!product) return null;
 
-    const configInfo = product.configs[config];
-    if (!configInfo) return null;
-
+    const configInfo = getConfigInfo(productId, config);
     const packsPerBox = configInfo.packs || 0;
     const allCards = ODDS_RAW.filter(r => r.product_id === productId && r.config === config && r.odds);
 
@@ -144,9 +142,7 @@ export function calculateBreakeven(productId, config) {
     const product = PRODUCTS[productId];
     if (!product) return null;
 
-    const configInfo = product.configs[config];
-    if (!configInfo) return null;
-
+    const configInfo = getConfigInfo(productId, config);
     const packsPerBox = configInfo.packs || 0;
     const chaseCards = ODDS_RAW.filter(r =>
         r.product_id === productId &&
@@ -189,7 +185,7 @@ export function compareConfigs(productId) {
     if (configs.length < 2) return null;
 
     const comparison = configs.map(config => {
-        const configInfo = product.configs[config] || {};
+        const configInfo = getConfigInfo(productId, config);
         const packs = configInfo.packs || 0;
 
         const allOdds = ODDS_RAW.filter(r => r.product_id === productId && r.config === config && r.odds);
@@ -229,9 +225,7 @@ export function findSweetSpot(productId, config) {
     const product = PRODUCTS[productId];
     if (!product) return null;
 
-    const configInfo = product.configs[config];
-    if (!configInfo) return null;
-
+    const configInfo = getConfigInfo(productId, config);
     const packsPerBox = configInfo.packs || 0;
 
     // Find the "signature" chase card (hardest auto or parallel)
@@ -270,9 +264,7 @@ export function estimateSetCompletion(productId, config) {
     const product = PRODUCTS[productId];
     if (!product) return null;
 
-    const configInfo = product.configs[config];
-    if (!configInfo) return null;
-
+    const configInfo = getConfigInfo(productId, config);
     const checklist = CHECKLIST.filter(r => r.product_id === productId);
     const baseCards = checklist.filter(r => !r.set_type || r.set_type === 'Base' || r.set_name === 'Base');
 
@@ -329,8 +321,8 @@ export function getWhaleCard(productId, config) {
     const whale = sorted[0];
     if (!whale || whale.oddsNum < 100) return null;
 
-    const product = PRODUCTS[productId];
-    const packsPerBox = product?.configs[config]?.packs || 24;
+    const configInfo = getConfigInfo(productId, config);
+    const packsPerBox = configInfo.packs || 24;
 
     const boxesFor50 = Math.ceil((Math.log(0.5) / Math.log(1 - 1/whale.oddsNum)) / packsPerBox);
     const boxesFor10 = Math.ceil((Math.log(0.9) / Math.log(1 - 1/whale.oddsNum)) / packsPerBox);
@@ -398,9 +390,8 @@ export function findChaseCards(productId, config) {
 export function calculateExpectedHits(productId, config) {
     const product = PRODUCTS[productId];
     if (!product) return [];
-    const configInfo = product.configs[config];
-    if (!configInfo) return [];
-    const totalPacks = configInfo.packs;
+    const configInfo = getConfigInfo(productId, config);
+    const totalPacks = configInfo.packs || 0;
     const filtered = ODDS_RAW.filter(row => row.product_id === productId && row.config === config && row.category === 'base' && row.odds);
     return filtered.map(row => {
         const odds = parseOdds(row.odds);
