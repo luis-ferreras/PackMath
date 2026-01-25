@@ -59,6 +59,17 @@ function widgetFullWidth(title, content, badge = null) {
 function renderProductBanner() {
     const product = PRODUCTS[state.product];
     if (!product) return '';
+    const configInfo = getConfigInfo(state.product, state.config);
+    const packs = configInfo?.packs || 0;
+    const cards = configInfo?.cardsPerPack || 0;
+    const boxesPerCase = configInfo?.boxesPerCase || 0;
+    const totalCards = packs * cards;
+
+    // Config details string
+    const configDetails = packs && cards
+        ? `${packs} packs × ${cards} cards = ${totalCards} cards/box${boxesPerCase ? ` • ${boxesPerCase} boxes/case` : ''}`
+        : '';
+
     return `
         <div class="product-banner" style="background: linear-gradient(135deg, ${styles.accentMuted} 0%, ${styles.bg.widget} 100%);
                     border: 1px solid ${styles.accent}40; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px;
@@ -67,8 +78,11 @@ function renderProductBanner() {
                 <h2 style="font-size: 18px; font-weight: 600; color: ${styles.text.primary}; margin: 0;">${product.name}</h2>
                 <p style="color: ${styles.text.muted}; font-size: 12px; margin: 4px 0 0 0;">${product.sport} • ${product.brand} • ${product.year}</p>
             </div>
-            <div style="display: flex; gap: 16px; font-size: 13px;">
-                <span style="color: ${styles.text.muted};">Box Type: <strong style="color: ${styles.accent}; text-transform: capitalize;">${state.config}</strong></span>
+            <div style="text-align: right;">
+                <div style="font-size: 13px; color: ${styles.text.muted};">
+                    Box Type: <strong style="color: ${styles.accent}; text-transform: capitalize;">${state.config}</strong>
+                </div>
+                ${configDetails ? `<div style="font-size: 11px; color: ${styles.text.muted}; margin-top: 4px;">${configDetails}</div>` : ''}
             </div>
         </div>
     `;
@@ -331,6 +345,7 @@ export function renderCalculatorView() {
     const configInfo = getConfigInfo(state.product, state.config);
     const packsPerBox = configInfo.packs || 0;
     const cardsPerPack = configInfo.cardsPerPack || 0;
+    const boxesPerCase = configInfo.boxesPerCase || 0;
     const boxCount = state.boxCount || 1;
     const totalPacks = packsPerBox * boxCount;
     const totalCards = totalPacks * cardsPerPack;
@@ -375,7 +390,7 @@ export function renderCalculatorView() {
                 </div>
             </div>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; padding: 12px; background: ${styles.bg.base}; border-radius: 8px;">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; padding: 12px; background: ${styles.bg.base}; border-radius: 8px;">
             <div>
                 <div style="font-size: 18px; font-weight: 700; color: ${colors.emerald};">${totalPacks}</div>
                 <div style="font-size: 10px; color: ${styles.text.muted};">PACKS</div>
@@ -387,6 +402,10 @@ export function renderCalculatorView() {
             <div>
                 <div style="font-size: 18px; font-weight: 700; color: ${styles.text.primary};">${totalCards}</div>
                 <div style="font-size: 10px; color: ${styles.text.muted};">TOTAL CARDS</div>
+            </div>
+            <div>
+                <div style="font-size: 18px; font-weight: 700; color: ${colors.blue};">${boxesPerCase || '—'}</div>
+                <div style="font-size: 10px; color: ${styles.text.muted};">BOXES/CASE</div>
             </div>
         </div>
     `, `${boxCount} box${boxCount > 1 ? 'es' : ''}`);
@@ -651,13 +670,26 @@ export function renderInsightsView() {
     if (configComparison && configComparison.configs.length >= 2) {
         widgets += widget('Config Showdown', `
             <div style="display: grid; grid-template-columns: repeat(${configComparison.configs.length}, 1fr); gap: 8px; margin-bottom: 10px;">
-                ${configComparison.configs.map(c => `
-                    <div style="text-align: center; padding: 10px; background: ${c.config === configComparison.bestForAutos ? colors.emerald + '15' : styles.bg.base}; border-radius: 6px; border: 1px solid ${c.config === configComparison.bestForAutos ? colors.emerald + '40' : 'transparent'};">
-                        <div style="font-size: 11px; font-weight: 600; color: ${styles.text.primary}; text-transform: capitalize; margin-bottom: 6px;">${c.config}</div>
-                        <div style="font-size: 10px; color: ${styles.text.muted};">Packs: <strong>${c.packs}</strong></div>
-                        <div style="font-size: 10px; color: ${styles.text.muted};">Auto: <strong style="color: ${c.config === configComparison.bestForAutos ? colors.emerald : styles.text.primary};">${c.autoOdds}</strong></div>
+                ${configComparison.configs.map(c => {
+                    const info = getConfigInfo(state.product, c.config);
+                    const cardsPerPack = info?.cardsPerPack || 0;
+                    const boxesPerCase = info?.boxesPerCase || 0;
+                    const totalCards = c.packs * cardsPerPack;
+                    const isBest = c.config === configComparison.bestForAutos;
+                    return `
+                    <div style="text-align: center; padding: 12px 8px; background: ${isBest ? colors.emerald + '15' : styles.bg.base}; border-radius: 6px; border: 1px solid ${isBest ? colors.emerald + '40' : 'transparent'};">
+                        <div style="font-size: 12px; font-weight: 600; color: ${styles.text.primary}; text-transform: capitalize; margin-bottom: 8px;">${c.config}</div>
+                        <div style="font-size: 10px; color: ${styles.text.muted}; line-height: 1.6;">
+                            <div>${c.packs} packs × ${cardsPerPack} cards</div>
+                            <div style="font-weight: 600; color: ${styles.text.secondary};">${totalCards} cards/box</div>
+                            ${boxesPerCase ? `<div>${boxesPerCase} boxes/case</div>` : ''}
+                        </div>
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid ${styles.border};">
+                            <div style="font-size: 10px; color: ${styles.text.muted};">Auto Odds</div>
+                            <div style="font-size: 13px; font-weight: 600; color: ${isBest ? colors.emerald : styles.text.primary};">${c.autoOdds}</div>
+                        </div>
                     </div>
-                `).join('')}
+                `}).join('')}
             </div>
             <p style="font-size: 11px; color: ${styles.text.secondary}; text-align: center;">💡 ${configComparison.insight}</p>
         `, 'vs');
