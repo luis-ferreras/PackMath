@@ -18,8 +18,9 @@ export const DEFAULT_CONFIGS = {
 
 export function getSheetURL(tabName) {
     const gid = SHEET_GIDS[tabName];
-    if (gid !== null) {
+    if (gid !== undefined) {
         return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
     }
+    // Fetch by sheet name for sheets not in SHEET_GIDS
     return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
 }
