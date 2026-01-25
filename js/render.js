@@ -785,8 +785,8 @@ export function renderChecklistView() {
 
     const totalCards = productChecklist.length;
     const baseSetCards = productChecklist.filter(c => {
-        const setName = (c.set_name || c.set_type || '').toLowerCase();
-        return !setName || setName === 'base';
+        const setName = (c.set_name || c.set_type || '').toLowerCase().trim();
+        return !setName || setName === 'base' || setName === 'base set' || setName.startsWith('base');
     });
     const rookies = productChecklist.filter(c => ['TRUE', 'true', '1', 'Yes', 'yes'].includes(c.rookie));
     const sets = [...new Set(productChecklist.map(c => c.set_name || c.set_type).filter(Boolean))];
