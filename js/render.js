@@ -784,6 +784,10 @@ export function renderChecklistView() {
     }
 
     const totalCards = productChecklist.length;
+    const baseSetCards = productChecklist.filter(c => {
+        const setName = (c.set_name || c.set_type || '').toLowerCase();
+        return !setName || setName === 'base';
+    });
     const rookies = productChecklist.filter(c => ['TRUE', 'true', '1', 'Yes', 'yes'].includes(c.rookie));
     const sets = [...new Set(productChecklist.map(c => c.set_name || c.set_type).filter(Boolean))];
     const teams = [...new Set(productChecklist.map(c => c.team).filter(Boolean))].sort();
@@ -811,22 +815,26 @@ export function renderChecklistView() {
                     <span class="widget-title">Stats</span>
                 </div>
                 <div class="widget-content">
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;">
-                        <div style="background: ${styles.bg.base}; padding: 10px; border-radius: 6px;">
-                            <div style="font-size: 18px; font-weight: 700; color: ${styles.text.primary};">${totalCards}</div>
-                            <div style="font-size: 9px; color: ${styles.text.muted};">CARDS</div>
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; text-align: center;">
+                        <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
+                            <div style="font-size: 16px; font-weight: 700; color: ${styles.text.primary};">${totalCards}</div>
+                            <div style="font-size: 8px; color: ${styles.text.muted};">CARDS</div>
                         </div>
-                        <div style="background: ${styles.bg.base}; padding: 10px; border-radius: 6px;">
-                            <div style="font-size: 18px; font-weight: 700; color: ${colors.blue};">${players.length}</div>
-                            <div style="font-size: 9px; color: ${styles.text.muted};">PLAYERS</div>
+                        <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
+                            <div style="font-size: 16px; font-weight: 700; color: ${colors.violet};">${baseSetCards.length}</div>
+                            <div style="font-size: 8px; color: ${styles.text.muted};">BASE SET</div>
                         </div>
-                        <div style="background: ${styles.bg.base}; padding: 10px; border-radius: 6px;">
-                            <div style="font-size: 18px; font-weight: 700; color: ${colors.orange};">${rookies.length}</div>
-                            <div style="font-size: 9px; color: ${styles.text.muted};">ROOKIES</div>
+                        <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
+                            <div style="font-size: 16px; font-weight: 700; color: ${colors.blue};">${players.length}</div>
+                            <div style="font-size: 8px; color: ${styles.text.muted};">PLAYERS</div>
                         </div>
-                        <div style="background: ${styles.bg.base}; padding: 10px; border-radius: 6px;">
-                            <div style="font-size: 18px; font-weight: 700; color: ${colors.emerald};">${teams.length}</div>
-                            <div style="font-size: 9px; color: ${styles.text.muted};">TEAMS</div>
+                        <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
+                            <div style="font-size: 16px; font-weight: 700; color: ${colors.orange};">${rookies.length}</div>
+                            <div style="font-size: 8px; color: ${styles.text.muted};">ROOKIES</div>
+                        </div>
+                        <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
+                            <div style="font-size: 16px; font-weight: 700; color: ${colors.emerald};">${teams.length}</div>
+                            <div style="font-size: 8px; color: ${styles.text.muted};">TEAMS</div>
                         </div>
                     </div>
                 </div>
