@@ -339,7 +339,7 @@ function renderBubbleChart() {
     });
 }
 
-// Calculator View - Simplified
+// Calculator View - Target Card Hunter, Probability Milestones, Scenario Analysis
 export function renderCalculatorView() {
     const product = PRODUCTS[state.product];
     const configInfo = getConfigInfo(state.product, state.config);
@@ -359,27 +359,8 @@ export function renderCalculatorView() {
         oddsDisplay: formatOddsValue(row.odds)
     })).filter(c => c.odds).sort((a, b) => a.odds - b.odds);
 
-    // Calculate expected hits using PACKS
-    const expected = allCards.map(card => {
-        const exp = totalPacks / card.odds;
-        return { ...card, expected: exp, display: exp >= 1 ? exp.toFixed(1) : (exp * 100).toFixed(1) + '%' };
-    });
-
-    const tiers = { common: 0, uncommon: 0, rare: 0, chase: 0 };
-    expected.forEach(e => {
-        if (e.odds <= 10) tiers.common += e.expected;
-        else if (e.odds <= 50) tiers.uncommon += e.expected;
-        else if (e.odds <= 200) tiers.rare += e.expected;
-        else tiers.chase += e.expected;
-    });
-
-    window.calculatorData = { tiers, totalPacks, totalCards, boxCount };
-    setTimeout(() => renderDonutChart(), 0);
-
-    const chaseCards = allCards.filter(c => c.odds >= 100).slice(0, 8);
-
-    // Combined Box Stats + Donut Widget
-    const mainWidget = widget('Box Calculator', `
+    // --- Box Control Widget ---
+    const boxControlWidget = widget('Box Calculator', `
         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
             <div style="flex: 1;">
                 <label style="font-size: 11px; color: ${styles.text.muted};">Boxes</label>
@@ -410,109 +391,244 @@ export function renderCalculatorView() {
         </div>
     `, `${boxCount} box${boxCount > 1 ? 'es' : ''}`);
 
-    // Donut Chart Widget
-    const donutWidget = widget('Pull Distribution', `
-        <div id="donutChart" style="width: 100%; height: 160px;"></div>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; text-align: center; font-size: 10px;">
-            <div><div style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.emerald}; margin: 0 auto 3px;"></div><div style="color: ${styles.text.muted};">Common</div><div style="color: ${styles.text.primary}; font-weight: 600;">${tiers.common.toFixed(1)}</div></div>
-            <div><div style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.blue}; margin: 0 auto 3px;"></div><div style="color: ${styles.text.muted};">Uncommon</div><div style="color: ${styles.text.primary}; font-weight: 600;">${tiers.uncommon.toFixed(1)}</div></div>
-            <div><div style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.violet}; margin: 0 auto 3px;"></div><div style="color: ${styles.text.muted};">Rare</div><div style="color: ${styles.text.primary}; font-weight: 600;">${tiers.rare.toFixed(1)}</div></div>
-            <div><div style="width: 8px; height: 8px; border-radius: 50%; background: ${colors.orange}; margin: 0 auto 3px;"></div><div style="color: ${styles.text.muted};">Chase</div><div style="color: ${styles.text.primary}; font-weight: 600;">${tiers.chase.toFixed(2)}</div></div>
-        </div>
-    `);
+    // --- TARGET CARD HUNTER ---
+    const targetCard = state.calcTargetCard ? allCards.find(c => c.name === state.calcTargetCard) : null;
 
-    // Chase Odds Widget - Limited to 8
-    const chaseOddsWidget = chaseCards.length > 0 ? widget('Chase Card Odds', `
-        <p style="color: ${styles.text.muted}; font-size: 10px; margin-bottom: 10px;">Probability in ${totalPacks} packs</p>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            ${chaseCards.map(card => {
-                const prob = 1 - Math.pow(1 - (1 / card.odds), totalPacks);
-                const probPercent = (prob * 100).toFixed(1);
-                const barWidth = Math.min(100, prob * 100);
-                const probColor = prob >= 0.5 ? colors.emerald : prob >= 0.1 ? colors.amber : colors.red;
-                return `
+    // Calculate boxes needed for probability thresholds
+    function boxesForProb(odds, targetProb) {
+        if (!odds || odds <= 0 || !packsPerBox) return '—';
+        const packsNeeded = Math.log(1 - targetProb) / Math.log(1 - (1 / odds));
+        return Math.ceil(packsNeeded / packsPerBox);
+    }
+
+    let targetContent = '';
+    if (targetCard) {
+        const prob50 = boxesForProb(targetCard.odds, 0.5);
+        const prob75 = boxesForProb(targetCard.odds, 0.75);
+        const prob90 = boxesForProb(targetCard.odds, 0.9);
+        const prob99 = boxesForProb(targetCard.odds, 0.99);
+        const currentProb = 1 - Math.pow(1 - (1 / targetCard.odds), totalPacks);
+        const currentProbPct = (currentProb * 100).toFixed(1);
+        const currentColor = currentProb >= 0.5 ? colors.emerald : currentProb >= 0.1 ? colors.amber : colors.red;
+        const catLabel = targetCard.category ? targetCard.category.charAt(0).toUpperCase() + targetCard.category.slice(1) : '';
+
+        targetContent = `
+            <div style="margin-top: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 10px; background: ${styles.bg.base}; border-radius: 8px;">
                     <div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
-                            <span style="color: ${styles.text.secondary}; font-size: 11px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${card.name}</span>
-                            <span style="font-family: monospace; font-size: 12px; color: ${probColor};">${probPercent}%</span>
-                        </div>
-                        <div style="height: 4px; background: ${styles.bg.input}; border-radius: 2px; overflow: hidden;">
-                            <div style="height: 100%; width: ${barWidth}%; background: ${probColor}; border-radius: 2px;"></div>
-                        </div>
+                        <div style="font-size: 14px; font-weight: 700; color: ${styles.text.primary};">${targetCard.name}</div>
+                        <div style="font-size: 10px; color: ${styles.text.muted};">${catLabel} • Odds: ${targetCard.oddsDisplay}</div>
                     </div>
-                `;
-            }).join('')}
-        </div>
-    `, `Top ${chaseCards.length}`) : '';
+                    <div style="text-align: right;">
+                        <div style="font-size: 22px; font-weight: 800; color: ${currentColor};">${currentProbPct}%</div>
+                        <div style="font-size: 9px; color: ${styles.text.muted};">in ${boxCount} box${boxCount > 1 ? 'es' : ''}</div>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center;">
+                    <div style="padding: 10px 4px; background: ${colors.amber}15; border: 1px solid ${colors.amber}30; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 800; color: ${colors.amber};">${prob50}</div>
+                        <div style="font-size: 9px; color: ${styles.text.muted}; margin-top: 2px;">boxes for</div>
+                        <div style="font-size: 11px; font-weight: 600; color: ${colors.amber};">50%</div>
+                    </div>
+                    <div style="padding: 10px 4px; background: ${colors.blue}15; border: 1px solid ${colors.blue}30; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 800; color: ${colors.blue};">${prob75}</div>
+                        <div style="font-size: 9px; color: ${styles.text.muted}; margin-top: 2px;">boxes for</div>
+                        <div style="font-size: 11px; font-weight: 600; color: ${colors.blue};">75%</div>
+                    </div>
+                    <div style="padding: 10px 4px; background: ${colors.violet}15; border: 1px solid ${colors.violet}30; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 800; color: ${colors.violet};">${prob90}</div>
+                        <div style="font-size: 9px; color: ${styles.text.muted}; margin-top: 2px;">boxes for</div>
+                        <div style="font-size: 11px; font-weight: 600; color: ${colors.violet};">90%</div>
+                    </div>
+                    <div style="padding: 10px 4px; background: ${colors.emerald}15; border: 1px solid ${colors.emerald}30; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 800; color: ${colors.emerald};">${prob99}</div>
+                        <div style="font-size: 9px; color: ${styles.text.muted}; margin-top: 2px;">boxes for</div>
+                        <div style="font-size: 11px; font-weight: 600; color: ${colors.emerald};">99%</div>
+                    </div>
+                </div>
+            </div>`;
+    } else {
+        targetContent = `
+            <div style="text-align: center; padding: 24px 12px; color: ${styles.text.muted}; font-size: 12px;">
+                Select a card above to see how many boxes you need
+            </div>`;
+    }
 
-    // Top Expected Hits - Limited to 10
-    const topExpected = expected.filter(e => e.expected >= 0.01).slice(0, 10);
-    const expectedWidget = widget('Expected Hits', `
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-            ${topExpected.map(e => {
-                const isGuaranteed = e.expected >= 1;
-                const barWidth = Math.min(100, (e.expected / Math.max(...topExpected.map(x => x.expected))) * 100);
-                return `
+    // Group cards by category for the dropdown
+    const cardsByCategory = {};
+    allCards.forEach(c => {
+        const cat = c.category || 'other';
+        if (!cardsByCategory[cat]) cardsByCategory[cat] = [];
+        cardsByCategory[cat].push(c);
+    });
+    const categoryOrder = ['base', 'insert', 'autograph', 'relic', 'autograph_relic', 'other'];
+    const categoryLabels = { base: 'Base / Parallels', insert: 'Inserts', autograph: 'Autographs', relic: 'Relics', autograph_relic: 'Auto Relics', other: 'Other' };
+
+    const targetWidget = widget('Target Card Hunter', `
+        <p style="color: ${styles.text.muted}; font-size: 10px; margin-bottom: 10px;">Pick a card you're chasing — see exactly how many boxes to find it</p>
+        <select onchange="setCalcTargetCard(this.value)" class="filter-select" style="width: 100%; font-size: 12px; padding: 8px;">
+            <option value="" ${!state.calcTargetCard ? 'selected' : ''}>Choose a card...</option>
+            ${categoryOrder.filter(cat => cardsByCategory[cat]).map(cat => `
+                <optgroup label="${categoryLabels[cat] || cat}">
+                    ${cardsByCategory[cat].map(c => `<option value="${c.name}" ${state.calcTargetCard === c.name ? 'selected' : ''}>${c.name} (${c.oddsDisplay})</option>`).join('')}
+                </optgroup>
+            `).join('')}
+        </select>
+        ${targetContent}
+    `, targetCard ? targetCard.oddsDisplay : 'Pick a card');
+
+    // --- PROBABILITY MILESTONES ---
+    const chaseCards = allCards.filter(c => c.odds >= 50).slice(0, 12);
+    const milestoneBoxes = [1, 2, 3, 5, 10, 15, 20];
+
+    const milestonesWidget = chaseCards.length > 0 ? widgetFullWidth('Probability Milestones', `
+        <p style="color: ${styles.text.muted}; font-size: 10px; margin-bottom: 10px;">Chance of pulling at least one — by box count</p>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 1px solid ${styles.border};">
+                        <th style="text-align: left; padding: 8px 6px; color: ${styles.text.muted}; font-weight: 600; font-size: 10px; position: sticky; left: 0; background: ${styles.bg.widget}; z-index: 1;">Card</th>
+                        <th style="text-align: center; padding: 8px 4px; color: ${styles.text.muted}; font-weight: 600; font-size: 10px;">Odds</th>
+                        ${milestoneBoxes.map(b => `<th style="text-align: center; padding: 8px 4px; color: ${b === boxCount ? colors.emerald : styles.text.muted}; font-weight: 600; font-size: 10px; ${b === boxCount ? `background: ${colors.emerald}10;` : ''}">${b} box${b > 1 ? 'es' : ''}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${chaseCards.map(card => {
+                        return `
+                        <tr style="border-bottom: 1px solid ${styles.border}20;" onmouseover="this.style.background='${styles.bg.input}'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 8px 6px; color: ${styles.text.secondary}; font-size: 11px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: sticky; left: 0; background: inherit;">${card.name}</td>
+                            <td style="text-align: center; padding: 8px 4px; font-family: monospace; color: ${styles.text.muted}; font-size: 10px;">${card.oddsDisplay}</td>
+                            ${milestoneBoxes.map(b => {
+                                const packs = packsPerBox * b;
+                                const prob = 1 - Math.pow(1 - (1 / card.odds), packs);
+                                const pct = (prob * 100);
+                                const display = pct >= 99.5 ? '99%+' : pct >= 1 ? Math.round(pct) + '%' : pct >= 0.1 ? pct.toFixed(1) + '%' : '<0.1%';
+                                const cellColor = pct >= 75 ? colors.emerald : pct >= 50 ? colors.blue : pct >= 25 ? colors.amber : pct >= 5 ? colors.orange : colors.red;
+                                const opacity = Math.max(0.15, Math.min(0.5, pct / 100));
+                                const isCurrentBox = b === boxCount;
+                                return `<td style="text-align: center; padding: 8px 4px; font-family: monospace; font-size: 11px; font-weight: ${isCurrentBox ? '700' : '500'}; color: ${cellColor}; background: ${cellColor}${Math.round(opacity * 255).toString(16).padStart(2, '0')}; ${isCurrentBox ? `box-shadow: inset 0 0 0 1px ${colors.emerald}60;` : ''}">${display}</td>`;
+                            }).join('')}
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+        <p style="margin-top: 8px; font-size: 9px; color: ${styles.text.muted}; text-align: center;">Highlighted column matches your box count • Cards with odds 1:50+</p>
+    `, `${chaseCards.length} cards`) : '';
+
+    // --- SCENARIO ANALYSIS ---
+    // Categorize expected hits for the current box count
+    const expected = allCards.map(card => {
+        const exp = totalPacks / card.odds;
+        const prob = 1 - Math.pow(1 - (1 / card.odds), totalPacks);
+        return { ...card, expected: exp, prob };
+    });
+
+    // Guaranteed = expected >= 1, Likely = prob >= 50%, Possible = prob >= 10%, Longshot = rest
+    const guaranteed = expected.filter(e => e.expected >= 1);
+    const likely = expected.filter(e => e.expected < 1 && e.prob >= 0.5);
+    const possible = expected.filter(e => e.prob < 0.5 && e.prob >= 0.1);
+    const longshot = expected.filter(e => e.prob < 0.1 && e.prob >= 0.01);
+
+    // Count by category
+    function countByCategory(cards) {
+        const cats = { base: 0, insert: 0, autograph: 0, relic: 0, other: 0 };
+        cards.forEach(c => {
+            const cat = (c.category || 'other').toLowerCase();
+            if (cat === 'base') cats.base++;
+            else if (cat === 'insert') cats.insert++;
+            else if (cat === 'autograph' || cat === 'auto') cats.autograph++;
+            else if (cat === 'relic') cats.relic++;
+            else cats.other++;
+        });
+        return cats;
+    }
+
+    // Total expected hits by category
+    function expectedByCategory(cards) {
+        const cats = { base: 0, insert: 0, autograph: 0, relic: 0, other: 0 };
+        cards.forEach(c => {
+            const cat = (c.category || 'other').toLowerCase();
+            if (cat === 'base') cats.base += c.expected;
+            else if (cat === 'insert') cats.insert += c.expected;
+            else if (cat === 'autograph' || cat === 'auto') cats.autograph += c.expected;
+            else if (cat === 'relic') cats.relic += c.expected;
+            else cats.other += c.expected;
+        });
+        return cats;
+    }
+
+    const guaranteedCats = expectedByCategory(guaranteed);
+    const likelyCats = countByCategory(likely);
+    const possibleCats = countByCategory(possible);
+    const longshotCats = countByCategory(longshot);
+
+    // Total expected hits
+    const totalExpected = expected.reduce((sum, e) => sum + e.expected, 0);
+    const totalExpInserts = expected.filter(e => (e.category || '').toLowerCase() === 'insert').reduce((sum, e) => sum + e.expected, 0);
+    const totalExpAutos = expected.filter(e => (e.category || '').toLowerCase() === 'autograph' || (e.category || '').toLowerCase() === 'auto').reduce((sum, e) => sum + e.expected, 0);
+    const totalExpRelics = expected.filter(e => (e.category || '').toLowerCase() === 'relic').reduce((sum, e) => sum + e.expected, 0);
+
+    function scenarioSection(label, emoji, color, count, cats, description) {
+        if (count === 0) return '';
+        const catTags = [];
+        if (cats.base) catTags.push(`<span style="font-size: 9px; padding: 2px 6px; background: ${styles.text.primary}20; color: ${styles.text.secondary}; border-radius: 3px;">Base: ${typeof cats.base === 'number' && cats.base % 1 !== 0 ? cats.base.toFixed(1) : cats.base}</span>`);
+        if (cats.insert) catTags.push(`<span style="font-size: 9px; padding: 2px 6px; background: ${colors.blue}20; color: ${colors.blue}; border-radius: 3px;">Inserts: ${typeof cats.insert === 'number' && cats.insert % 1 !== 0 ? cats.insert.toFixed(1) : cats.insert}</span>`);
+        if (cats.autograph) catTags.push(`<span style="font-size: 9px; padding: 2px 6px; background: ${colors.amber}20; color: ${colors.amber}; border-radius: 3px;">Autos: ${typeof cats.autograph === 'number' && cats.autograph % 1 !== 0 ? cats.autograph.toFixed(1) : cats.autograph}</span>`);
+        if (cats.relic) catTags.push(`<span style="font-size: 9px; padding: 2px 6px; background: ${colors.emerald}20; color: ${colors.emerald}; border-radius: 3px;">Relics: ${typeof cats.relic === 'number' && cats.relic % 1 !== 0 ? cats.relic.toFixed(1) : cats.relic}</span>`);
+        if (cats.other) catTags.push(`<span style="font-size: 9px; padding: 2px 6px; background: ${colors.violet}20; color: ${colors.violet}; border-radius: 3px;">Other: ${typeof cats.other === 'number' && cats.other % 1 !== 0 ? cats.other.toFixed(1) : cats.other}</span>`);
+
+        return `
+            <div style="padding: 12px; background: ${color}08; border: 1px solid ${color}25; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <div style="width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: ${styles.text.secondary}; font-size: 11px;">${e.name}</div>
-                        <div style="flex: 1; height: 4px; background: ${styles.bg.input}; border-radius: 2px; overflow: hidden;">
-                            <div style="height: 100%; width: ${barWidth}%; background: ${getRarityBg(e.oddsDisplay)}; border-radius: 2px;"></div>
+                        <span style="font-size: 16px;">${emoji}</span>
+                        <div>
+                            <div style="font-size: 12px; font-weight: 700; color: ${color};">${label}</div>
+                            <div style="font-size: 9px; color: ${styles.text.muted};">${description}</div>
                         </div>
-                        <div style="width: 45px; text-align: right; font-family: monospace; font-size: 11px; color: ${isGuaranteed ? colors.emerald : colors.amber};">${e.display}</div>
                     </div>
-                `;
-            }).join('')}
+                    <div style="font-size: 18px; font-weight: 800; color: ${color};">${typeof count === 'number' && count % 1 !== 0 ? count.toFixed(1) : count}</div>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 4px;">${catTags.join('')}</div>
+            </div>`;
+    }
+
+    const scenarioWidget = widget('Scenario Analysis', `
+        <p style="color: ${styles.text.muted}; font-size: 10px; margin-bottom: 12px;">What to expect from ${boxCount} box${boxCount > 1 ? 'es' : ''} (${totalPacks} packs)</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            ${scenarioSection('Guaranteed Hits', '🎯', colors.emerald, guaranteed.length > 0 ? totalExpected.toFixed(1) + ' total' : 0, guaranteedCats, 'Expected at least 1 of each')}
+            ${scenarioSection('Likely Pulls', '🔥', colors.blue, likely.length, likelyCats, '50%+ chance per card')}
+            ${scenarioSection('Possible Pulls', '🎲', colors.amber, possible.length, possibleCats, '10-50% chance per card')}
+            ${scenarioSection('Longshots', '⭐', colors.orange, longshot.length, longshotCats, '1-10% chance per card')}
+        </div>
+        <div style="margin-top: 14px; padding: 10px; background: ${styles.bg.base}; border-radius: 8px;">
+            <div style="font-size: 10px; font-weight: 600; color: ${styles.text.muted}; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Expected Hits Summary</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center;">
+                <div>
+                    <div style="font-size: 16px; font-weight: 700; color: ${styles.text.primary};">${totalExpected.toFixed(1)}</div>
+                    <div style="font-size: 9px; color: ${styles.text.muted};">TOTAL</div>
+                </div>
+                <div>
+                    <div style="font-size: 16px; font-weight: 700; color: ${colors.blue};">${totalExpInserts.toFixed(1)}</div>
+                    <div style="font-size: 9px; color: ${styles.text.muted};">INSERTS</div>
+                </div>
+                <div>
+                    <div style="font-size: 16px; font-weight: 700; color: ${colors.amber};">${totalExpAutos.toFixed(1)}</div>
+                    <div style="font-size: 9px; color: ${styles.text.muted};">AUTOS</div>
+                </div>
+                <div>
+                    <div style="font-size: 16px; font-weight: 700; color: ${colors.emerald};">${totalExpRelics.toFixed(1)}</div>
+                    <div style="font-size: 9px; color: ${styles.text.muted};">RELICS</div>
+                </div>
+            </div>
         </div>
         <p style="margin-top: 10px; font-size: 9px; color: ${styles.text.muted}; text-align: center;">Statistical averages • Actual results vary</p>
-    `, `Top ${topExpected.length}`);
+    `, `${boxCount} box${boxCount > 1 ? 'es' : ''}`);
 
-    return mainWidget + donutWidget + chaseOddsWidget + expectedWidget;
+    return boxControlWidget + targetWidget + milestonesWidget + scenarioWidget;
 }
 
-function renderDonutChart() {
-    const data = window.calculatorData;
-    if (!data) return;
-
-    const container = document.getElementById('donutChart');
-    if (!container) return;
-
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    const radius = Math.min(width, height) / 2 - 10;
-
-    container.innerHTML = '';
-
-    const svg = d3.select('#donutChart')
-        .append('svg')
-        .attr('width', width)
-        .attr('height', height)
-        .append('g')
-        .attr('transform', `translate(${width/2},${height/2})`);
-
-    const pieColors = { common: colors.emerald, uncommon: colors.blue, rare: colors.violet, chase: colors.orange };
-
-    const pieData = [
-        { name: 'Common', value: data.tiers.common, color: pieColors.common },
-        { name: 'Uncommon', value: data.tiers.uncommon, color: pieColors.uncommon },
-        { name: 'Rare', value: data.tiers.rare, color: pieColors.rare },
-        { name: 'Chase', value: data.tiers.chase, color: pieColors.chase }
-    ].filter(d => d.value > 0);
-
-    const pie = d3.pie().value(d => d.value).sort(null);
-    const arc = d3.arc().innerRadius(radius * 0.6).outerRadius(radius);
-
-    const arcs = svg.selectAll('arc').data(pie(pieData)).enter().append('g');
-
-    arcs.append('path')
-        .attr('d', arc)
-        .attr('fill', d => d.data.color)
-        .attr('stroke', styles.bg.panel)
-        .attr('stroke-width', 2)
-        .style('opacity', 0.85);
-
-    svg.append('text').attr('text-anchor', 'middle').attr('dy', '-0.1em').attr('fill', 'white').attr('font-size', '18px').attr('font-weight', 'bold').text(data.totalPacks);
-    svg.append('text').attr('text-anchor', 'middle').attr('dy', '1.1em').attr('fill', styles.text.muted).attr('font-size', '9px').text('packs');
-}
 
 // Insights View - Comprehensive
 export function renderInsightsView() {

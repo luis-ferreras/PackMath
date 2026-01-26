@@ -12,7 +12,8 @@ export const state = {
     checklistRookieOnly: false,
     checklistSearch: '',
     checklistSortBy: 'card_num',
-    checklistSortDir: 'asc'
+    checklistSortDir: 'asc',
+    calcTargetCard: null
 };
 
 // URL Management
