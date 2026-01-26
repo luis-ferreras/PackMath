@@ -88,6 +88,11 @@ function setBoxCount(count) {
     renderProductContent();
 }
 
+function setCalcTargetCard(cardName) {
+    state.calcTargetCard = cardName || null;
+    renderProductContent();
+}
+
 function setChecklistSet(set) {
     state.checklistSet = set;
     renderProductContent();
@@ -157,6 +162,7 @@ window.setConfig = setConfig;
 window.setView = setView;
 window.setCompareTab = setCompareTab;
 window.setBoxCount = setBoxCount;
+window.setCalcTargetCard = setCalcTargetCard;
 window.setChecklistSet = setChecklistSet;
 window.setChecklistTeam = setChecklistTeam;
 window.setChecklistRookieOnly = setChecklistRookieOnly;
