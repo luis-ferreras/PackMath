@@ -202,141 +202,155 @@ export function renderCompareView() {
     return widgetFullWidth('Compare Odds', tabButtons + tableContent, `${entries.length} cards`);
 }
 
-// Bubbles View
-export function renderBubblesView() {
-    const currentOdds = getOddsForProduct(state.product, state.config);
-    if (!currentOdds.base_parallels) {
-        return widget('Rarity Bubbles', `<p style="color: ${styles.text.muted}; text-align: center; padding: 32px;">No parallel data available for this config</p>`);
+// Rarity Map View - Every card organized by rarity tier
+export function renderRarityMapView() {
+    const allCards = ODDS_RAW.filter(row =>
+        row.product_id === state.product && row.config === state.config && row.odds
+    ).map(row => ({
+        name: row.parallel || row.card_type,
+        category: row.category || 'other',
+        odds: parseOdds(row.odds),
+        oddsDisplay: formatOddsValue(row.odds)
+    })).filter(c => c.odds).sort((a, b) => a.odds - b.odds);
+
+    if (allCards.length === 0) {
+        return widgetFullWidth('Rarity Map', `<p style="color: ${styles.text.muted}; text-align: center; padding: 32px;">No odds data available for this config</p>`);
     }
 
-    const bubbleData = currentOdds.base_parallels
-        .filter(p => p.odds)
-        .map(p => {
-            const odds = parseOdds(p.odds);
-            const tier = getRarityTier(p.odds);
-            return { name: p.name, odds: p.odds, oddsNum: odds, tier: tier.name, color: tier.color };
-        });
-
-    window.bubbleChartData = bubbleData;
-    setTimeout(() => renderBubbleChart(), 0);
-
-    const legendItems = [
-        { label: 'Common (1:1-10)', color: colors.emerald },
-        { label: 'Uncommon (1:11-50)', color: colors.blue },
-        { label: 'Rare (1:51-200)', color: colors.violet },
-        { label: 'Chase (1:200+)', color: colors.orange }
+    // Bucket into tiers
+    const tiers = [
+        { key: 'common', label: 'Common', range: '1:1 – 1:10', color: colors.emerald, icon: '●', cards: [] },
+        { key: 'uncommon', label: 'Uncommon', range: '1:11 – 1:50', color: colors.blue, icon: '◆', cards: [] },
+        { key: 'rare', label: 'Rare', range: '1:51 – 1:200', color: colors.violet, icon: '★', cards: [] },
+        { key: 'chase', label: 'Chase', range: '1:200+', color: colors.orange, icon: '🔥', cards: [] }
     ];
 
-    return widget('Rarity Bubbles', `
-        <p style="color: ${styles.text.muted}; font-size: 12px; margin-bottom: 12px;">Bigger bubble = easier to pull. Drag to rearrange.</p>
-        <div id="bubbleChart" style="width: 100%; height: 350px; background: ${styles.bg.base}; border-radius: 8px; overflow: hidden;"></div>
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 12px; font-size: 10px; color: ${styles.text.muted};">
-            ${legendItems.map(item => `
-                <span style="display: flex; align-items: center; gap: 5px;">
-                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${item.color};"></span>
-                    ${item.label}
-                </span>
-            `).join('')}
+    allCards.forEach(c => {
+        if (c.odds <= 10) tiers[0].cards.push(c);
+        else if (c.odds <= 50) tiers[1].cards.push(c);
+        else if (c.odds <= 200) tiers[2].cards.push(c);
+        else tiers[3].cards.push(c);
+    });
+
+    const categoryLabels = { base: 'Base', insert: 'Insert', autograph: 'Auto', relic: 'Relic', autograph_relic: 'Auto Relic', auto_relic: 'Auto Relic', other: 'Other' };
+    const categoryColors = { base: styles.text.primary, insert: colors.blue, autograph: colors.amber, relic: colors.emerald, autograph_relic: colors.violet, auto_relic: colors.violet, other: styles.text.muted };
+
+    // Overview stats
+    const totalCards = allCards.length;
+    const overviewWidget = `
+        <div style="display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+            <div class="widget" style="flex: 1; min-width: 280px;">
+                <div class="widget-header">
+                    <span class="widget-title">Rarity Overview</span>
+                    <span class="widget-badge">${totalCards} card types</span>
+                </div>
+                <div class="widget-content">
+                    <div style="display: flex; gap: 4px; height: 32px; border-radius: 6px; overflow: hidden; margin-bottom: 12px;">
+                        ${tiers.filter(t => t.cards.length > 0).map(t => {
+                            const pct = (t.cards.length / totalCards * 100);
+                            return `<div style="flex: ${t.cards.length}; background: ${t.color}; display: flex; align-items: center; justify-content: center; min-width: ${pct > 8 ? '0' : '28'}px;" title="${t.label}: ${t.cards.length} cards (${pct.toFixed(0)}%)">
+                                <span style="font-size: 10px; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${t.cards.length}</span>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;">
+                        ${tiers.map(t => `
+                            <div style="padding: 8px 4px;">
+                                <div style="font-size: 18px; font-weight: 800; color: ${t.color};">${t.cards.length}</div>
+                                <div style="font-size: 9px; color: ${styles.text.muted};">${t.label.toUpperCase()}</div>
+                                <div style="font-size: 8px; color: ${styles.text.muted}; margin-top: 2px;">${t.range}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+            <div class="widget" style="flex: 1; min-width: 280px;">
+                <div class="widget-header">
+                    <span class="widget-title">Category Breakdown</span>
+                </div>
+                <div class="widget-content">
+                    ${(() => {
+                        // Count cards per category
+                        const catCounts = {};
+                        allCards.forEach(c => {
+                            const cat = c.category || 'other';
+                            catCounts[cat] = (catCounts[cat] || 0) + 1;
+                        });
+                        const catEntries = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
+                        return `
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                ${catEntries.map(([cat, count]) => {
+                                    const pct = (count / totalCards * 100).toFixed(0);
+                                    const catColor = categoryColors[cat] || styles.text.muted;
+                                    const catLabel = categoryLabels[cat] || cat.charAt(0).toUpperCase() + cat.slice(1);
+                                    return `
+                                        <div>
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                                <span style="font-size: 11px; font-weight: 600; color: ${catColor};">${catLabel}</span>
+                                                <span style="font-size: 11px; color: ${styles.text.muted};">${count} cards (${pct}%)</span>
+                                            </div>
+                                            <div style="height: 6px; background: ${styles.bg.input}; border-radius: 3px; overflow: hidden;">
+                                                <div style="height: 100%; width: ${pct}%; background: ${catColor}; border-radius: 3px;"></div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `;
+                    })()}
+                </div>
+            </div>
         </div>
-    `, `${bubbleData.length} parallels`);
-}
+    `;
 
-function renderBubbleChart() {
-    const data = window.bubbleChartData;
-    if (!data || data.length === 0) return;
-
-    const container = document.getElementById('bubbleChart');
-    if (!container) return;
-
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-
-    container.innerHTML = '';
-
-    const colorMap = { emerald: colors.emerald, blue: colors.blue, violet: colors.violet, orange: colors.orange };
-
-    const maxOdds = Math.max(...data.map(d => d.oddsNum));
-    const minRadius = 18;
-    const maxRadius = 55;
-
-    data.forEach(d => {
-        const logMax = Math.log(maxOdds + 1);
-        const logOdds = Math.log(d.oddsNum + 1);
-        d.radius = maxRadius - ((logOdds / logMax) * (maxRadius - minRadius));
-        d.x = width / 2 + (Math.random() - 0.5) * 100;
-        d.y = height / 2 + (Math.random() - 0.5) * 100;
-    });
-
-    const svg = d3.select('#bubbleChart')
-        .append('svg')
-        .attr('width', width)
-        .attr('height', height);
-
-    const defs = svg.append('defs');
-    const filter = defs.append('filter').attr('id', 'glow').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
-    filter.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'coloredBlur');
-    const feMerge = filter.append('feMerge');
-    feMerge.append('feMergeNode').attr('in', 'coloredBlur');
-    feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
-
-    const simulation = d3.forceSimulation(data)
-        .force('charge', d3.forceManyBody().strength(8))
-        .force('center', d3.forceCenter(width / 2, height / 2))
-        .force('collision', d3.forceCollide().radius(d => d.radius + 4))
-        .force('x', d3.forceX(width / 2).strength(0.05))
-        .force('y', d3.forceY(height / 2).strength(0.05));
-
-    const bubbles = svg.selectAll('g')
-        .data(data)
-        .enter()
-        .append('g')
-        .style('cursor', 'grab')
-        .call(d3.drag()
-            .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-            .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
-            .on('end', (event, d) => { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
-
-    bubbles.append('circle')
-        .attr('r', d => d.radius)
-        .attr('fill', d => colorMap[d.color])
-        .attr('fill-opacity', 0.7)
-        .attr('stroke', d => colorMap[d.color])
-        .attr('stroke-width', 2)
-        .style('filter', 'url(#glow)');
-
-    bubbles.append('text')
-        .attr('text-anchor', 'middle')
-        .attr('dy', '-0.2em')
-        .attr('fill', 'white')
-        .attr('font-size', d => Math.max(9, d.radius / 4.5))
-        .attr('font-weight', '600')
-        .attr('pointer-events', 'none')
-        .text(d => d.name.length > 10 ? d.name.slice(0, 8) + '…' : d.name);
-
-    bubbles.append('text')
-        .attr('text-anchor', 'middle')
-        .attr('dy', '1em')
-        .attr('fill', 'rgba(255,255,255,0.75)')
-        .attr('font-size', d => Math.max(8, d.radius / 5))
-        .attr('font-weight', '500')
-        .attr('pointer-events', 'none')
-        .text(d => d.odds);
-
-    bubbles
-        .on('mouseover', function(event, d) {
-            d3.select(this).select('circle').transition().duration(150).attr('fill-opacity', 1).attr('r', d.radius * 1.1);
-        })
-        .on('mouseout', function(event, d) {
-            d3.select(this).select('circle').transition().duration(150).attr('fill-opacity', 0.7).attr('r', d.radius);
+    // Tier detail sections
+    const tierSections = tiers.filter(t => t.cards.length > 0).map(tier => {
+        // Group cards within this tier by category
+        const tierCats = {};
+        tier.cards.forEach(c => {
+            const cat = c.category || 'other';
+            if (!tierCats[cat]) tierCats[cat] = [];
+            tierCats[cat].push(c);
         });
 
-    simulation.on('tick', () => {
-        bubbles.attr('transform', d => {
-            d.x = Math.max(d.radius, Math.min(width - d.radius, d.x));
-            d.y = Math.max(d.radius, Math.min(height - d.radius, d.y));
-            return `translate(${d.x},${d.y})`;
-        });
-    });
+        const catOrder = ['base', 'insert', 'autograph', 'relic', 'autograph_relic', 'auto_relic', 'other'];
+        const oddsRange = tier.cards.length > 0
+            ? `${tier.cards[0].oddsDisplay} → ${tier.cards[tier.cards.length - 1].oddsDisplay}`
+            : '';
+
+        return widgetFullWidth(`${tier.icon} ${tier.label} Tier`, `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 10px; color: ${styles.text.muted};">Odds range:</span>
+                    <span style="font-family: monospace; font-size: 11px; color: ${tier.color};">${oddsRange}</span>
+                </div>
+                <div style="display: flex; gap: 4px;">
+                    ${catOrder.filter(cat => tierCats[cat]).map(cat => {
+                        const catColor = categoryColors[cat] || styles.text.muted;
+                        const catLabel = categoryLabels[cat] || cat;
+                        return `<span style="font-size: 9px; padding: 2px 6px; background: ${catColor}15; color: ${catColor}; border-radius: 3px; border: 1px solid ${catColor}30;">${catLabel}: ${tierCats[cat].length}</span>`;
+                    }).join('')}
+                </div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                ${tier.cards.map(card => {
+                    const catColor = categoryColors[card.category] || styles.text.muted;
+                    const catLabel = categoryLabels[card.category] || card.category || '';
+                    const isChase = tier.key === 'chase';
+                    return `
+                        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: ${tier.color}08; border: 1px solid ${tier.color}20; border-radius: 6px; ${isChase ? `box-shadow: 0 0 8px ${tier.color}15;` : ''}"
+                             title="${card.name} • ${catLabel} • ${card.oddsDisplay}">
+                            <span style="width: 6px; height: 6px; border-radius: 50%; background: ${catColor}; flex-shrink: 0;"></span>
+                            <span style="font-size: 11px; color: ${styles.text.primary}; white-space: nowrap;">${card.name}</span>
+                            <span style="font-family: monospace; font-size: 10px; color: ${tier.color}; font-weight: 600;">${card.oddsDisplay}</span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `, `${tier.cards.length} cards`);
+    }).join('');
+
+    return overviewWidget + tierSections;
 }
 
 // Calculator View - Target Card Hunter, Probability Milestones, Scenario Analysis
@@ -1104,7 +1118,7 @@ export function renderProductContent() {
     let viewContent = '';
     let isFullWidth = false;
     switch (state.view) {
-        case 'bubbles': viewContent = renderBubblesView(); break;
+        case 'rarity': viewContent = renderRarityMapView(); isFullWidth = true; break;
         case 'calculator': viewContent = renderCalculatorView(); break;
         case 'checklist':
             viewContent = renderChecklistView();

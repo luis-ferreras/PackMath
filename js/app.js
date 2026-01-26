@@ -183,7 +183,7 @@ function loadStateFromURL() {
         const configSelect = document.getElementById('configSelect');
         if (configSelect) configSelect.value = config;
     }
-    if (view && ['compare', 'bubbles', 'calculator', 'checklist', 'insights'].includes(view)) {
+    if (view && ['compare', 'rarity', 'calculator', 'checklist', 'insights'].includes(view)) {
         state.view = view;
         updateNavActiveState();
     }
