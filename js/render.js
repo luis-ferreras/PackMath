@@ -788,10 +788,21 @@ export function renderChecklistView() {
         const setName = (c.set_name || '').trim();
         return setName === 'Base Set';
     });
+    const insertCards = productChecklist.filter(c => {
+        const setType = (c.set_type || '').toLowerCase().trim();
+        return setType === 'insert';
+    });
+    const autoCards = productChecklist.filter(c => {
+        const setType = (c.set_type || '').toLowerCase().trim();
+        return setType === 'autograph' || setType === 'auto';
+    });
+    const relicCards = productChecklist.filter(c => {
+        const setType = (c.set_type || '').toLowerCase().trim();
+        return setType === 'relic';
+    });
     const rookies = productChecklist.filter(c => ['TRUE', 'true', '1', 'Yes', 'yes'].includes(c.rookie));
     const sets = [...new Set(productChecklist.map(c => c.set_name || c.set_type).filter(Boolean))];
     const teams = [...new Set(productChecklist.map(c => c.team).filter(Boolean))].sort();
-    const players = [...new Set(productChecklist.map(c => c.player).filter(Boolean))];
 
     const setFilter = state.checklistSet || 'all';
     const teamFilter = state.checklistTeam || 'all';
@@ -815,26 +826,30 @@ export function renderChecklistView() {
                     <span class="widget-title">Stats</span>
                 </div>
                 <div class="widget-content">
-                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; text-align: center;">
+                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; text-align: center;">
                         <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
                             <div style="font-size: 16px; font-weight: 700; color: ${styles.text.primary};">${totalCards}</div>
                             <div style="font-size: 8px; color: ${styles.text.muted};">CARDS</div>
                         </div>
                         <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
                             <div style="font-size: 16px; font-weight: 700; color: ${colors.violet};">${baseSetCards.length}</div>
-                            <div style="font-size: 8px; color: ${styles.text.muted};">BASE SET</div>
+                            <div style="font-size: 8px; color: ${styles.text.muted};">SET SIZE</div>
                         </div>
                         <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
-                            <div style="font-size: 16px; font-weight: 700; color: ${colors.blue};">${players.length}</div>
-                            <div style="font-size: 8px; color: ${styles.text.muted};">PLAYERS</div>
+                            <div style="font-size: 16px; font-weight: 700; color: ${colors.blue};">${insertCards.length}</div>
+                            <div style="font-size: 8px; color: ${styles.text.muted};">INSERTS</div>
+                        </div>
+                        <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
+                            <div style="font-size: 16px; font-weight: 700; color: ${colors.amber};">${autoCards.length}</div>
+                            <div style="font-size: 8px; color: ${styles.text.muted};">AUTOS</div>
+                        </div>
+                        <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
+                            <div style="font-size: 16px; font-weight: 700; color: ${colors.emerald};">${relicCards.length}</div>
+                            <div style="font-size: 8px; color: ${styles.text.muted};">RELICS</div>
                         </div>
                         <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
                             <div style="font-size: 16px; font-weight: 700; color: ${colors.orange};">${rookies.length}</div>
                             <div style="font-size: 8px; color: ${styles.text.muted};">ROOKIES</div>
-                        </div>
-                        <div style="background: ${styles.bg.base}; padding: 8px 4px; border-radius: 6px;">
-                            <div style="font-size: 16px; font-weight: 700; color: ${colors.emerald};">${teams.length}</div>
-                            <div style="font-size: 8px; color: ${styles.text.muted};">TEAMS</div>
                         </div>
                     </div>
                 </div>
