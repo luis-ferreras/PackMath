@@ -105,11 +105,15 @@ function processProducts(rows) {
             const releaseDate = row.release_date || '';
             const year = releaseDate.substring(0, 4) || '';
 
+            // Build display name: [year] [brand] [product_id]
+            const brand = row.product_brand || '';
+            const displayName = [year, brand, row.product_id].filter(Boolean).join(' ');
+
             products[row.product_id] = {
                 id: row.product_id,
-                name: row.product_id,  // Using product_id as display name
+                name: displayName,
                 sport: row.product_sport || '',
-                brand: row.product_brand || '',
+                brand: brand,
                 year: year,
                 url: row.product_url || '',
                 releaseDate: releaseDate,
