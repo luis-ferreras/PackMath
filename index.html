@@ -15,7 +15,7 @@
                     <span class="logo-icon">PM</span>
                     <span class="logo-text">Pack Math</span>
                 </a>
-                <div class="search-container header-search" id="headerSearch">
+                <div class="search-container header-search">
                     <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"/>
                         <path d="m21 21-4.35-4.35"/>
@@ -25,56 +25,47 @@
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="main">
-            <!-- Loading State -->
-            <div id="loadingState" class="state-container">
-                <div class="state-icon loading-pulse">PM</div>
-                <p class="state-title">Loading</p>
-                <p class="state-description">Fetching product data...</p>
-            </div>
-
-            <!-- Error State -->
-            <div id="errorState" class="state-container hidden">
-                <div class="state-icon">!</div>
-                <p class="state-title">Unable to Load Data</p>
-                <p class="state-description">Could not connect to the database. Please try again later.</p>
-            </div>
-
-            <!-- Landing View -->
-            <div id="landingView" class="hidden">
-                <div class="landing">
-                    <div class="landing-hero">
-                        <div class="landing-logo">
-                            <span class="landing-logo-icon">PM</span>
-                        </div>
-                        <h1 class="landing-title">Pack Math</h1>
-                        <p class="landing-subtitle">Trading card odds, probabilities, and insights</p>
-
-                        <div class="search-container landing-search">
-                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"/>
-                                <path d="m21 21-4.35-4.35"/>
-                            </svg>
-                            <input type="text" class="search-input" id="landingSearchInput" placeholder="Search for a product...">
-                        </div>
+        <!-- Main Layout -->
+        <div class="layout">
+            <!-- Left Sidebar - Sports Navigation -->
+            <aside class="sidebar-left" id="sidebarLeft">
+                <nav class="sidebar-nav">
+                    <div class="nav-section">
+                        <div class="nav-section-title">Sports</div>
+                        <ul class="nav-list" id="sportNavList">
+                            <!-- Populated by JS -->
+                        </ul>
                     </div>
+                </nav>
+            </aside>
 
-                    <!-- Sport Pills -->
-                    <div class="sport-pills" id="sportPills"></div>
-
-                    <!-- Recent/Popular Products -->
-                    <div class="landing-section">
-                        <h2 class="section-title">All Products</h2>
-                        <div class="product-grid" id="landingProducts"></div>
-                    </div>
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Loading State -->
+                <div id="loadingState" class="state-container">
+                    <div class="state-icon loading-pulse">PM</div>
+                    <p class="state-title">Loading</p>
+                    <p class="state-description">Fetching product data...</p>
                 </div>
-            </div>
 
-            <!-- Search Results View -->
-            <div id="searchView" class="hidden">
-                <div class="search-results">
-                    <div class="search-header">
+                <!-- Error State -->
+                <div id="errorState" class="state-container hidden">
+                    <div class="state-icon">!</div>
+                    <p class="state-title">Unable to Load Data</p>
+                    <p class="state-description">Could not connect to the database. Please try again later.</p>
+                </div>
+
+                <!-- Landing View -->
+                <div id="landingView" class="hidden">
+                    <div class="content-header">
+                        <h2 class="content-title" id="contentTitle">All Products</h2>
+                    </div>
+                    <div class="product-grid" id="landingProducts"></div>
+                </div>
+
+                <!-- Search Results View -->
+                <div id="searchView" class="hidden">
+                    <div class="content-header">
                         <button class="back-btn" id="searchBackBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="m15 18-6-6 6-6"/>
@@ -86,12 +77,10 @@
                     <p class="results-count" id="resultsCount"></p>
                     <div class="product-grid" id="searchResults"></div>
                 </div>
-            </div>
 
-            <!-- Product View -->
-            <div id="productView" class="hidden">
-                <div class="product-page">
-                    <div class="product-header">
+                <!-- Product View -->
+                <div id="productView" class="hidden">
+                    <div class="content-header">
                         <button class="back-btn" id="productBackBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="m15 18-6-6 6-6"/>
@@ -106,8 +95,18 @@
                     <!-- Checklist Section -->
                     <div class="tab-content" id="tabContent"></div>
                 </div>
-            </div>
-        </main>
+            </main>
+
+            <!-- Right Sidebar - Ads -->
+            <aside class="sidebar-right">
+                <div class="ad-placeholder">
+                    <span class="ad-label">Advertisement</span>
+                </div>
+                <div class="ad-placeholder">
+                    <span class="ad-label">Advertisement</span>
+                </div>
+            </aside>
+        </div>
     </div>
 
     <script type="module" src="js/app.js"></script>
