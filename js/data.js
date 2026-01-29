@@ -88,8 +88,8 @@ function processProducts(rows) {
             CONFIGURATIONS
                 .filter(c => c.product_id === row.product_id)
                 .forEach(c => {
-                    productConfigs[c.config] = {
-                        name: c.config,
+                    productConfigs[c.box_config] = {
+                        name: c.box_config,
                         packs: parseInt(c.packs_per_box) || 0,
                         cardsPerPack: parseInt(c.cards_per_pack) || 0,
                         boxesPerCase: parseInt(c.boxes_per_case) || 0
@@ -101,12 +101,18 @@ function processProducts(rows) {
                 ? productConfigs
                 : { ...DEFAULT_CONFIGS };
 
+            // Extract year from release_date (format: YYYY-MM-DD or similar)
+            const releaseDate = row.release_date || '';
+            const year = releaseDate.substring(0, 4) || '';
+
             products[row.product_id] = {
                 id: row.product_id,
-                name: row.name || '',
-                sport: row.sport || '',
-                brand: row.brand || '',
-                year: row.year || '',
+                name: row.product_id,  // Using product_id as display name
+                sport: row.product_sport || '',
+                brand: row.product_brand || '',
+                year: year,
+                url: row.product_url || '',
+                releaseDate: releaseDate,
                 configs
             };
         }
@@ -292,18 +298,18 @@ export function getOddsForProduct(productId, config) {
     const baseParallels = filtered.filter(row => row.category === 'base').map(row => ({
         name: row.parallel || row.card_type,
         odds: row.odds ? formatOddsValue(row.odds) : null,
-        numbered: row.numbered || null
+        numbered: row.out_of || null  // out_of = numbered to /XX
     }));
     const inserts = filtered.filter(row => row.category === 'insert').map(row => ({
         name: row.card_type,
         odds: row.odds ? formatOddsValue(row.odds) : null,
         type: row.parallel === 'SSP' ? 'ssp' : 'insert',
-        checklist: row.checklist ? parseInt(row.checklist) : null
+        numbered: row.out_of || null
     }));
     const autographs = filtered.filter(row => row.category === 'autograph').map(row => ({
         name: row.card_type,
         odds: row.odds ? formatOddsValue(row.odds) : null,
-        checklist: row.checklist ? parseInt(row.checklist) : null
+        numbered: row.out_of || null
     }));
     return {
         base_parallels: baseParallels.length > 0 ? baseParallels : null,
