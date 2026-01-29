@@ -1,6 +1,6 @@
 import { loadData, getAvailableSports, getAllProducts, searchProducts, getProduct, getAvailableConfigs, PRODUCTS } from './data.js';
 import { state, updateURL, loadStateFromURL } from './state.js';
-import { renderLanding, renderSearchResults, renderProductPage, renderTabContent } from './render.js';
+import { renderLanding, renderSearchResults, renderProductPage, renderTabContent, renderSportsSidebar } from './render.js';
 
 // ========================================
 // View Management
@@ -11,14 +11,6 @@ function showView(viewName) {
     document.getElementById('landingView').classList.add('hidden');
     document.getElementById('searchView').classList.add('hidden');
     document.getElementById('productView').classList.add('hidden');
-
-    // Show header search only when not on landing
-    const headerSearch = document.getElementById('headerSearch');
-    if (viewName === 'landing') {
-        headerSearch.classList.add('hidden');
-    } else {
-        headerSearch.classList.remove('hidden');
-    }
 
     // Show the requested view
     document.getElementById(`${viewName}View`).classList.remove('hidden');
@@ -32,14 +24,12 @@ function showView(viewName) {
 
 function navigateToLanding() {
     state.searchQuery = '';
-    state.sportFilter = null;
     state.product = null;
     showView('landing');
     renderLanding();
     updateURL();
 
-    // Clear search inputs
-    document.getElementById('landingSearchInput').value = '';
+    // Clear search input
     document.getElementById('headerSearchInput').value = '';
 }
 
@@ -155,8 +145,15 @@ function setChecklistSearch(query) {
 }
 
 function setSportFilter(sport) {
-    state.sportFilter = state.sportFilter === sport ? null : sport;
+    state.sportFilter = sport;
+    // If on search view, go back to landing
+    if (state.view === 'search' || state.view === 'product') {
+        state.searchQuery = '';
+        state.product = null;
+        showView('landing');
+    }
     renderLanding();
+    updateURL();
 }
 
 // Make handlers available globally
@@ -201,19 +198,11 @@ function initEventListeners() {
         navigateToLanding();
     });
 
-    // Landing search input
-    const landingSearchInput = document.getElementById('landingSearchInput');
-    landingSearchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && landingSearchInput.value.trim()) {
-            navigateToSearch(landingSearchInput.value.trim(), state.sportFilter);
-        }
-    });
-
     // Header search input
     const headerSearchInput = document.getElementById('headerSearchInput');
     headerSearchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && headerSearchInput.value.trim()) {
-            navigateToSearch(headerSearchInput.value.trim());
+            navigateToSearch(headerSearchInput.value.trim(), state.sportFilter);
         }
     });
 
@@ -247,6 +236,9 @@ function initEventListeners() {
 // ========================================
 
 function initFromState() {
+    // Always render the sidebar
+    renderSportsSidebar();
+
     if (state.view === 'product' && state.product && PRODUCTS[state.product]) {
         showView('product');
         renderProductPage();

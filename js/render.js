@@ -5,18 +5,71 @@ import {
 } from './data.js';
 
 // ========================================
+// Sports Sidebar Navigation
+// ========================================
+
+export function renderSportsSidebar() {
+    const sports = getAvailableSports();
+    const allProducts = getAllProducts();
+
+    // Get product counts per sport
+    const sportCounts = {};
+    allProducts.forEach(p => {
+        sportCounts[p.sport] = (sportCounts[p.sport] || 0) + 1;
+    });
+
+    const navHtml = `
+        <li class="nav-item">
+            <a class="nav-link ${!state.sportFilter ? 'active' : ''}" onclick="setSportFilter(null)">
+                <span class="nav-link-icon">🏆</span>
+                All Sports
+                <span class="nav-link-count">${allProducts.length}</span>
+            </a>
+        </li>
+        ${sports.map(sport => {
+            const icon = getSportIcon(sport);
+            return `
+                <li class="nav-item">
+                    <a class="nav-link ${state.sportFilter === sport ? 'active' : ''}" onclick="setSportFilter('${sport}')">
+                        <span class="nav-link-icon">${icon}</span>
+                        ${sport}
+                        <span class="nav-link-count">${sportCounts[sport] || 0}</span>
+                    </a>
+                </li>
+            `;
+        }).join('')}
+    `;
+
+    document.getElementById('sportNavList').innerHTML = navHtml;
+}
+
+function getSportIcon(sport) {
+    const icons = {
+        'Basketball': '🏀',
+        'Football': '🏈',
+        'Baseball': '⚾',
+        'Hockey': '🏒',
+        'Soccer': '⚽',
+        'UFC': '🥊',
+        'Wrestling': '🤼',
+        'Golf': '⛳',
+        'Tennis': '🎾',
+        'Racing': '🏎️'
+    };
+    return icons[sport] || '🏅';
+}
+
+// ========================================
 // Landing Page
 // ========================================
 
 export function renderLanding() {
-    // Render sport pills
-    const sports = getAvailableSports();
-    const sportPillsHtml = sports.map(sport => `
-        <button class="sport-pill ${state.sportFilter === sport ? 'active' : ''}" onclick="setSportFilter('${sport}')">
-            ${sport}
-        </button>
-    `).join('');
-    document.getElementById('sportPills').innerHTML = sportPillsHtml;
+    // Render sports in sidebar
+    renderSportsSidebar();
+
+    // Update title based on filter
+    const title = state.sportFilter ? `${state.sportFilter} Products` : 'All Products';
+    document.getElementById('contentTitle').textContent = title;
 
     // Render products
     const products = state.sportFilter ? searchProducts('', state.sportFilter) : getAllProducts();
