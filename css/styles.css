@@ -512,6 +512,23 @@ body {
     font-size: 0.875rem;
 }
 
+.hero-name-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.hero-name-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.hero-release {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    margin-top: 4px;
+}
+
 .hero-config-select {
     display: flex;
     align-items: center;
