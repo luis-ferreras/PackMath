@@ -55,7 +55,14 @@ async function fetchSheetTab(sheetKey, tabName) {
             return [];
         }
         const csvText = await response.text();
-        return parseCSV(csvText);
+        const data = parseCSV(csvText);
+
+        // Add the year tab name to each row
+        data.forEach(row => {
+            row._yearTab = tabName;
+        });
+
+        return data;
     } catch (error) {
         console.warn(`Error fetching ${sheetKey}/${tabName}:`, error.message);
         return [];
@@ -101,12 +108,12 @@ function processProducts(rows) {
                 ? productConfigs
                 : { ...DEFAULT_CONFIGS };
 
-            // Extract year from release_date (format: YYYY-MM-DD or similar)
+            // Year comes from the tab name (e.g., "2025-26")
+            const year = row._yearTab || '';
+            const brand = row.product_brand || '';
             const releaseDate = row.release_date || '';
-            const year = releaseDate.substring(0, 4) || '';
 
             // Build display name: [year] [brand] [product_id]
-            const brand = row.product_brand || '';
             const displayName = [year, brand, row.product_id].filter(Boolean).join(' ');
 
             products[row.product_id] = {
