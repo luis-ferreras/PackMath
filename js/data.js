@@ -75,6 +75,7 @@ function processProducts(rows) {
                 : { ...DEFAULT_CONFIGS };
 
             products[row.product_id] = {
+                id: row.product_id,
                 name: row.name || '',
                 sport: row.sport || '',
                 brand: row.brand || '',
@@ -116,32 +117,64 @@ export async function loadData() {
         PRODUCTS = processProducts(productsData);
         ODDS_RAW = oddsData;
         CHECKLIST = checklistData;
-        console.log('✓ Data loaded from Google Sheets');
-        console.log('📦 Configurations loaded:', CONFIGURATIONS.length, 'entries');
+        console.log('Data loaded:', Object.keys(PRODUCTS).length, 'products');
         return true;
     } catch (error) {
-        console.error('✗ Failed to load from Google Sheets:', error.message);
+        console.error('Failed to load data:', error.message);
         return false;
     }
 }
 
-// Data accessors
+// ========================================
+// Data Accessors
+// ========================================
+
 export function getAvailableSports() {
     const sports = new Set();
     Object.values(PRODUCTS).forEach(p => sports.add(p.sport));
     return Array.from(sports).sort();
 }
 
-export function getYearsBySport(sport) {
-    const years = new Set();
-    Object.values(PRODUCTS).filter(p => p.sport === sport).forEach(p => years.add(p.year));
-    return Array.from(years).sort((a, b) => b.localeCompare(a));
+export function getAllProducts() {
+    return Object.values(PRODUCTS).sort((a, b) => {
+        // Sort by year desc, then by name
+        if (b.year !== a.year) return b.year.localeCompare(a.year);
+        return a.name.localeCompare(b.name);
+    });
 }
 
-export function getProducts(sport, year) {
-    return Object.entries(PRODUCTS)
-        .filter(([id, p]) => p.sport === sport && p.year === year)
-        .map(([id, p]) => ({ id, ...p }));
+export function getProductsBySport(sport) {
+    return getAllProducts().filter(p => p.sport === sport);
+}
+
+export function searchProducts(query, sportFilter = null) {
+    const q = query.toLowerCase().trim();
+    if (!q) return sportFilter ? getProductsBySport(sportFilter) : getAllProducts();
+
+    let products = Object.values(PRODUCTS);
+
+    // Apply sport filter if provided
+    if (sportFilter) {
+        products = products.filter(p => p.sport === sportFilter);
+    }
+
+    // Search by name, brand, year, sport
+    return products.filter(p => {
+        const searchStr = `${p.name} ${p.brand} ${p.year} ${p.sport}`.toLowerCase();
+        return searchStr.includes(q);
+    }).sort((a, b) => {
+        // Prioritize exact matches in name
+        const aNameMatch = a.name.toLowerCase().includes(q);
+        const bNameMatch = b.name.toLowerCase().includes(q);
+        if (aNameMatch && !bNameMatch) return -1;
+        if (!aNameMatch && bNameMatch) return 1;
+        // Then sort by year desc
+        return b.year.localeCompare(a.year);
+    });
+}
+
+export function getProduct(productId) {
+    return PRODUCTS[productId] || null;
 }
 
 export function getAvailableConfigs(productId) {
@@ -149,6 +182,10 @@ export function getAvailableConfigs(productId) {
     ODDS_RAW.filter(row => row.product_id === productId).forEach(row => configs.add(row.config));
     return Array.from(configs);
 }
+
+// ========================================
+// Odds Formatting
+// ========================================
 
 export function formatOddsValue(odds) {
     if (!odds) return null;
@@ -159,7 +196,6 @@ export function formatOddsValue(odds) {
     }
 
     // Parse and format odds with abbreviations for large numbers
-    // Format: "1:X" where X might be very large
     if (str.includes(':')) {
         const parts = str.split(':');
         if (parts.length === 2) {
@@ -169,18 +205,14 @@ export function formatOddsValue(odds) {
             if (!isNaN(num)) {
                 let formatted;
                 if (num >= 1000000) {
-                    // Millions: 1:4.3M
                     const millions = num / 1000000;
                     formatted = millions >= 10 ? Math.round(millions) + 'M' : millions.toFixed(1) + 'M';
                 } else if (num >= 1000) {
-                    // Thousands: 1:42K or 1:4.3K
                     const thousands = num / 1000;
                     formatted = thousands >= 10 ? Math.round(thousands) + 'K' : thousands.toFixed(1) + 'K';
                 } else if (num >= 100) {
-                    // Hundreds: round to whole
                     formatted = Math.round(num).toString();
                 } else {
-                    // Under 100: show as-is (already clean)
                     formatted = num % 1 === 0 ? num.toString() : num.toFixed(1);
                 }
                 return `${prefix}:${formatted}`;
@@ -188,9 +220,38 @@ export function formatOddsValue(odds) {
         }
     }
 
-    // Return as-is if not standard format
     return str;
 }
+
+// ========================================
+// Product Stats (for hero card)
+// ========================================
+
+export function getProductStats(productId, config) {
+    const filtered = ODDS_RAW.filter(row => row.product_id === productId && row.config === config);
+
+    const parallels = filtered.filter(row => row.category === 'base').length;
+    const inserts = filtered.filter(row => row.category === 'insert').length;
+    const autographs = filtered.filter(row => row.category === 'autograph').length;
+    const relics = filtered.filter(row => row.category === 'relic').length;
+    const autoRelics = filtered.filter(row => {
+        const cat = (row.category || '').toLowerCase().trim();
+        return cat === 'autograph_relic' || cat === 'autograph relic' || cat === 'auto relic' || cat === 'auto_relic';
+    }).length;
+
+    return {
+        parallels,
+        inserts,
+        autographs,
+        relics,
+        autoRelics,
+        total: parallels + inserts + autographs + relics + autoRelics
+    };
+}
+
+// ========================================
+// Odds Data Accessors
+// ========================================
 
 export function getOddsForProduct(productId, config) {
     const filtered = ODDS_RAW.filter(row => row.product_id === productId && row.config === config);
@@ -269,4 +330,12 @@ export function getAllAutoRelicsForProduct(productId) {
         autoRelics.get(name)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
     });
     return autoRelics;
+}
+
+// ========================================
+// Checklist Accessors
+// ========================================
+
+export function getChecklistForProduct(productId) {
+    return CHECKLIST.filter(row => row.product_id === productId);
 }
