@@ -1,4 +1,4 @@
-import { getSheetURL, DEFAULT_CONFIGS } from './config.js';
+import { getSheetURL, YEAR_TABS, DEFAULT_CONFIGS } from './config.js';
 
 // Data stores
 export let PRODUCTS = {};
@@ -43,13 +43,40 @@ function parseCSV(csvText) {
     return data;
 }
 
-// Data fetching
-async function fetchSheet(tabName) {
-    const url = getSheetURL(tabName);
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed to fetch ${tabName}`);
-    const csvText = await response.text();
-    return parseCSV(csvText);
+// Fetch a single tab from a sheet
+async function fetchSheetTab(sheetKey, tabName) {
+    const url = getSheetURL(sheetKey, tabName);
+    if (!url) return [];
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.warn(`Failed to fetch ${sheetKey}/${tabName}: ${response.status}`);
+            return [];
+        }
+        const csvText = await response.text();
+        return parseCSV(csvText);
+    } catch (error) {
+        console.warn(`Error fetching ${sheetKey}/${tabName}:`, error.message);
+        return [];
+    }
+}
+
+// Fetch all year tabs from a sheet and combine them
+async function fetchAllYearTabs(sheetKey) {
+    const allData = [];
+
+    // Fetch all year tabs in parallel
+    const results = await Promise.all(
+        YEAR_TABS.map(yearTab => fetchSheetTab(sheetKey, yearTab))
+    );
+
+    // Combine all results
+    results.forEach(data => {
+        allData.push(...data);
+    });
+
+    return allData;
 }
 
 function processProducts(rows) {
@@ -107,17 +134,24 @@ export function getConfigInfo(productId, config) {
 
 export async function loadData() {
     try {
-        const [productsData, oddsData, checklistData, configData] = await Promise.all([
-            fetchSheet('products'),
-            fetchSheet('odds'),
-            fetchSheet('checklist'),
-            fetchSheet('Configuration')
+        // Fetch all data from the 4 separate sheets, each with year tabs
+        const [productsData, configData, oddsData, checklistData] = await Promise.all([
+            fetchAllYearTabs('products'),
+            fetchAllYearTabs('configuration'),
+            fetchAllYearTabs('odds'),
+            fetchAllYearTabs('checklist')
         ]);
+
         CONFIGURATIONS = configData;
         PRODUCTS = processProducts(productsData);
         ODDS_RAW = oddsData;
         CHECKLIST = checklistData;
+
         console.log('Data loaded:', Object.keys(PRODUCTS).length, 'products');
+        console.log('  - Configurations:', CONFIGURATIONS.length);
+        console.log('  - Odds entries:', ODDS_RAW.length);
+        console.log('  - Checklist entries:', CHECKLIST.length);
+
         return true;
     } catch (error) {
         console.error('Failed to load data:', error.message);

@@ -1,11 +1,32 @@
 // Google Sheets Configuration
-export const SHEET_ID = '1m_snihKKWJEGRfwaNdoIiR4-eMrO0YYmm7mnD_8HteQ';
+// Each data type has its own spreadsheet, with tabs for each year
 
-export const SHEET_GIDS = {
-    products: 0,
-    odds: 2126001521,
-    checklist: 444343756
+export const SHEETS = {
+    products: {
+        id: '1K4mhDFB1X3l-NDINas885FM0s50voB9nlQI2rssUbJ4',
+        name: 'Products'
+    },
+    configuration: {
+        id: '1JtECxSnhnyTLAAH_NnZSbJdU6x2wWHvlgWOvm9NMYJY',
+        name: 'Box Configuration'
+    },
+    odds: {
+        id: '1kISedg6ukK8gL_0BUURKKScCTOkNcGYsYNEZTQU5c8s',
+        name: 'Odds'
+    },
+    checklist: {
+        id: '1Fg2HOJfQXo7p8J24YiilX2VTWhcs2uEao7x3NXZAE4Y',
+        name: 'Checklist'
+    }
 };
+
+// Year tabs to fetch from each sheet
+// Add new years here as they become available
+export const YEAR_TABS = [
+    '2025-26'
+    // '2024-25',
+    // '2026-27',
+];
 
 export const DEFAULT_CONFIGS = {
     hobby: { name: 'Hobby Box', packs: 20, cardsPerPack: 4 },
@@ -16,11 +37,12 @@ export const DEFAULT_CONFIGS = {
     mega: { name: 'Mega Box', packs: 7, cardsPerPack: 5 }
 };
 
-export function getSheetURL(tabName) {
-    const gid = SHEET_GIDS[tabName];
-    if (gid !== undefined) {
-        return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+// Build URL to fetch a specific tab from a specific sheet
+export function getSheetURL(sheetKey, tabName) {
+    const sheet = SHEETS[sheetKey];
+    if (!sheet) {
+        console.error(`Unknown sheet: ${sheetKey}`);
+        return null;
     }
-    // Fetch by sheet name for sheets not in SHEET_GIDS
-    return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+    return `https://docs.google.com/spreadsheets/d/${sheet.id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
 }
