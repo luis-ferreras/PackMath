@@ -86,13 +86,39 @@ body {
 }
 
 .header-content {
-    max-width: var(--max-width);
+    width: 100%;
+    max-width: 1400px;
     margin: 0 auto;
     height: 100%;
     padding: 0 24px;
     display: flex;
     align-items: center;
     gap: 24px;
+}
+
+/* Adaptive header widths to match layout */
+@media (min-width: 768px) {
+    .header-content {
+        width: 768px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .header-content {
+        width: 1024px;
+    }
+}
+
+@media (min-width: 1280px) {
+    .header-content {
+        width: 1280px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .header-content {
+        width: 1400px;
+    }
 }
 
 .logo {
@@ -187,33 +213,49 @@ body {
    ======================================== */
 
 /* ========================================
-   3-Column Layout (StatMuse-style)
+   3-Column Layout (Adaptive)
    ======================================== */
 
 .layout {
     display: grid;
     grid-template-columns: 1fr;
+    width: 100%;
     max-width: 1400px;
     margin: 0 auto;
     min-height: calc(100vh - var(--header-height));
 }
 
+/* Adaptive breakpoints - fixed widths */
 @media (min-width: 768px) {
     .layout {
-        grid-template-columns: 200px 1fr;
+        grid-template-columns: 180px minmax(0, 1fr);
+        width: 768px;
     }
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
     .layout {
-        grid-template-columns: 200px 1fr 240px;
+        grid-template-columns: 200px minmax(0, 1fr);
+        width: 1024px;
+    }
+}
+
+@media (min-width: 1280px) {
+    .layout {
+        grid-template-columns: 200px minmax(0, 1fr) 240px;
+        width: 1280px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .layout {
+        width: 1400px;
     }
 }
 
 /* Left Sidebar */
 .sidebar-left {
     display: none;
-    background: var(--bg-elevated);
     border-right: 1px solid var(--border-color);
     padding: 24px 0;
     position: sticky;
@@ -293,36 +335,22 @@ body {
     color: var(--text-muted);
 }
 
-/* Right Sidebar (Ads) */
+/* Right Sidebar */
 .sidebar-right {
     display: none;
     padding: 24px 16px;
     border-left: 1px solid var(--border-color);
-    background: var(--bg-elevated);
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1280px) {
     .sidebar-right {
         display: block;
     }
 }
 
-.ad-placeholder {
-    background: var(--bg-card);
-    border: 1px dashed var(--border-light);
-    border-radius: var(--radius);
+.sidebar-placeholder {
     height: 250px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     margin-bottom: 16px;
-}
-
-.ad-label {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
 /* Main Content Area */
