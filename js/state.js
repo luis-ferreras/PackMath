@@ -1,29 +1,78 @@
 // Application state - shared across modules
 export const state = {
-    sport: null,
-    year: null,
+    // View state: 'landing', 'search', 'product'
+    view: 'landing',
+
+    // Search
+    searchQuery: '',
+    sportFilter: null,
+
+    // Product selection
     product: null,
     config: 'hobby',
-    view: 'compare',
+
+    // Product page tab: 'compare', 'rarity', 'calculator', 'checklist'
+    tab: 'compare',
+
+    // Compare sub-tab
     compareTab: 'base',
+
+    // Calculator state
     boxCount: 1,
+    calcTargetCard: null,
+
+    // Checklist filters
     checklistSet: 'all',
     checklistTeam: 'all',
     checklistRookieOnly: false,
     checklistSearch: '',
     checklistSortBy: 'card_num',
-    checklistSortDir: 'asc',
-    calcTargetCard: null
+    checklistSortDir: 'asc'
 };
 
 // URL Management
 export function updateURL() {
     const params = new URLSearchParams();
-    if (state.sport) params.set('sport', state.sport);
-    if (state.year) params.set('year', state.year);
-    if (state.product) params.set('product', state.product);
-    if (state.config) params.set('config', state.config);
-    if (state.view !== 'compare') params.set('view', state.view);
+
+    if (state.view === 'product' && state.product) {
+        params.set('product', state.product);
+        if (state.config && state.config !== 'hobby') {
+            params.set('config', state.config);
+        }
+        if (state.tab && state.tab !== 'compare') {
+            params.set('tab', state.tab);
+        }
+    } else if (state.view === 'search' && state.searchQuery) {
+        params.set('q', state.searchQuery);
+        if (state.sportFilter) {
+            params.set('sport', state.sportFilter);
+        }
+    }
+
     const newURL = params.toString() ? `?${params.toString()}` : window.location.pathname;
     window.history.replaceState({}, '', newURL);
+}
+
+// Parse URL on load
+export function loadStateFromURL() {
+    const params = new URLSearchParams(window.location.search);
+
+    const product = params.get('product');
+    const config = params.get('config');
+    const tab = params.get('tab');
+    const query = params.get('q');
+    const sport = params.get('sport');
+
+    if (product) {
+        state.view = 'product';
+        state.product = product;
+        if (config) state.config = config;
+        if (tab) state.tab = tab;
+    } else if (query) {
+        state.view = 'search';
+        state.searchQuery = query;
+        if (sport) state.sportFilter = sport;
+    } else {
+        state.view = 'landing';
+    }
 }

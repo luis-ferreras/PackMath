@@ -1,128 +1,149 @@
-import { loadData, getAvailableSports, getYearsBySport, getProducts, getAvailableConfigs, PRODUCTS } from './data.js';
-import { state, updateURL } from './state.js';
-import { renderProductContent } from './render.js';
+import { loadData, getAvailableSports, getAllProducts, searchProducts, getProduct, getAvailableConfigs, PRODUCTS } from './data.js';
+import { state, updateURL, loadStateFromURL } from './state.js';
+import { renderLanding, renderSearchResults, renderProductPage, renderTabContent } from './render.js';
 
-// Event Handlers
-function onSportChange(sport, doUpdateUrl = true) {
-    state.sport = sport;
-    state.year = null;
-    state.product = null;
+// ========================================
+// View Management
+// ========================================
 
-    const yearSelect = document.getElementById('yearSelect');
-    const years = getYearsBySport(sport);
-    yearSelect.innerHTML = '<option value="" disabled selected>Select year...</option>';
-    years.forEach(y => yearSelect.innerHTML += `<option value="${y}">${y}</option>`);
-    yearSelect.disabled = false;
+function showView(viewName) {
+    // Hide all views
+    document.getElementById('landingView').classList.add('hidden');
+    document.getElementById('searchView').classList.add('hidden');
+    document.getElementById('productView').classList.add('hidden');
 
-    document.getElementById('productSelect').innerHTML = '<option value="" disabled selected>Select product...</option>';
-    document.getElementById('productSelect').disabled = true;
-    document.getElementById('emptyState').classList.remove('hidden');
-    document.getElementById('productContent').classList.add('hidden');
+    // Show header search only when not on landing
+    const headerSearch = document.getElementById('headerSearch');
+    if (viewName === 'landing') {
+        headerSearch.classList.add('hidden');
+    } else {
+        headerSearch.classList.remove('hidden');
+    }
 
-    if (doUpdateUrl) updateURL();
+    // Show the requested view
+    document.getElementById(`${viewName}View`).classList.remove('hidden');
+
+    state.view = viewName;
 }
 
-function onYearChange(year, doUpdateUrl = true) {
-    state.year = year;
+// ========================================
+// Navigation Actions
+// ========================================
+
+function navigateToLanding() {
+    state.searchQuery = '';
+    state.sportFilter = null;
     state.product = null;
+    showView('landing');
+    renderLanding();
+    updateURL();
 
-    const productSelect = document.getElementById('productSelect');
-    const products = getProducts(state.sport, year);
-    productSelect.innerHTML = '<option value="" disabled selected>Select product...</option>';
-    products.forEach(p => productSelect.innerHTML += `<option value="${p.id}">${p.brand}</option>`);
-    productSelect.disabled = false;
-
-    if (doUpdateUrl) updateURL();
+    // Clear search inputs
+    document.getElementById('landingSearchInput').value = '';
+    document.getElementById('headerSearchInput').value = '';
 }
 
-function onProductChange(productId, doUpdateUrl = true) {
+function navigateToSearch(query, sportFilter = null) {
+    state.searchQuery = query;
+    state.sportFilter = sportFilter;
+    showView('search');
+    renderSearchResults();
+    updateURL();
+
+    // Sync search inputs
+    document.getElementById('headerSearchInput').value = query;
+}
+
+function navigateToProduct(productId) {
+    const product = getProduct(productId);
+    if (!product) {
+        navigateToLanding();
+        return;
+    }
+
     state.product = productId;
+    state.tab = 'compare';
+    state.compareTab = 'base';
 
+    // Set default config
     const availableConfigs = getAvailableConfigs(productId);
     if (availableConfigs.length > 0 && !availableConfigs.includes(state.config)) {
         state.config = availableConfigs[0];
     }
 
-    // Populate and show config selector in sidebar
-    const configGroup = document.getElementById('configGroup');
-    const configSelect = document.getElementById('configSelect');
-    if (availableConfigs.length > 0) {
-        configSelect.innerHTML = availableConfigs.map(c =>
-            `<option value="${c}" ${c === state.config ? 'selected' : ''}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
-        ).join('');
-        configGroup.style.display = 'block';
-    } else {
-        configGroup.style.display = 'none';
-    }
-
-    document.getElementById('emptyState').classList.add('hidden');
-    document.getElementById('productContent').classList.remove('hidden');
-    renderProductContent();
-
-    if (doUpdateUrl) updateURL();
-}
-
-function setConfig(config) {
-    state.config = config;
-    // Update sidebar config select if it exists
-    const configSelect = document.getElementById('configSelect');
-    if (configSelect) configSelect.value = config;
-    renderProductContent();
+    showView('product');
+    renderProductPage();
     updateURL();
 }
 
-function setView(view) {
-    state.view = view;
-    updateNavActiveState();
-    renderProductContent();
+// ========================================
+// State Setters (for render.js to use)
+// ========================================
+
+function setConfig(config) {
+    state.config = config;
+    renderProductPage();
+    updateURL();
+}
+
+function setTab(tab) {
+    state.tab = tab;
+    updateTabActiveState();
+    renderTabContent();
     updateURL();
 }
 
 function setCompareTab(tab) {
     state.compareTab = tab;
-    renderProductContent();
+    renderTabContent();
 }
 
 function setBoxCount(count) {
     state.boxCount = count;
-    renderProductContent();
+    renderTabContent();
 }
 
 function setCalcTargetCard(cardName) {
     state.calcTargetCard = cardName || null;
-    renderProductContent();
+    renderTabContent();
 }
 
 function setChecklistSet(set) {
     state.checklistSet = set;
-    renderProductContent();
+    renderTabContent();
 }
 
 function setChecklistTeam(team) {
     state.checklistTeam = team;
-    renderProductContent();
+    renderTabContent();
 }
 
 function setChecklistRookieOnly(checked) {
     state.checklistRookieOnly = checked;
-    renderProductContent();
+    renderTabContent();
 }
 
-// Debounce helper
+function setChecklistSort(column) {
+    if (state.checklistSortBy === column) {
+        state.checklistSortDir = state.checklistSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        state.checklistSortBy = column;
+        state.checklistSortDir = 'asc';
+    }
+    renderTabContent();
+}
+
 let searchTimeout = null;
 function setChecklistSearch(query) {
     state.checklistSearch = query;
-
-    // Debounce the re-render to avoid losing focus
     if (searchTimeout) clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
         const activeEl = document.activeElement;
         const isSearchFocused = activeEl && activeEl.id === 'checklistSearchInput';
         const cursorPos = isSearchFocused ? activeEl.selectionStart : 0;
 
-        renderProductContent();
+        renderTabContent();
 
-        // Restore focus and cursor position
         if (isSearchFocused) {
             const searchInput = document.getElementById('checklistSearchInput');
             if (searchInput) {
@@ -133,33 +154,14 @@ function setChecklistSearch(query) {
     }, 150);
 }
 
-// Sort checklist by column
-function setChecklistSort(column) {
-    if (state.checklistSortBy === column) {
-        // Toggle direction if same column
-        state.checklistSortDir = state.checklistSortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-        state.checklistSortBy = column;
-        state.checklistSortDir = 'asc';
-    }
-    renderProductContent();
+function setSportFilter(sport) {
+    state.sportFilter = state.sportFilter === sport ? null : sport;
+    renderLanding();
 }
 
-// Update active state on nav buttons
-function updateNavActiveState() {
-    document.querySelectorAll('.nav-link').forEach(link => {
-        const view = link.getAttribute('data-view');
-        if (view === state.view) {
-            link.classList.add('active');
-        } else {
-            link.classList.remove('active');
-        }
-    });
-}
-
-// Make handlers available globally for onclick
+// Make handlers available globally
 window.setConfig = setConfig;
-window.setView = setView;
+window.setTab = setTab;
 window.setCompareTab = setCompareTab;
 window.setBoxCount = setBoxCount;
 window.setCalcTargetCard = setCalcTargetCard;
@@ -168,57 +170,100 @@ window.setChecklistTeam = setChecklistTeam;
 window.setChecklistRookieOnly = setChecklistRookieOnly;
 window.setChecklistSort = setChecklistSort;
 window.setChecklistSearch = setChecklistSearch;
+window.setSportFilter = setSportFilter;
+window.navigateToProduct = navigateToProduct;
+window.navigateToSearch = navigateToSearch;
+window.navigateToLanding = navigateToLanding;
 
-// URL loading helper
-function loadStateFromURL() {
-    const params = new URLSearchParams(window.location.search);
-    const sport = params.get('sport');
-    const year = params.get('year');
-    const product = params.get('product');
-    const config = params.get('config');
-    const view = params.get('view');
+// ========================================
+// Tab UI Updates
+// ========================================
 
-    if (config) {
-        state.config = config;
-        const configSelect = document.getElementById('configSelect');
-        if (configSelect) configSelect.value = config;
-    }
-    if (view && ['compare', 'rarity', 'calculator', 'checklist', 'insights'].includes(view)) {
-        state.view = view;
-        updateNavActiveState();
-    }
-
-    if (sport && getAvailableSports().includes(sport)) {
-        document.getElementById('sportSelect').value = sport;
-        onSportChange(sport, false);
-        if (year && getYearsBySport(sport).includes(year)) {
-            document.getElementById('yearSelect').value = year;
-            onYearChange(year, false);
-            if (product && PRODUCTS[product]) {
-                document.getElementById('productSelect').value = product;
-                onProductChange(product, false);
-            }
+function updateTabActiveState() {
+    document.querySelectorAll('.tab').forEach(tab => {
+        const tabName = tab.getAttribute('data-tab');
+        if (tabName === state.tab) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
         }
-    }
-}
-
-// Initialize nav button listeners
-function initNavigation() {
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', () => {
-            const view = link.getAttribute('data-view');
-            if (view) {
-                setView(view);
-            }
-        });
     });
 }
 
-// Initialize
+// ========================================
+// Event Listeners
+// ========================================
+
+function initEventListeners() {
+    // Logo click - return to landing
+    document.getElementById('logoLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        navigateToLanding();
+    });
+
+    // Landing search input
+    const landingSearchInput = document.getElementById('landingSearchInput');
+    landingSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && landingSearchInput.value.trim()) {
+            navigateToSearch(landingSearchInput.value.trim(), state.sportFilter);
+        }
+    });
+
+    // Header search input
+    const headerSearchInput = document.getElementById('headerSearchInput');
+    headerSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && headerSearchInput.value.trim()) {
+            navigateToSearch(headerSearchInput.value.trim());
+        }
+    });
+
+    // Back buttons
+    document.getElementById('searchBackBtn').addEventListener('click', navigateToLanding);
+    document.getElementById('productBackBtn').addEventListener('click', () => {
+        if (state.searchQuery) {
+            navigateToSearch(state.searchQuery, state.sportFilter);
+        } else {
+            navigateToLanding();
+        }
+    });
+
+    // Tab buttons
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.getAttribute('data-tab');
+            if (tabName) setTab(tabName);
+        });
+    });
+
+    // Browser back/forward
+    window.addEventListener('popstate', () => {
+        loadStateFromURL();
+        initFromState();
+    });
+}
+
+// ========================================
+// Initialization
+// ========================================
+
+function initFromState() {
+    if (state.view === 'product' && state.product && PRODUCTS[state.product]) {
+        showView('product');
+        renderProductPage();
+        updateTabActiveState();
+    } else if (state.view === 'search' && state.searchQuery) {
+        showView('search');
+        renderSearchResults();
+        document.getElementById('headerSearchInput').value = state.searchQuery;
+    } else {
+        showView('landing');
+        renderLanding();
+    }
+}
+
 async function init() {
     const loadingState = document.getElementById('loadingState');
     const errorState = document.getElementById('errorState');
-    const emptyState = document.getElementById('emptyState');
 
     const success = await loadData();
 
@@ -229,22 +274,14 @@ async function init() {
         return;
     }
 
-    emptyState.classList.remove('hidden');
-
-    const sportSelect = document.getElementById('sportSelect');
-    getAvailableSports().forEach(sport => {
-        sportSelect.innerHTML += `<option value="${sport}">${sport}</option>`;
-    });
-
-    sportSelect.addEventListener('change', e => onSportChange(e.target.value));
-    document.getElementById('yearSelect').addEventListener('change', e => onYearChange(e.target.value));
-    document.getElementById('productSelect').addEventListener('change', e => onProductChange(e.target.value));
-    document.getElementById('configSelect').addEventListener('change', e => setConfig(e.target.value));
-
-    // Initialize sidebar navigation
-    initNavigation();
-
+    // Parse URL state
     loadStateFromURL();
+
+    // Initialize event listeners
+    initEventListeners();
+
+    // Render initial view based on state
+    initFromState();
 }
 
 document.addEventListener('DOMContentLoaded', init);

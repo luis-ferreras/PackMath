@@ -7,190 +7,117 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <div class="dashboard">
-        <!-- Sidebar Overlay (mobile) -->
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-        <!-- Left Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-logo">
-                    <div class="sidebar-logo-icon">PM</div>
-                    <span>Pack Math</span>
-                </div>
-                <p class="sidebar-subtitle">Trading Card Odds Visualizer</p>
-            </div>
-
-            <!-- Filters Section -->
-            <div class="sidebar-section">
-                <h2 class="sidebar-section-title">Filters</h2>
-
-                <div class="filter-group">
-                    <label class="filter-label" for="sportSelect">Sport</label>
-                    <select id="sportSelect" class="filter-select">
-                        <option value="" disabled selected>Select sport...</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label class="filter-label" for="yearSelect">Year</label>
-                    <select id="yearSelect" class="filter-select" disabled>
-                        <option value="" disabled selected>Select year...</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label class="filter-label" for="productSelect">Product</label>
-                    <select id="productSelect" class="filter-select" disabled>
-                        <option value="" disabled selected>Select product...</option>
-                    </select>
-                </div>
-
-                <div class="filter-group" id="configGroup" style="display: none;">
-                    <label class="filter-label" for="configSelect">Box Type</label>
-                    <select id="configSelect" class="filter-select">
-                    </select>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <a href="#" class="logo" id="logoLink">
+                    <span class="logo-icon">PM</span>
+                    <span class="logo-text">Pack Math</span>
+                </a>
+                <div class="search-container header-search" id="headerSearch">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input type="text" class="search-input" id="headerSearchInput" placeholder="Search products...">
                 </div>
             </div>
-
-            <!-- Navigation Section -->
-            <div class="sidebar-section">
-                <h2 class="sidebar-section-title">Views</h2>
-                <nav>
-                    <ul class="nav-list">
-                        <li class="nav-item">
-                            <button class="nav-link active" data-view="compare">
-                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M18 20V10M12 20V4M6 20v-6"/>
-                                </svg>
-                                Compare
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-view="rarity">
-                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                                    <path d="M2 17l10 5 10-5"/>
-                                    <path d="M2 12l10 5 10-5"/>
-                                </svg>
-                                Rarity Map
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-view="calculator">
-                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="4" y="2" width="16" height="20" rx="2"/>
-                                    <line x1="8" y1="6" x2="16" y2="6"/>
-                                    <line x1="8" y1="10" x2="8" y2="10.01"/>
-                                    <line x1="12" y1="10" x2="12" y2="10.01"/>
-                                    <line x1="16" y1="10" x2="16" y2="10.01"/>
-                                    <line x1="8" y1="14" x2="8" y2="14.01"/>
-                                    <line x1="12" y1="14" x2="12" y2="14.01"/>
-                                    <line x1="16" y1="14" x2="16" y2="14.01"/>
-                                    <line x1="8" y1="18" x2="8" y2="18.01"/>
-                                    <line x1="12" y1="18" x2="16" y2="18"/>
-                                </svg>
-                                Calculator
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-view="checklist">
-                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 11l3 3L22 4"/>
-                                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-                                </svg>
-                                Checklist
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-view="insights">
-                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="12" y1="16" x2="12" y2="12"/>
-                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
-                                </svg>
-                                Insights
-                            </button>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-        </aside>
+        </header>
 
         <!-- Main Content -->
-        <main class="main-content">
-            <!-- Mobile Header -->
-            <header class="mobile-header">
-                <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <line x1="3" y1="12" x2="21" y2="12"/>
-                        <line x1="3" y1="18" x2="21" y2="18"/>
-                    </svg>
-                </button>
-                <span class="mobile-title">Pack Math</span>
-                <div style="width: 40px;"></div>
-            </header>
+        <main class="main">
+            <!-- Loading State -->
+            <div id="loadingState" class="state-container">
+                <div class="state-icon loading-pulse">PM</div>
+                <p class="state-title">Loading</p>
+                <p class="state-description">Fetching product data...</p>
+            </div>
 
-            <!-- Content Wrapper -->
-            <div class="content-wrapper">
-                <!-- Loading State -->
-                <div id="loadingState" class="loading-state">
-                    <div class="state-icon loading-pulse">PM</div>
-                    <p class="state-title">Loading Data</p>
-                    <p class="state-description">Fetching product data from Google Sheets...</p>
+            <!-- Error State -->
+            <div id="errorState" class="state-container hidden">
+                <div class="state-icon">!</div>
+                <p class="state-title">Unable to Load Data</p>
+                <p class="state-description">Could not connect to the database. Please try again later.</p>
+            </div>
+
+            <!-- Landing View -->
+            <div id="landingView" class="hidden">
+                <div class="landing">
+                    <div class="landing-hero">
+                        <div class="landing-logo">
+                            <span class="landing-logo-icon">PM</span>
+                        </div>
+                        <h1 class="landing-title">Pack Math</h1>
+                        <p class="landing-subtitle">Trading card odds, probabilities, and insights</p>
+
+                        <div class="search-container landing-search">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.35-4.35"/>
+                            </svg>
+                            <input type="text" class="search-input" id="landingSearchInput" placeholder="Search for a product...">
+                        </div>
+                    </div>
+
+                    <!-- Sport Pills -->
+                    <div class="sport-pills" id="sportPills"></div>
+
+                    <!-- Recent/Popular Products -->
+                    <div class="landing-section">
+                        <h2 class="section-title">All Products</h2>
+                        <div class="product-grid" id="landingProducts"></div>
+                    </div>
                 </div>
+            </div>
 
-                <!-- Error State -->
-                <div id="errorState" class="error-state hidden">
-                    <div class="state-icon">!</div>
-                    <p class="state-title">Unable to Load Data</p>
-                    <p class="state-description">Google Sheets can't be accessed from this preview. This will work when hosted on a live domain.</p>
+            <!-- Search Results View -->
+            <div id="searchView" class="hidden">
+                <div class="search-results">
+                    <div class="search-header">
+                        <button class="back-btn" id="searchBackBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m15 18-6-6 6-6"/>
+                            </svg>
+                            Back
+                        </button>
+                        <span class="search-query" id="searchQueryDisplay"></span>
+                    </div>
+                    <p class="results-count" id="resultsCount"></p>
+                    <div class="product-grid" id="searchResults"></div>
                 </div>
+            </div>
 
-                <!-- Empty State -->
-                <div id="emptyState" class="empty-state hidden">
-                    <div class="state-icon">PM</div>
-                    <p class="state-title">Select a Product</p>
-                    <p class="state-description">Choose a trading card product from the sidebar to explore pack odds and statistics.</p>
-                </div>
+            <!-- Product View -->
+            <div id="productView" class="hidden">
+                <div class="product-page">
+                    <div class="product-header">
+                        <button class="back-btn" id="productBackBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m15 18-6-6 6-6"/>
+                            </svg>
+                            Back
+                        </button>
+                    </div>
 
-                <!-- Product Content -->
-                <div id="productContent" class="hidden">
-                    <!-- Widgets will be dynamically inserted here -->
+                    <!-- Product Hero Card -->
+                    <div class="product-hero" id="productHero"></div>
+
+                    <!-- Analysis Tabs -->
+                    <div class="tabs" id="tabsContainer">
+                        <button class="tab active" data-tab="compare">Compare</button>
+                        <button class="tab" data-tab="rarity">Rarity Map</button>
+                        <button class="tab" data-tab="calculator">Calculator</button>
+                        <button class="tab" data-tab="checklist">Checklist</button>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="tabContent"></div>
                 </div>
             </div>
         </main>
     </div>
 
     <script type="module" src="js/app.js"></script>
-    <script>
-        // Mobile menu toggle
-        const menuToggle = document.getElementById('menuToggle');
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebarOverlay');
-
-        function openSidebar() {
-            sidebar.classList.add('open');
-            overlay.classList.add('active');
-        }
-
-        function closeSidebar() {
-            sidebar.classList.remove('open');
-            overlay.classList.remove('active');
-        }
-
-        menuToggle.addEventListener('click', openSidebar);
-        overlay.addEventListener('click', closeSidebar);
-
-        // Close sidebar when a nav link is clicked (mobile)
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    closeSidebar();
-                }
-            });
-        });
-    </script>
 </body>
 </html>
