@@ -156,15 +156,10 @@ function renderProductHero() {
         `<option value="${c}" ${c === state.config ? 'selected' : ''}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
     ).join('');
 
-    // Product name with optional link
-    const nameHtml = product.url
-        ? `<a href="${product.url}" target="_blank" rel="noopener" class="hero-name-link">${product.name}</a>`
-        : product.name;
-
     document.getElementById('productHero').innerHTML = `
         <div class="hero-top">
             <div class="hero-info">
-                <h1 class="hero-name">${nameHtml}</h1>
+                <h1 class="hero-name">${product.name}</h1>
                 <p class="hero-meta">${product.sport} &bull; ${product.brand} &bull; ${product.year}</p>
                 ${product.releaseDate ? `<p class="hero-release">Release: ${product.releaseDate}</p>` : ''}
             </div>
