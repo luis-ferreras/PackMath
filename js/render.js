@@ -18,6 +18,7 @@ export function renderSportsSidebar() {
         sportCounts[p.sport] = (sportCounts[p.sport] || 0) + 1;
     });
 
+    // Desktop sidebar navigation
     const navHtml = `
         <li class="nav-item">
             <a class="nav-link ${!state.sportFilter ? 'active' : ''}" onclick="setSportFilter(null)">
@@ -39,8 +40,16 @@ export function renderSportsSidebar() {
             `;
         }).join('')}
     `;
-
     document.getElementById('sportNavList').innerHTML = navHtml;
+
+    // Mobile horizontal pills
+    const pillsHtml = `
+        <button class="mobile-pill ${!state.sportFilter ? 'active' : ''}" onclick="setSportFilter(null)">All</button>
+        ${sports.map(sport => `
+            <button class="mobile-pill ${state.sportFilter === sport ? 'active' : ''}" onclick="setSportFilter('${sport}')">${sport}</button>
+        `).join('')}
+    `;
+    document.getElementById('mobileSportPills').innerHTML = pillsHtml;
 }
 
 function getSportIcon(sport) {
