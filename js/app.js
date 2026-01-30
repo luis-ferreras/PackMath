@@ -189,6 +189,157 @@ function updateTabActiveState() {
 }
 
 // ========================================
+// Search Autocomplete
+// ========================================
+
+let autocompleteTimeout = null;
+let selectedIndex = -1;
+let currentSuggestions = [];
+
+function initAutocomplete() {
+    const input = document.getElementById('headerSearchInput');
+    const dropdown = document.getElementById('searchDropdown');
+
+    // Input event with debounce
+    input.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+
+        if (autocompleteTimeout) clearTimeout(autocompleteTimeout);
+
+        if (query.length < 2) {
+            hideAutocomplete();
+            return;
+        }
+
+        autocompleteTimeout = setTimeout(() => {
+            const results = searchProducts(query, state.sportFilter).slice(0, 8);
+            currentSuggestions = results;
+            selectedIndex = -1;
+            renderAutocomplete(results, query);
+        }, 150);
+    });
+
+    // Keyboard navigation
+    input.addEventListener('keydown', (e) => {
+        if (!dropdown.classList.contains('hidden')) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, currentSuggestions.length - 1);
+                updateAutocompleteSelection();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                updateAutocompleteSelection();
+            } else if (e.key === 'Enter') {
+                if (selectedIndex >= 0 && currentSuggestions[selectedIndex]) {
+                    e.preventDefault();
+                    selectAutocompleteItem(currentSuggestions[selectedIndex]);
+                } else if (input.value.trim()) {
+                    hideAutocomplete();
+                    navigateToSearch(input.value.trim(), state.sportFilter);
+                }
+            } else if (e.key === 'Escape') {
+                hideAutocomplete();
+            }
+        } else if (e.key === 'Enter' && input.value.trim()) {
+            navigateToSearch(input.value.trim(), state.sportFilter);
+        }
+    });
+
+    // Close on blur (with delay for click handling)
+    input.addEventListener('blur', () => {
+        setTimeout(() => hideAutocomplete(), 200);
+    });
+
+    // Focus shows dropdown if there's a query
+    input.addEventListener('focus', () => {
+        const query = input.value.trim();
+        if (query.length >= 2 && currentSuggestions.length > 0) {
+            dropdown.classList.remove('hidden');
+        }
+    });
+}
+
+function renderAutocomplete(results, query) {
+    const dropdown = document.getElementById('searchDropdown');
+
+    if (results.length === 0) {
+        dropdown.innerHTML = `
+            <div class="search-no-results">No products found for "${query}"</div>
+        `;
+        dropdown.classList.remove('hidden');
+        return;
+    }
+
+    const highlightMatch = (text, query) => {
+        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+    };
+
+    const html = results.map((product, index) => `
+        <div class="search-dropdown-item ${index === selectedIndex ? 'selected' : ''}"
+             data-product-id="${product.id}"
+             onmouseenter="updateAutocompleteHover(${index})">
+            <div class="search-item-name">${highlightMatch(product.name, query)}</div>
+            <div class="search-item-meta">${product.sport} • ${product.year}</div>
+        </div>
+    `).join('');
+
+    dropdown.innerHTML = html + `
+        <div class="search-hint">
+            <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+            <span><kbd>Enter</kbd> Select</span>
+            <span><kbd>Esc</kbd> Close</span>
+        </div>
+    `;
+
+    dropdown.classList.remove('hidden');
+
+    // Add click handlers
+    dropdown.querySelectorAll('.search-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const productId = item.dataset.productId;
+            const product = currentSuggestions.find(p => p.id === productId);
+            if (product) selectAutocompleteItem(product);
+        });
+    });
+}
+
+function updateAutocompleteSelection() {
+    const dropdown = document.getElementById('searchDropdown');
+    const items = dropdown.querySelectorAll('.search-dropdown-item');
+
+    items.forEach((item, index) => {
+        if (index === selectedIndex) {
+            item.classList.add('selected');
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+}
+
+function updateAutocompleteHover(index) {
+    selectedIndex = index;
+    updateAutocompleteSelection();
+}
+
+function selectAutocompleteItem(product) {
+    hideAutocomplete();
+    document.getElementById('headerSearchInput').value = '';
+    navigateToProduct(product.id);
+}
+
+function hideAutocomplete() {
+    const dropdown = document.getElementById('searchDropdown');
+    dropdown.classList.add('hidden');
+    selectedIndex = -1;
+}
+
+// Make hover handler global
+window.updateAutocompleteHover = updateAutocompleteHover;
+
+// ========================================
 // Event Listeners
 // ========================================
 
@@ -199,13 +350,8 @@ function initEventListeners() {
         navigateToLanding();
     });
 
-    // Header search input
-    const headerSearchInput = document.getElementById('headerSearchInput');
-    headerSearchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && headerSearchInput.value.trim()) {
-            navigateToSearch(headerSearchInput.value.trim(), state.sportFilter);
-        }
-    });
+    // Initialize autocomplete
+    initAutocomplete();
 
     // Back buttons
     document.getElementById('searchBackBtn').addEventListener('click', navigateToLanding);
