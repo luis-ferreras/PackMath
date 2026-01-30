@@ -2,9 +2,20 @@ import { getSheetURL, YEAR_TABS, DEFAULT_CONFIGS } from './config.js';
 
 // Data stores
 export let PRODUCTS = {};
+export let SLUGS = {}; // slug → product_id mapping
 export let ODDS_RAW = [];
 export let CHECKLIST = [];
 export let CONFIGURATIONS = [];
+
+// Generate URL-friendly slug from product name
+function generateSlug(year, brand, productId) {
+    const parts = [year, brand, productId].filter(Boolean);
+    return parts.join('-')
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')  // Replace non-alphanumeric with hyphens
+        .replace(/-+/g, '-')           // Collapse multiple hyphens
+        .replace(/^-|-$/g, '');        // Trim leading/trailing hyphens
+}
 
 // CSV Parsing
 function parseCSVLine(line) {
@@ -88,6 +99,8 @@ async function fetchAllYearTabs(sheetKey) {
 
 function processProducts(rows) {
     const products = {};
+    const slugs = {};
+
     rows.forEach(row => {
         if (row.product_id) {
             // Build configs from Configuration sheet for this product
@@ -116,8 +129,12 @@ function processProducts(rows) {
             // Build display name: [year] [brand] [product_id]
             const displayName = [year, brand, row.product_id].filter(Boolean).join(' ');
 
+            // Generate URL slug
+            const slug = generateSlug(year, brand, row.product_id);
+
             products[row.product_id] = {
                 id: row.product_id,
+                slug: slug,
                 name: displayName,
                 sport: row.product_sport || '',
                 brand: brand,
@@ -126,8 +143,15 @@ function processProducts(rows) {
                 releaseDate: releaseDate,
                 configs
             };
+
+            // Store reverse lookup
+            slugs[slug] = row.product_id;
         }
     });
+
+    // Update global SLUGS
+    Object.assign(SLUGS, slugs);
+
     return products;
 }
 
@@ -226,6 +250,16 @@ export function searchProducts(query, sportFilter = null) {
 
 export function getProduct(productId) {
     return PRODUCTS[productId] || null;
+}
+
+export function getProductBySlug(slug) {
+    const productId = SLUGS[slug];
+    return productId ? PRODUCTS[productId] : null;
+}
+
+export function getProductSlug(productId) {
+    const product = PRODUCTS[productId];
+    return product ? product.slug : null;
 }
 
 export function getAvailableConfigs(productId) {

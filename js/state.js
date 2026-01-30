@@ -1,3 +1,5 @@
+import { getProductSlug, getProductBySlug, getProduct } from './data.js';
+
 // Application state - shared across modules
 export const state = {
     // View state: 'landing', 'search', 'product'
@@ -35,7 +37,11 @@ export function updateURL(usePushState = false) {
     const params = new URLSearchParams();
 
     if (state.view === 'product' && state.product) {
-        params.set('product', state.product);
+        // Use slug for cleaner URLs
+        const slug = getProductSlug(state.product);
+        if (slug) {
+            params.set('product', slug);
+        }
         if (state.config && state.config !== 'hobby') {
             params.set('config', state.config);
         }
@@ -68,19 +74,27 @@ export function updateURL(usePushState = false) {
 export function loadStateFromURL() {
     const params = new URLSearchParams(window.location.search);
 
-    const product = params.get('product');
+    const productSlug = params.get('product');
     const config = params.get('config');
     const tab = params.get('tab');
     const query = params.get('q');
     const sport = params.get('sport');
 
-    if (product) {
-        state.view = 'product';
-        state.product = product;
-        if (config) state.config = config;
-        if (tab) state.tab = tab;
-        // Preserve sport filter for back navigation
-        if (sport) state.sportFilter = sport;
+    if (productSlug) {
+        // Look up product by slug
+        const product = getProductBySlug(productSlug);
+        if (product) {
+            state.view = 'product';
+            state.product = product.id; // Store internal ID, not slug
+            if (config) state.config = config;
+            if (tab) state.tab = tab;
+            // Preserve sport filter for back navigation
+            if (sport) state.sportFilter = sport;
+        } else {
+            // Invalid slug - fall back to landing
+            state.view = 'landing';
+            if (sport) state.sportFilter = sport;
+        }
     } else if (query) {
         state.view = 'search';
         state.searchQuery = query;
