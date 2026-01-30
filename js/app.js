@@ -27,7 +27,7 @@ function navigateToLanding() {
     state.product = null;
     showView('landing');
     renderLanding();
-    updateURL();
+    updateURL(true); // pushState for navigation
 
     // Clear search input
     document.getElementById('headerSearchInput').value = '';
@@ -38,7 +38,7 @@ function navigateToSearch(query, sportFilter = null) {
     state.sportFilter = sportFilter;
     showView('search');
     renderSearchResults();
-    updateURL();
+    updateURL(true); // pushState for navigation
 
     // Sync search inputs
     document.getElementById('headerSearchInput').value = query;
@@ -55,7 +55,7 @@ function navigateToProduct(productId) {
     state.tab = 'compare';
     state.compareTab = 'base';
 
-    // Set default config
+    // Validate and set config - use first available if current is invalid
     const availableConfigs = getAvailableConfigs(productId);
     if (availableConfigs.length > 0 && !availableConfigs.includes(state.config)) {
         state.config = availableConfigs[0];
@@ -63,7 +63,7 @@ function navigateToProduct(productId) {
 
     showView('product');
     renderProductPage();
-    updateURL();
+    updateURL(true); // pushState for navigation
 }
 
 // ========================================
@@ -145,15 +145,16 @@ function setChecklistSearch(query) {
 }
 
 function setSportFilter(sport) {
+    const wasOnDifferentView = state.view !== 'landing';
     state.sportFilter = sport;
-    // If on search view, go back to landing
-    if (state.view === 'search' || state.view === 'product') {
+    // If on search or product view, go back to landing
+    if (wasOnDifferentView) {
         state.searchQuery = '';
         state.product = null;
         showView('landing');
     }
     renderLanding();
-    updateURL();
+    updateURL(wasOnDifferentView); // pushState only if changing views
 }
 
 // Make handlers available globally
