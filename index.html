@@ -15,12 +15,15 @@
                     <span class="logo-icon">PM</span>
                     <span class="logo-text">Pack Math</span>
                 </a>
-                <div class="search-container header-search">
+                <div class="search-container header-search" id="searchContainer">
                     <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"/>
                         <path d="m21 21-4.35-4.35"/>
                     </svg>
-                    <input type="text" class="search-input" id="headerSearchInput" placeholder="Search products...">
+                    <input type="text" class="search-input" id="headerSearchInput" placeholder="Search products..." autocomplete="off">
+                    <div class="search-dropdown hidden" id="searchDropdown">
+                        <!-- Populated by JS -->
+                    </div>
                 </div>
             </div>
         </header>
