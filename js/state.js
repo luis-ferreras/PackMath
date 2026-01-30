@@ -31,7 +31,7 @@ export const state = {
 };
 
 // URL Management
-export function updateURL() {
+export function updateURL(usePushState = false) {
     const params = new URLSearchParams();
 
     if (state.view === 'product' && state.product) {
@@ -47,10 +47,21 @@ export function updateURL() {
         if (state.sportFilter) {
             params.set('sport', state.sportFilter);
         }
+    } else if (state.view === 'landing') {
+        // Include sport filter on landing page
+        if (state.sportFilter) {
+            params.set('sport', state.sportFilter);
+        }
     }
 
     const newURL = params.toString() ? `?${params.toString()}` : window.location.pathname;
-    window.history.replaceState({}, '', newURL);
+
+    // Use pushState for navigation, replaceState for minor updates (config changes, etc.)
+    if (usePushState) {
+        window.history.pushState({ ...state }, '', newURL);
+    } else {
+        window.history.replaceState({ ...state }, '', newURL);
+    }
 }
 
 // Parse URL on load
@@ -68,11 +79,15 @@ export function loadStateFromURL() {
         state.product = product;
         if (config) state.config = config;
         if (tab) state.tab = tab;
+        // Preserve sport filter for back navigation
+        if (sport) state.sportFilter = sport;
     } else if (query) {
         state.view = 'search';
         state.searchQuery = query;
         if (sport) state.sportFilter = sport;
     } else {
         state.view = 'landing';
+        // Sport filter on landing page
+        if (sport) state.sportFilter = sport;
     }
 }
