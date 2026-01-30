@@ -280,6 +280,7 @@ body {
 .mobile-pill {
     flex-shrink: 0;
     padding: 8px 16px;
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 9999px;
     color: var(--text-secondary);
@@ -291,11 +292,13 @@ body {
 }
 
 .mobile-pill:hover {
+    background: var(--bg-card-hover);
     border-color: var(--border-light);
     color: var(--text-primary);
 }
 
 .mobile-pill.active {
+    background: var(--accent-muted);
     border-color: var(--accent);
     color: var(--accent);
 }
