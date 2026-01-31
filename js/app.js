@@ -1,6 +1,6 @@
 import { loadData, getAvailableSports, getAllProducts, searchProducts, getProduct, getAvailableConfigs, PRODUCTS } from './data.js';
 import { state, updateURL, loadStateFromURL } from './state.js';
-import { renderLanding, renderSearchResults, renderProductPage, renderTabContent, renderSportsSidebar } from './render.js';
+import { renderLanding, renderSearchResults, renderProductPage, renderTabContent, renderSportsSidebar, renderSportFilterView } from './render.js';
 
 // ========================================
 // View Management
@@ -9,6 +9,7 @@ import { renderLanding, renderSearchResults, renderProductPage, renderTabContent
 function showView(viewName) {
     // Hide all views
     document.getElementById('landingView').classList.add('hidden');
+    document.getElementById('sportFilterView').classList.add('hidden');
     document.getElementById('searchView').classList.add('hidden');
     document.getElementById('productView').classList.add('hidden');
 
@@ -25,12 +26,15 @@ function showView(viewName) {
 function navigateToLanding() {
     state.searchQuery = '';
     state.product = null;
+    state.sportFilter = null;
     showView('landing');
     renderLanding();
     updateURL(true); // pushState for navigation
 
-    // Clear search input
+    // Clear search inputs
     document.getElementById('headerSearchInput').value = '';
+    const landingSearch = document.getElementById('landingSearchInput');
+    if (landingSearch) landingSearch.value = '';
 }
 
 function navigateToSearch(query, sportFilter = null) {
@@ -145,16 +149,22 @@ function setChecklistSearch(query) {
 }
 
 function setSportFilter(sport) {
-    const wasOnDifferentView = state.view !== 'landing';
+    const wasOnDifferentView = state.view !== 'landing' && state.view !== 'sportFilter';
     state.sportFilter = sport;
-    // If on search or product view, go back to landing
-    if (wasOnDifferentView) {
-        state.searchQuery = '';
-        state.product = null;
+    state.searchQuery = '';
+    state.product = null;
+
+    if (sport) {
+        // Show sport filter view when a sport is selected
+        showView('sportFilter');
+        renderSportFilterView();
+    } else {
+        // Show landing page when "All Sports" is selected
         showView('landing');
+        renderLanding();
     }
-    renderLanding();
-    updateURL(wasOnDifferentView); // pushState only if changing views
+
+    updateURL(true); // pushState for navigation
 }
 
 // Make handlers available globally
@@ -340,6 +350,167 @@ function hideAutocomplete() {
 window.updateAutocompleteHover = updateAutocompleteHover;
 
 // ========================================
+// Landing Search Autocomplete
+// ========================================
+
+let landingAutocompleteTimeout = null;
+let landingSelectedIndex = -1;
+let landingCurrentSuggestions = [];
+
+function initLandingAutocomplete() {
+    const input = document.getElementById('landingSearchInput');
+    const dropdown = document.getElementById('landingSearchDropdown');
+
+    if (!input || !dropdown) return;
+
+    // Input event with debounce
+    input.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+
+        if (landingAutocompleteTimeout) clearTimeout(landingAutocompleteTimeout);
+
+        if (query.length < 2) {
+            hideLandingAutocomplete();
+            return;
+        }
+
+        landingAutocompleteTimeout = setTimeout(() => {
+            const results = searchProducts(query, null).slice(0, 8);
+            landingCurrentSuggestions = results;
+            landingSelectedIndex = -1;
+            renderLandingAutocomplete(results, query);
+        }, 150);
+    });
+
+    // Keyboard navigation
+    input.addEventListener('keydown', (e) => {
+        if (!dropdown.classList.contains('hidden')) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                landingSelectedIndex = Math.min(landingSelectedIndex + 1, landingCurrentSuggestions.length - 1);
+                updateLandingAutocompleteSelection();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                landingSelectedIndex = Math.max(landingSelectedIndex - 1, -1);
+                updateLandingAutocompleteSelection();
+            } else if (e.key === 'Enter') {
+                if (landingSelectedIndex >= 0 && landingCurrentSuggestions[landingSelectedIndex]) {
+                    e.preventDefault();
+                    selectLandingAutocompleteItem(landingCurrentSuggestions[landingSelectedIndex]);
+                } else if (input.value.trim()) {
+                    hideLandingAutocomplete();
+                    navigateToSearch(input.value.trim(), null);
+                }
+            } else if (e.key === 'Escape') {
+                hideLandingAutocomplete();
+            }
+        } else if (e.key === 'Enter' && input.value.trim()) {
+            navigateToSearch(input.value.trim(), null);
+        }
+    });
+
+    // Close on blur (with delay for click handling)
+    input.addEventListener('blur', () => {
+        setTimeout(() => hideLandingAutocomplete(), 200);
+    });
+
+    // Focus shows dropdown if there's a query
+    input.addEventListener('focus', () => {
+        const query = input.value.trim();
+        if (query.length >= 2 && landingCurrentSuggestions.length > 0) {
+            dropdown.classList.remove('hidden');
+        }
+    });
+}
+
+function renderLandingAutocomplete(results, query) {
+    const dropdown = document.getElementById('landingSearchDropdown');
+
+    if (results.length === 0) {
+        dropdown.innerHTML = `
+            <div class="search-no-results">No products found for "${query}"</div>
+        `;
+        dropdown.classList.remove('hidden');
+        return;
+    }
+
+    const highlightMatch = (text, query) => {
+        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+    };
+
+    const html = results.map((product, index) => `
+        <div class="search-dropdown-item ${index === landingSelectedIndex ? 'selected' : ''}"
+             data-product-id="${product.id}"
+             onmouseenter="updateLandingAutocompleteHover(${index})">
+            <div class="search-item-name">${highlightMatch(product.name, query)}</div>
+            <div class="search-item-meta">${product.sport} • ${product.year}</div>
+        </div>
+    `).join('');
+
+    dropdown.innerHTML = html + `
+        <div class="search-hint">
+            <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+            <span><kbd>Enter</kbd> Select</span>
+            <span><kbd>Esc</kbd> Close</span>
+        </div>
+    `;
+
+    dropdown.classList.remove('hidden');
+
+    // Add click handlers
+    dropdown.querySelectorAll('.search-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const productId = item.dataset.productId;
+            const product = landingCurrentSuggestions.find(p => p.id === productId);
+            if (product) selectLandingAutocompleteItem(product);
+        });
+    });
+}
+
+function updateLandingAutocompleteSelection() {
+    const dropdown = document.getElementById('landingSearchDropdown');
+    const items = dropdown.querySelectorAll('.search-dropdown-item');
+
+    items.forEach((item, index) => {
+        if (index === landingSelectedIndex) {
+            item.classList.add('selected');
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+}
+
+function updateLandingAutocompleteHover(index) {
+    landingSelectedIndex = index;
+    updateLandingAutocompleteSelection();
+}
+
+function selectLandingAutocompleteItem(product) {
+    hideLandingAutocomplete();
+    document.getElementById('landingSearchInput').value = '';
+    navigateToProduct(product.id);
+}
+
+function hideLandingAutocomplete() {
+    const dropdown = document.getElementById('landingSearchDropdown');
+    if (dropdown) {
+        dropdown.classList.add('hidden');
+        landingSelectedIndex = -1;
+    }
+}
+
+// Quick search from landing page hints
+function quickSearch(query) {
+    navigateToSearch(query, null);
+}
+
+// Make handlers global
+window.updateLandingAutocompleteHover = updateLandingAutocompleteHover;
+window.quickSearch = quickSearch;
+
+// ========================================
 // Event Listeners
 // ========================================
 
@@ -347,17 +518,21 @@ function initEventListeners() {
     // Logo click - return to landing
     document.getElementById('logoLink').addEventListener('click', (e) => {
         e.preventDefault();
+        state.sportFilter = null;
         navigateToLanding();
     });
 
     // Initialize autocomplete
     initAutocomplete();
+    initLandingAutocomplete();
 
     // Back buttons
     document.getElementById('searchBackBtn').addEventListener('click', navigateToLanding);
     document.getElementById('productBackBtn').addEventListener('click', () => {
         if (state.searchQuery) {
             navigateToSearch(state.searchQuery, state.sportFilter);
+        } else if (state.sportFilter) {
+            setSportFilter(state.sportFilter);
         } else {
             navigateToLanding();
         }
@@ -394,7 +569,12 @@ function initFromState() {
         showView('search');
         renderSearchResults();
         document.getElementById('headerSearchInput').value = state.searchQuery;
+    } else if (state.sportFilter) {
+        // Sport is selected, show sport filter view
+        showView('sportFilter');
+        renderSportFilterView();
     } else {
+        // No sport filter, show landing page
         showView('landing');
         renderLanding();
     }

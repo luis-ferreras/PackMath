@@ -2,7 +2,7 @@ import { getProductSlug, getProductBySlug, getProduct } from './data.js';
 
 // Application state - shared across modules
 export const state = {
-    // View state: 'landing', 'search', 'product'
+    // View state: 'landing', 'sportFilter', 'search', 'product'
     view: 'landing',
 
     // Search
@@ -53,11 +53,11 @@ export function updateURL(usePushState = false) {
         if (state.sportFilter) {
             params.set('sport', state.sportFilter);
         }
+    } else if (state.view === 'sportFilter' && state.sportFilter) {
+        // Sport filter view
+        params.set('sport', state.sportFilter);
     } else if (state.view === 'landing') {
-        // Include sport filter on landing page
-        if (state.sportFilter) {
-            params.set('sport', state.sportFilter);
-        }
+        // Landing page (no sport filter)
     }
 
     const newURL = params.toString() ? `?${params.toString()}` : window.location.pathname;
@@ -99,9 +99,13 @@ export function loadStateFromURL() {
         state.view = 'search';
         state.searchQuery = query;
         if (sport) state.sportFilter = sport;
+    } else if (sport) {
+        // Sport filter view
+        state.view = 'sportFilter';
+        state.sportFilter = sport;
     } else {
+        // Landing page
         state.view = 'landing';
-        // Sport filter on landing page
-        if (sport) state.sportFilter = sport;
+        state.sportFilter = null;
     }
 }

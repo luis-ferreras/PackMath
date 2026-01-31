@@ -73,10 +73,58 @@
 
                 <!-- Landing View -->
                 <div id="landingView" class="hidden">
-                    <div class="content-header">
-                        <h2 class="content-title" id="contentTitle">All Products</h2>
+                    <!-- Hero Section -->
+                    <div class="landing-hero-section">
+                        <h1 class="landing-headline">What are the odds?</h1>
+                        <p class="landing-subheadline">Calculate your pull probabilities for any trading card product</p>
+                        <div class="landing-search-wrapper">
+                            <div class="search-container landing-search-box">
+                                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <path d="m21 21-4.35-4.35"/>
+                                </svg>
+                                <input type="text" class="search-input" id="landingSearchInput" placeholder="Search any product..." autocomplete="off">
+                                <div class="search-dropdown hidden" id="landingSearchDropdown">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                            <div class="landing-search-hints">
+                                Try: <button class="hint-link" onclick="quickSearch('Topps Chrome')">Topps Chrome</button> <span class="hint-sep">&bull;</span> <button class="hint-link" onclick="quickSearch('Prizm')">Prizm</button> <span class="hint-sep">&bull;</span> <button class="hint-link" onclick="quickSearch('Bowman')">Bowman</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="product-grid" id="landingProducts"></div>
+
+                    <!-- Browse by Sport -->
+                    <div class="landing-section">
+                        <h2 class="landing-section-title">Browse by Sport</h2>
+                        <div class="sport-cards" id="sportCards">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- New Releases & Popular -->
+                    <div class="landing-columns">
+                        <div class="landing-column">
+                            <h2 class="landing-section-title">New Releases</h2>
+                            <div class="product-list" id="newReleases">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                        <div class="landing-column">
+                            <h2 class="landing-section-title">Popular</h2>
+                            <div class="product-list" id="popularProducts">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sport Filter View (when a sport is selected) -->
+                <div id="sportFilterView" class="hidden">
+                    <div class="content-header">
+                        <h2 class="content-title" id="sportFilterTitle">NBA Products</h2>
+                    </div>
+                    <div class="product-grid" id="sportFilterProducts"></div>
                 </div>
 
                 <!-- Search Results View -->
