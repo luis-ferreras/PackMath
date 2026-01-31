@@ -730,7 +730,7 @@ body {
 
 @media (min-width: 1024px) {
     .sport-cards {
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(4, 1fr);
     }
 }
 
@@ -768,6 +768,13 @@ body {
 .sport-card-count {
     font-size: 0.75rem;
     color: var(--text-muted);
+}
+
+.sport-card-placeholder {
+    background: var(--bg-card);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius);
+    min-height: 100px;
 }
 
 /* Landing Columns */
