@@ -63,9 +63,12 @@ function getSportIcon(sport) {
         'Wrestling': '🤼',
         'Golf': '⛳',
         'Tennis': '🎾',
-        'Racing': '🏎️'
+        'Racing': '🏎️',
+        'Bowman U': '🎓',
+        'College': '🎓',
+        'Olympics': '🏅'
     };
-    return icons[sport] || '🏅';
+    return icons[sport] || '⭐';
 }
 
 // ========================================
