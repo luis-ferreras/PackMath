@@ -133,25 +133,16 @@ export function renderLanding() {
 
 function renderSportCards() {
     const sports = getAvailableSports();
-    const allProducts = getAllProducts();
-
-    // Get product counts per sport
-    const sportCounts = {};
-    allProducts.forEach(p => {
-        sportCounts[p.sport] = (sportCounts[p.sport] || 0) + 1;
-    });
 
     // Show first 3 sports + placeholder for ads
     const displaySports = sports.slice(0, 3);
 
     const cardsHtml = displaySports.map(sport => {
         const icon = getSportIcon(sport);
-        const count = sportCounts[sport] || 0;
         return `
             <div class="sport-card" onclick="setSportFilter('${sport}')">
                 <div class="sport-card-icon">${icon}</div>
                 <div class="sport-card-name">${sport}</div>
-                <div class="sport-card-count">${count} product${count !== 1 ? 's' : ''}</div>
             </div>
         `;
     }).join('');
