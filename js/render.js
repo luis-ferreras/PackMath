@@ -122,7 +122,10 @@ function renderSportCards() {
         sportCounts[p.sport] = (sportCounts[p.sport] || 0) + 1;
     });
 
-    const cardsHtml = sports.map(sport => {
+    // Show first 3 sports + placeholder for ads
+    const displaySports = sports.slice(0, 3);
+
+    const cardsHtml = displaySports.map(sport => {
         const icon = getSportIcon(sport);
         const count = sportCounts[sport] || 0;
         return `
@@ -134,7 +137,10 @@ function renderSportCards() {
         `;
     }).join('');
 
-    document.getElementById('sportCards').innerHTML = cardsHtml;
+    // Add placeholder box for future ad space
+    const placeholderHtml = `<div class="sport-card-placeholder"></div>`;
+
+    document.getElementById('sportCards').innerHTML = cardsHtml + placeholderHtml;
 }
 
 function renderNewReleases() {
