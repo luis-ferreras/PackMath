@@ -105,6 +105,15 @@ export function getBrandLogo(brand) {
     return logos[brand] || null;
 }
 
+// Get sport logo path (returns null if no logo available)
+export function getSportLogo(sport) {
+    const logos = {
+        'NBA': 'img/nba-logo.svg'
+        // Add more sports here: 'NFL': 'img/nfl-logo.svg', etc.
+    };
+    return logos[sport] || null;
+}
+
 // ========================================
 // Landing Page
 // ========================================
@@ -299,22 +308,28 @@ function renderProductHero() {
         ? `<img src="${brandLogo}" alt="${product.brand}" class="hero-brand-logo">`
         : '';
 
+    // Sport logo (inline with meta)
+    const sportLogo = getSportLogo(product.sport);
+    const sportLogoHtml = sportLogo
+        ? `<img src="${sportLogo}" alt="${product.sport}" class="hero-sport-logo">`
+        : '';
+
     // Config selector
     const configOptions = configs.map(c =>
         `<option value="${c}" ${c === state.config ? 'selected' : ''}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
     ).join('');
 
-    // Build meta line with optional release date
-    const metaParts = [product.sport, product.brand, product.year];
-    if (product.releaseDate) {
-        metaParts.push(product.releaseDate);
-    }
+    // Build meta line (sport, brand) + optional release date
+    const metaParts = [product.sport, product.brand];
+    const releaseDateHtml = product.releaseDate
+        ? ` &bull; <strong>Release Date:</strong> ${product.releaseDate}`
+        : '';
 
     document.getElementById('productHero').innerHTML = `
         <div class="hero-top">
             <div class="hero-info">
                 <h1 class="hero-name">${product.name}</h1>
-                <p class="hero-meta">${brandLogoHtml}${metaParts.join(' &bull; ')}</p>
+                <p class="hero-meta">${sportLogoHtml}${brandLogoHtml}${metaParts.join(' &bull; ')}${releaseDateHtml}</p>
             </div>
             ${configs.length > 0 ? `
                 <div class="hero-config-select">
