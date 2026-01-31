@@ -149,20 +149,13 @@ function setChecklistSearch(query) {
 }
 
 function setSportFilter(sport) {
-    const wasOnDifferentView = state.view !== 'landing' && state.view !== 'sportFilter';
     state.sportFilter = sport;
     state.searchQuery = '';
     state.product = null;
 
-    if (sport) {
-        // Show sport filter view when a sport is selected
-        showView('sportFilter');
-        renderSportFilterView();
-    } else {
-        // Show landing page when "All Sports" is selected
-        showView('landing');
-        renderLanding();
-    }
+    // Always show sport filter view (including 'all' for all products)
+    showView('sportFilter');
+    renderSportFilterView();
 
     updateURL(true); // pushState for navigation
 }
