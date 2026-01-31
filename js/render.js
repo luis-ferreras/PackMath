@@ -52,7 +52,7 @@ export function renderSportsSidebar() {
     document.getElementById('mobileSportPills').innerHTML = pillsHtml;
 }
 
-function getSportIcon(sport) {
+export function getSportIcon(sport) {
     const icons = {
         // Full names
         'Basketball': '🏀',
@@ -93,13 +93,103 @@ export function renderLanding() {
     // Render sports in sidebar
     renderSportsSidebar();
 
-    // Update title based on filter
-    const title = state.sportFilter ? `${state.sportFilter} Products` : 'All Products';
-    document.getElementById('contentTitle').textContent = title;
+    // Render sport cards
+    renderSportCards();
 
-    // Render products
-    const products = state.sportFilter ? searchProducts('', state.sportFilter) : getAllProducts();
-    document.getElementById('landingProducts').innerHTML = renderProductGrid(products);
+    // Render new releases and popular products
+    renderNewReleases();
+    renderPopularProducts();
+}
+
+function renderSportCards() {
+    const sports = getAvailableSports();
+    const allProducts = getAllProducts();
+
+    // Get product counts per sport
+    const sportCounts = {};
+    allProducts.forEach(p => {
+        sportCounts[p.sport] = (sportCounts[p.sport] || 0) + 1;
+    });
+
+    const cardsHtml = sports.map(sport => {
+        const icon = getSportIcon(sport);
+        const count = sportCounts[sport] || 0;
+        return `
+            <div class="sport-card" onclick="setSportFilter('${sport}')">
+                <div class="sport-card-icon">${icon}</div>
+                <div class="sport-card-name">${sport}</div>
+                <div class="sport-card-count">${count} product${count !== 1 ? 's' : ''}</div>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('sportCards').innerHTML = cardsHtml;
+}
+
+function renderNewReleases() {
+    const allProducts = getAllProducts();
+
+    // Sort by release date (newest first), then by year
+    const sorted = [...allProducts].sort((a, b) => {
+        // Try release date first
+        if (a.releaseDate && b.releaseDate) {
+            return new Date(b.releaseDate) - new Date(a.releaseDate);
+        }
+        if (a.releaseDate) return -1;
+        if (b.releaseDate) return 1;
+        // Fall back to year
+        return (b.year || '').localeCompare(a.year || '');
+    });
+
+    const newReleases = sorted.slice(0, 5);
+    document.getElementById('newReleases').innerHTML = renderProductList(newReleases);
+}
+
+function renderPopularProducts() {
+    const allProducts = getAllProducts();
+
+    // For now, just show a mix of products (could be enhanced with actual popularity data)
+    // Shuffle and pick 5
+    const shuffled = [...allProducts].sort(() => Math.random() - 0.5);
+    const popular = shuffled.slice(0, 5);
+
+    document.getElementById('popularProducts').innerHTML = renderProductList(popular);
+}
+
+function renderProductList(products) {
+    if (products.length === 0) {
+        return '<p class="text-muted text-sm">No products available</p>';
+    }
+
+    return products.map(product => {
+        const icon = getSportIcon(product.sport);
+        return `
+            <div class="product-list-item" onclick="navigateToProduct('${product.id}')">
+                <div class="product-list-icon">${icon}</div>
+                <div class="product-list-info">
+                    <div class="product-list-name">${product.name}</div>
+                    <div class="product-list-meta">${product.brand} &bull; ${product.year}</div>
+                </div>
+                <div class="product-list-arrow">→</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ========================================
+// Sport Filter View
+// ========================================
+
+export function renderSportFilterView() {
+    // Render sports in sidebar
+    renderSportsSidebar();
+
+    // Update title
+    document.getElementById('sportFilterTitle').textContent = `${state.sportFilter} Products`;
+
+    // Render filtered products
+    const products = searchProducts('', state.sportFilter);
+    document.getElementById('sportFilterProducts').innerHTML = renderProductGrid(products);
 }
 
 // ========================================
