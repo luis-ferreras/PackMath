@@ -107,9 +107,9 @@ export function renderLanding() {
     // Render sport cards
     renderSportCards();
 
-    // Render new releases and popular products
+    // Render new releases and explore products
     renderNewReleases();
-    renderPopularProducts();
+    renderExploreProducts();
 }
 
 function renderSportCards() {
@@ -156,15 +156,14 @@ function renderNewReleases() {
     document.getElementById('newReleases').innerHTML = renderProductList(newReleases);
 }
 
-function renderPopularProducts() {
+function renderExploreProducts() {
     const allProducts = getAllProducts();
 
-    // For now, just show a mix of products (could be enhanced with actual popularity data)
-    // Shuffle and pick 5
+    // Shuffle and pick 5 random products for discovery
     const shuffled = [...allProducts].sort(() => Math.random() - 0.5);
-    const popular = shuffled.slice(0, 5);
+    const explore = shuffled.slice(0, 5);
 
-    document.getElementById('popularProducts').innerHTML = renderProductList(popular);
+    document.getElementById('exploreProducts').innerHTML = renderProductList(explore);
 }
 
 function renderProductList(products) {
