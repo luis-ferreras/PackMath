@@ -293,7 +293,7 @@ function renderProductHero() {
     const boxesPerCase = configInfo?.boxesPerCase || 0;
     const totalCards = packs * cardsPerPack;
 
-    // Brand logo
+    // Brand logo (inline with meta)
     const brandLogo = getBrandLogo(product.brand);
     const brandLogoHtml = brandLogo
         ? `<img src="${brandLogo}" alt="${product.brand}" class="hero-brand-logo">`
@@ -304,13 +304,17 @@ function renderProductHero() {
         `<option value="${c}" ${c === state.config ? 'selected' : ''}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
     ).join('');
 
+    // Build meta line with optional release date
+    const metaParts = [product.sport, product.brand, product.year];
+    if (product.releaseDate) {
+        metaParts.push(product.releaseDate);
+    }
+
     document.getElementById('productHero').innerHTML = `
         <div class="hero-top">
             <div class="hero-info">
-                ${brandLogoHtml}
                 <h1 class="hero-name">${product.name}</h1>
-                <p class="hero-meta">${product.sport} &bull; ${product.brand} &bull; ${product.year}</p>
-                ${product.releaseDate ? `<p class="hero-release">Release: ${product.releaseDate}</p>` : ''}
+                <p class="hero-meta">${brandLogoHtml}${metaParts.join(' &bull; ')}</p>
             </div>
             ${configs.length > 0 ? `
                 <div class="hero-config-select">

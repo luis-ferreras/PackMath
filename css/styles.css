@@ -1114,9 +1114,10 @@ body {
 }
 
 .hero-brand-logo {
-    height: 24px;
+    height: 14px;
     width: auto;
-    margin-bottom: 8px;
+    margin-right: 8px;
+    vertical-align: middle;
     filter: brightness(0) invert(1);
     opacity: 0.9;
 }
