@@ -96,6 +96,15 @@ export function getSportIcon(sport) {
     return icons[sport] || '⭐';
 }
 
+// Get brand logo path (returns null if no logo available)
+export function getBrandLogo(brand) {
+    const logos = {
+        'Topps': 'img/topps-logo.svg'
+        // Add more brands here: 'Panini': 'img/panini-logo.svg', etc.
+    };
+    return logos[brand] || null;
+}
+
 // ========================================
 // Landing Page
 // ========================================
@@ -242,8 +251,15 @@ function renderProductGrid(products) {
         const configTags = configs.slice(0, 4).map(c => `<span class="config-tag">${c}</span>`).join('');
         const moreConfigs = configs.length > 4 ? `<span class="config-tag">+${configs.length - 4}</span>` : '';
 
+        // Brand logo for card
+        const brandLogo = getBrandLogo(product.brand);
+        const brandLogoHtml = brandLogo
+            ? `<img src="${brandLogo}" alt="${product.brand}" class="product-card-brand-logo">`
+            : '';
+
         return `
             <div class="product-card" onclick="navigateToProduct('${product.id}')">
+                ${brandLogoHtml}
                 <div class="product-card-header">
                     <div class="product-card-name">${product.name}</div>
                     <div class="product-card-meta">${product.sport} &bull; ${product.brand} &bull; ${product.year}</div>
@@ -277,6 +293,12 @@ function renderProductHero() {
     const boxesPerCase = configInfo?.boxesPerCase || 0;
     const totalCards = packs * cardsPerPack;
 
+    // Brand logo
+    const brandLogo = getBrandLogo(product.brand);
+    const brandLogoHtml = brandLogo
+        ? `<img src="${brandLogo}" alt="${product.brand}" class="hero-brand-logo">`
+        : '';
+
     // Config selector
     const configOptions = configs.map(c =>
         `<option value="${c}" ${c === state.config ? 'selected' : ''}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
@@ -285,6 +307,7 @@ function renderProductHero() {
     document.getElementById('productHero').innerHTML = `
         <div class="hero-top">
             <div class="hero-info">
+                ${brandLogoHtml}
                 <h1 class="hero-name">${product.name}</h1>
                 <p class="hero-meta">${product.sport} &bull; ${product.brand} &bull; ${product.year}</p>
                 ${product.releaseDate ? `<p class="hero-release">Release: ${product.releaseDate}</p>` : ''}
