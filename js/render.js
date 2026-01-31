@@ -61,9 +61,11 @@ function getSportIcon(sport) {
         'Soccer': '⚽',
         'UFC': '🥊',
         'Wrestling': '🤼',
+        'WWE': '🤼',
         'Golf': '⛳',
         'Tennis': '🎾',
         'Racing': '🏎️',
+        'F1': '🏎️',
         'Bowman U': '🎓',
         'College': '🎓',
         'Olympics': '🏅'
