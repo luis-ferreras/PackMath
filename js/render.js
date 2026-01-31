@@ -108,8 +108,9 @@ export function getBrandLogo(brand) {
 // Get sport logo path (returns null if no logo available)
 export function getSportLogo(sport) {
     const logos = {
-        'NBA': 'img/nba-logo.svg'
-        // Add more sports here: 'NFL': 'img/nfl-logo.svg', etc.
+        'NBA': 'img/nba-logo.svg',
+        'NFL': 'img/nfl-logo.svg',
+        'MLB': 'img/mlb-logo.svg'
     };
     return logos[sport] || null;
 }
