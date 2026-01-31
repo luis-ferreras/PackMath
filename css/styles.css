@@ -400,12 +400,35 @@ body {
     top: var(--header-height);
     height: calc(100vh - var(--header-height));
     overflow-y: auto;
+    flex-direction: column;
 }
 
 @media (min-width: 768px) {
     .sidebar-left {
-        display: block;
+        display: flex;
     }
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+    margin-top: auto;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.footer-link {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 0;
+    transition: color var(--transition-fast);
+}
+
+.footer-link:hover {
+    color: var(--text-secondary);
 }
 
 /* Sidebar Navigation */
