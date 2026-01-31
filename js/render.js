@@ -18,10 +18,20 @@ export function renderSportsSidebar() {
         sportCounts[p.sport] = (sportCounts[p.sport] || 0) + 1;
     });
 
+    // Check if we're on landing (home) page
+    const isHome = state.view === 'landing';
+    const isAllSports = state.sportFilter === 'all';
+
     // Desktop sidebar navigation
     const navHtml = `
         <li class="nav-item">
-            <a class="nav-link ${!state.sportFilter ? 'active' : ''}" onclick="setSportFilter(null)">
+            <a class="nav-link ${isHome ? 'active' : ''}" onclick="navigateToLanding()">
+                <span class="nav-link-icon">🏠</span>
+                Home
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link ${isAllSports ? 'active' : ''}" onclick="setSportFilter('all')">
                 <span class="nav-link-icon">🏆</span>
                 All Sports
                 <span class="nav-link-count">${allProducts.length}</span>
@@ -44,7 +54,8 @@ export function renderSportsSidebar() {
 
     // Mobile horizontal pills
     const pillsHtml = `
-        <button class="mobile-pill ${!state.sportFilter ? 'active' : ''}" onclick="setSportFilter(null)">All</button>
+        <button class="mobile-pill ${isHome ? 'active' : ''}" onclick="navigateToLanding()">Home</button>
+        <button class="mobile-pill ${isAllSports ? 'active' : ''}" onclick="setSportFilter('all')">All</button>
         ${sports.map(sport => `
             <button class="mobile-pill ${state.sportFilter === sport ? 'active' : ''}" onclick="setSportFilter('${sport}')">${sport}</button>
         `).join('')}
@@ -184,11 +195,14 @@ export function renderSportFilterView() {
     // Render sports in sidebar
     renderSportsSidebar();
 
-    // Update title
-    document.getElementById('sportFilterTitle').textContent = `${state.sportFilter} Products`;
+    // Update title - handle 'all' as special case
+    const isAllSports = state.sportFilter === 'all';
+    const title = isAllSports ? 'All Products' : `${state.sportFilter} Products`;
+    document.getElementById('sportFilterTitle').textContent = title;
 
-    // Render filtered products
-    const products = searchProducts('', state.sportFilter);
+    // Render filtered products (null filter for 'all' to get all products)
+    const filterSport = isAllSports ? null : state.sportFilter;
+    const products = filterSport ? searchProducts('', filterSport) : getAllProducts();
     document.getElementById('sportFilterProducts').innerHTML = renderProductGrid(products);
 }
 
