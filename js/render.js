@@ -54,18 +54,30 @@ export function renderSportsSidebar() {
 
 function getSportIcon(sport) {
     const icons = {
+        // Full names
         'Basketball': '🏀',
         'Football': '🏈',
         'Baseball': '⚾',
         'Hockey': '🏒',
         'Soccer': '⚽',
-        'UFC': '🥊',
-        'Wrestling': '🤼',
-        'WWE': '🤼',
         'Golf': '⛳',
         'Tennis': '🎾',
         'Racing': '🏎️',
+        'Wrestling': '🤼',
+        // Abbreviations
+        'NBA': '🏀',
+        'NFL': '🏈',
+        'MLB': '⚾',
+        'NHL': '🏒',
+        'MLS': '⚽',
+        'PGA': '⛳',
+        'ATP': '🎾',
+        'WTA': '🎾',
         'F1': '🏎️',
+        'UFC': '🥊',
+        'WWE': '🤼',
+        'NCAA': '🎓',
+        // Special categories
         'Bowman U': '🎓',
         'College': '🎓',
         'Olympics': '🏅'
