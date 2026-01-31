@@ -302,34 +302,34 @@ function renderProductHero() {
     const boxesPerCase = configInfo?.boxesPerCase || 0;
     const totalCards = packs * cardsPerPack;
 
-    // Brand logo (inline with meta)
+    // Brand: logo or text
     const brandLogo = getBrandLogo(product.brand);
-    const brandLogoHtml = brandLogo
+    const brandDisplay = brandLogo
         ? `<img src="${brandLogo}" alt="${product.brand}" class="hero-brand-logo">`
-        : '';
+        : product.brand;
 
-    // Sport logo (inline with meta)
+    // Sport: logo or text
     const sportLogo = getSportLogo(product.sport);
-    const sportLogoHtml = sportLogo
+    const sportDisplay = sportLogo
         ? `<img src="${sportLogo}" alt="${product.sport}" class="hero-sport-logo">`
-        : '';
+        : product.sport;
 
     // Config selector
     const configOptions = configs.map(c =>
         `<option value="${c}" ${c === state.config ? 'selected' : ''}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
     ).join('');
 
-    // Build meta line (sport, brand) + optional release date
-    const metaParts = [product.sport, product.brand];
-    const releaseDateHtml = product.releaseDate
-        ? ` &bull; <strong>Release Date:</strong> ${product.releaseDate}`
-        : '';
+    // Build meta line: Brand • Sport • Release Date
+    const metaParts = [brandDisplay, sportDisplay];
+    if (product.releaseDate) {
+        metaParts.push(`<strong>Release Date:</strong> ${product.releaseDate}`);
+    }
 
     document.getElementById('productHero').innerHTML = `
         <div class="hero-top">
             <div class="hero-info">
                 <h1 class="hero-name">${product.name}</h1>
-                <p class="hero-meta">${sportLogoHtml}${brandLogoHtml}${metaParts.join(' &bull; ')}${releaseDateHtml}</p>
+                <p class="hero-meta">${metaParts.join(' &bull; ')}</p>
             </div>
             ${configs.length > 0 ? `
                 <div class="hero-config-select">
