@@ -106,6 +106,20 @@ export function getSportLogo(sport) {
     return logos[sport] || null;
 }
 
+// Get sport accent color
+function getSportColor(sport) {
+    const colors = {
+        'NBA': '#C9082A',
+        'NFL': '#013369',
+        'MLB': '#002D72',
+        'NHL': '#000000',
+        'MLS': '#5D9741',
+        'UFC': '#D20A0A',
+        'WWE': '#000000'
+    };
+    return colors[sport] || '#6366f1';
+}
+
 // ========================================
 // Landing Page
 // ========================================
@@ -181,16 +195,31 @@ function renderProductList(products) {
         return '<p class="text-muted text-sm">No products available</p>';
     }
 
+    // Check if release date is within last 60 days
+    const isNew = (releaseDate) => {
+        if (!releaseDate) return false;
+        const release = new Date(releaseDate);
+        const now = new Date();
+        const diffDays = (now - release) / (1000 * 60 * 60 * 24);
+        return diffDays <= 60 && diffDays >= 0;
+    };
+
     return products.map(product => {
-        const icon = getSportIcon(product.sport);
+        const sportColor = getSportColor(product.sport);
+        const brandLogo = getBrandLogo(product.brand);
+        const brandLogoHtml = brandLogo
+            ? `<img src="${brandLogo}" alt="${product.brand}" class="product-list-brand-logo">`
+            : '';
+        const newBadge = isNew(product.releaseDate)
+            ? '<span class="product-list-badge">New</span>'
+            : '';
+
         return `
-            <div class="product-list-item" onclick="navigateToProduct('${product.id}')">
-                <div class="product-list-icon">${icon}</div>
-                <div class="product-list-info">
-                    <div class="product-list-name">${product.name}</div>
-                    <div class="product-list-meta">${product.brand} &bull; ${product.year}</div>
+            <div class="product-list-item" onclick="navigateToProduct('${product.id}')" style="--sport-color: ${sportColor}">
+                <div class="product-list-content">
+                    <div class="product-list-name">${product.name}${newBadge}</div>
                 </div>
-                <div class="product-list-arrow">→</div>
+                ${brandLogoHtml}
             </div>
         `;
     }).join('');
