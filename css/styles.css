@@ -765,6 +765,12 @@ body {
     margin-bottom: 2px;
 }
 
+.sport-card-logo {
+    max-width: 60%;
+    max-height: 50%;
+    object-fit: contain;
+}
+
 .sport-card-count {
     font-size: 0.75rem;
     color: var(--text-muted);

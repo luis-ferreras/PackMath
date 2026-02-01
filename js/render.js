@@ -129,11 +129,14 @@ function renderSportCards() {
     const displaySports = sports.slice(0, 3);
 
     const cardsHtml = displaySports.map(sport => {
+        const logo = getSportLogo(sport);
         const icon = getSportIcon(sport);
+        const display = logo
+            ? `<img src="${logo}" alt="${sport}" class="sport-card-logo">`
+            : `<span class="sport-card-icon">${icon}</span><span class="sport-card-name">${sport}</span>`;
         return `
             <div class="sport-card" onclick="setSportFilter('${sport}')">
-                <div class="sport-card-icon">${icon}</div>
-                <div class="sport-card-name">${sport}</div>
+                ${display}
             </div>
         `;
     }).join('');
