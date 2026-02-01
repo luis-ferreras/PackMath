@@ -186,14 +186,16 @@ function renderProductList(products) {
         const sportLogoHtml = sportLogo
             ? `<img src="${sportLogo}" alt="${product.sport}" class="product-list-watermark">`
             : '';
-        const releaseDate = product.releaseDate || '';
 
         return `
             <div class="product-list-card" onclick="navigateToProduct('${product.id}')">
                 ${sportLogoHtml}
                 <div class="product-list-card-content">
                     <div class="product-list-card-name">${product.name}</div>
-                    ${releaseDate ? `<div class="product-list-card-date">${releaseDate}</div>` : ''}
+                    <div class="product-list-card-tags">
+                        <span class="product-list-tag">${product.sport}</span>
+                        <span class="product-list-tag">${product.brand}</span>
+                    </div>
                 </div>
             </div>
         `;

@@ -843,12 +843,22 @@ body {
     font-weight: 500;
     color: var(--text-primary);
     line-height: 1.4;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 
-.product-list-card-date {
-    font-size: 0.75rem;
+.product-list-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.product-list-tag {
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    background: var(--bg-tertiary);
     color: var(--text-muted);
+    border-radius: 3px;
 }
 
 /* Legacy landing styles */
