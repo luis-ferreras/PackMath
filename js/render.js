@@ -162,16 +162,16 @@ function renderNewReleases() {
         return (b.year || '').localeCompare(a.year || '');
     });
 
-    const newReleases = sorted.slice(0, 5);
+    const newReleases = sorted.slice(0, 4);
     document.getElementById('newReleases').innerHTML = renderProductList(newReleases);
 }
 
 function renderExploreProducts() {
     const allProducts = getAllProducts();
 
-    // Shuffle and pick 5 random products for discovery
+    // Shuffle and pick 4 random products for discovery
     const shuffled = [...allProducts].sort(() => Math.random() - 0.5);
-    const explore = shuffled.slice(0, 5);
+    const explore = shuffled.slice(0, 4);
 
     document.getElementById('exploreProducts').innerHTML = renderProductList(explore);
 }
@@ -181,33 +181,25 @@ function renderProductList(products) {
         return '<p class="text-muted text-sm">No products available</p>';
     }
 
-    // Check if release date is within last 60 days
-    const isNew = (releaseDate) => {
-        if (!releaseDate) return false;
-        const release = new Date(releaseDate);
-        const now = new Date();
-        const diffDays = (now - release) / (1000 * 60 * 60 * 24);
-        return diffDays <= 60 && diffDays >= 0;
-    };
-
-    return products.map(product => {
-        const brandLogo = getBrandLogo(product.brand);
-        const brandLogoHtml = brandLogo
-            ? `<img src="${brandLogo}" alt="${product.brand}" class="product-list-brand-logo">`
+    const cards = products.map(product => {
+        const sportLogo = getSportLogo(product.sport);
+        const sportLogoHtml = sportLogo
+            ? `<img src="${sportLogo}" alt="${product.sport}" class="product-list-watermark">`
             : '';
-        const newBadge = isNew(product.releaseDate)
-            ? '<span class="product-list-badge">New</span>'
-            : '';
+        const releaseDate = product.releaseDate || '';
 
         return `
-            <div class="product-list-item" onclick="navigateToProduct('${product.id}')">
-                <div class="product-list-content">
-                    <div class="product-list-name">${product.name}${newBadge}</div>
+            <div class="product-list-card" onclick="navigateToProduct('${product.id}')">
+                ${sportLogoHtml}
+                <div class="product-list-card-content">
+                    <div class="product-list-card-name">${product.name}</div>
+                    ${releaseDate ? `<div class="product-list-card-date">${releaseDate}</div>` : ''}
                 </div>
-                ${brandLogoHtml}
             </div>
         `;
     }).join('');
+
+    return `<div class="product-list-grid">${cards}</div>`;
 }
 
 // ========================================
