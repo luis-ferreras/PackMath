@@ -187,11 +187,14 @@ function renderProductList(products) {
             ? `<img src="${sportLogo}" alt="${product.sport}" class="product-list-watermark">`
             : '';
 
+        // Remove leading year from name (since it's shown as a tag)
+        const displayName = product.name.replace(/^\d{4}\s+/, '');
+
         return `
             <div class="product-list-card" onclick="navigateToProduct('${product.id}')">
                 ${sportLogoHtml}
                 <div class="product-list-card-content">
-                    <div class="product-list-card-name">${product.name}</div>
+                    <div class="product-list-card-name">${displayName}</div>
                     <div class="product-list-card-tags">
                         <span class="product-list-tag">${product.sport}</span>
                         <span class="product-list-tag">${product.brand}</span>
