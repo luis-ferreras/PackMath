@@ -187,19 +187,16 @@ function renderProductList(products) {
             ? `<img src="${sportLogo}" alt="${product.sport}" class="product-list-watermark">`
             : '';
 
-        // Remove leading year from name (since it's shown as a tag)
-        const displayName = product.name.replace(/^\d{4}\s+/, '');
+        // Clean up name: remove year (2025 or 2025-26 format) and brand
+        let displayName = product.name
+            .replace(/^\d{4}(-\d{2})?\s+/, '')  // Remove leading year
+            .replace(new RegExp(`^${product.brand}\\s+`, 'i'), '');  // Remove brand
 
         return `
             <div class="product-list-card" onclick="navigateToProduct('${product.id}')">
                 ${sportLogoHtml}
                 <div class="product-list-card-content">
                     <div class="product-list-card-name">${displayName}</div>
-                    <div class="product-list-card-tags">
-                        <span class="product-list-tag">${product.sport}</span>
-                        <span class="product-list-tag">${product.brand}</span>
-                        <span class="product-list-tag">${product.year}</span>
-                    </div>
                 </div>
             </div>
         `;
