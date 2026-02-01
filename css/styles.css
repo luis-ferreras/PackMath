@@ -1726,110 +1726,141 @@ body {
     background: var(--accent-muted);
 }
 
-/* Checklist Grid */
-.checklist-grid {
-    display: grid;
-    grid-template-columns: repeat(1, 1fr);
-    gap: 8px;
-}
-
-@media (min-width: 480px) {
-    .checklist-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (min-width: 768px) {
-    .checklist-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-@media (min-width: 1100px) {
-    .checklist-grid {
-        grid-template-columns: repeat(4, 1fr);
-    }
-}
-
-/* Checklist Card */
-.checklist-card {
-    position: relative;
-    overflow: hidden;
-    padding: 12px 14px;
+/* Checklist List */
+.checklist-list-container {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    transition: all var(--transition-fast);
+    border-radius: var(--radius);
+    overflow: hidden;
 }
 
-.checklist-card:hover {
-    background: var(--bg-card-hover);
-    border-color: var(--border-light);
-}
-
-.checklist-card.is-rookie {
-    border-left: 3px solid var(--orange);
-}
-
-.checklist-card-watermark {
-    position: absolute;
-    right: -8px;
-    bottom: -8px;
-    height: 48px;
-    width: auto;
-    opacity: 0.06;
-    pointer-events: none;
-}
-
-.checklist-card:hover .checklist-card-watermark {
-    opacity: 0.1;
-}
-
-.checklist-card-content {
-    position: relative;
-    z-index: 1;
-}
-
-.checklist-card-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 4px;
-}
-
-.checklist-card-number {
+.checklist-list-header {
+    display: grid;
+    grid-template-columns: 50px 1fr 120px 140px;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-color);
     font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.checklist-list {
+    max-height: 480px;
+    overflow-y: auto;
+}
+
+.checklist-row {
+    display: grid;
+    grid-template-columns: 50px 1fr 120px 140px;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+    align-items: center;
+    transition: background var(--transition-fast);
+}
+
+.checklist-row:last-child {
+    border-bottom: none;
+}
+
+.checklist-row:hover {
+    background: var(--bg-card-hover);
+}
+
+.checklist-row.is-rookie {
+    background: rgba(249, 115, 22, 0.04);
+}
+
+.checklist-row.is-rookie:hover {
+    background: rgba(249, 115, 22, 0.08);
+}
+
+.checklist-col-num {
+    font-size: 0.8125rem;
     font-family: 'SF Mono', Monaco, 'Courier New', monospace;
     color: var(--text-muted);
 }
 
-.checklist-card-rc {
-    font-size: 0.625rem;
-    font-weight: 600;
-    padding: 2px 5px;
-    background: rgba(249, 115, 22, 0.2);
-    color: var(--orange);
-    border-radius: 3px;
-    letter-spacing: 0.03em;
-}
-
-.checklist-card-player {
+.checklist-col-player {
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--text-primary);
-    line-height: 1.3;
-    margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.checklist-card-meta {
-    font-size: 0.6875rem;
+.checklist-col-team {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.checklist-col-set {
+    font-size: 0.75rem;
     color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.checklist-rc {
+    display: inline-block;
+    font-size: 0.625rem;
+    font-weight: 600;
+    padding: 2px 5px;
+    margin-left: 6px;
+    background: rgba(249, 115, 22, 0.2);
+    color: var(--orange);
+    border-radius: 3px;
+    letter-spacing: 0.03em;
+    vertical-align: middle;
+}
+
+/* Mobile: Stack columns */
+@media (max-width: 640px) {
+    .checklist-list-header {
+        display: none;
+    }
+
+    .checklist-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 8px;
+        padding: 12px 16px;
+    }
+
+    .checklist-col-num {
+        order: 1;
+        font-size: 0.75rem;
+    }
+
+    .checklist-col-player {
+        order: 2;
+        flex: 1;
+    }
+
+    .checklist-col-team {
+        order: 3;
+        width: 100%;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .checklist-col-set {
+        order: 4;
+        width: 100%;
+    }
+
+    .checklist-col-team::before {
+        content: '';
+    }
 }
 
 /* Mobile adjustments */

@@ -483,31 +483,31 @@ function renderChecklistTab() {
         </div>
     `;
 
-    // Card grid
-    const cardsHtml = filtered.length > 0 ? `
-        <div class="checklist-grid">
-            ${filtered.map(card => {
-                const isRookie = ['TRUE', 'true', '1', 'Yes', 'yes'].includes(card.rookie);
-                const setName = card.set_name || card.set_type || 'Base';
-                const sportLogoHtml = sportLogo
-                    ? `<img src="${sportLogo}" alt="" class="checklist-card-watermark">`
-                    : '';
-                return `
-                    <div class="checklist-card${isRookie ? ' is-rookie' : ''}">
-                        ${sportLogoHtml}
-                        <div class="checklist-card-content">
-                            <div class="checklist-card-header">
-                                <span class="checklist-card-number">#${card.card_num || '-'}</span>
-                                ${isRookie ? '<span class="checklist-card-rc">RC</span>' : ''}
-                            </div>
-                            <div class="checklist-card-player">${card.player || 'Unknown'}</div>
-                            <div class="checklist-card-meta">${card.team || '-'} &bull; ${setName}</div>
+    // Scrollable list
+    const listHtml = filtered.length > 0 ? `
+        <div class="checklist-list-container">
+            <div class="checklist-list-header">
+                <span class="checklist-col-num">#</span>
+                <span class="checklist-col-player">Player</span>
+                <span class="checklist-col-team">Team</span>
+                <span class="checklist-col-set">Set</span>
+            </div>
+            <div class="checklist-list">
+                ${filtered.map(card => {
+                    const isRookie = ['TRUE', 'true', '1', 'Yes', 'yes'].includes(card.rookie);
+                    const setName = card.set_name || card.set_type || 'Base';
+                    return `
+                        <div class="checklist-row${isRookie ? ' is-rookie' : ''}">
+                            <span class="checklist-col-num">${card.card_num || '-'}</span>
+                            <span class="checklist-col-player">${card.player || 'Unknown'}${isRookie ? '<span class="checklist-rc">RC</span>' : ''}</span>
+                            <span class="checklist-col-team">${card.team || '-'}</span>
+                            <span class="checklist-col-set">${setName}</span>
                         </div>
-                    </div>
-                `;
-            }).join('')}
+                    `;
+                }).join('')}
+            </div>
         </div>
     ` : '<div class="empty-state"><p class="empty-state-text">No cards match your filters</p></div>';
 
-    return statsHtml + filtersHtml + sortHtml + cardsHtml;
+    return statsHtml + filtersHtml + sortHtml + listHtml;
 }
