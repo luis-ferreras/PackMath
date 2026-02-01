@@ -795,72 +795,60 @@ body {
     min-width: 0;
 }
 
-/* Product List (compact) */
-.product-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+/* Product List Grid (compact cards) */
+.product-list-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
 }
 
-.product-list-item {
+.product-list-card {
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    overflow: hidden;
     padding: 16px;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-bottom: 3px solid var(--accent);
     border-radius: var(--radius);
     cursor: pointer;
     transition: all var(--transition-fast);
 }
 
-.product-list-item:hover {
+.product-list-card:hover {
     background: var(--bg-card-hover);
     border-color: var(--border-light);
-    border-bottom-color: var(--accent);
     transform: translateY(-2px);
 }
 
-.product-list-content {
-    flex: 1;
-    min-width: 0;
+.product-list-watermark {
+    position: absolute;
+    right: -10px;
+    bottom: -10px;
+    height: 64px;
+    width: auto;
+    opacity: 0.08;
+    pointer-events: none;
 }
 
-.product-list-name {
-    font-size: 0.9rem;
+.product-list-card:hover .product-list-watermark {
+    opacity: 0.12;
+}
+
+.product-list-card-content {
+    position: relative;
+    z-index: 1;
+}
+
+.product-list-card-name {
+    font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-primary);
     line-height: 1.4;
+    margin-bottom: 4px;
 }
 
-.product-list-badge {
-    display: inline-block;
-    font-size: 0.6rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 2px 6px;
-    margin-left: 8px;
-    background: var(--accent);
-    color: white;
-    border-radius: 3px;
-    vertical-align: middle;
-}
-
-.product-list-brand-logo {
-    height: 16px;
-    width: auto;
-    opacity: 0.4;
-    filter: brightness(0) invert(1);
-    flex-shrink: 0;
-    transition: opacity var(--transition-fast);
-}
-
-.product-list-item:hover .product-list-brand-logo {
-    opacity: 0.7;
+.product-list-card-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
 }
 
 /* Legacy landing styles */
