@@ -13,8 +13,8 @@ export const state = {
     product: null,
     config: 'hobby',
 
-    // Product page tab: 'compare', 'rarity', 'calculator', 'checklist'
-    tab: 'compare',
+    // Product page tab: 'odds', 'checklist'
+    tab: 'odds',
 
     // Compare sub-tab
     compareTab: 'base',
