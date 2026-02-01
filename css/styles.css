@@ -712,23 +712,11 @@ body {
 /* Sport Cards Grid */
 .sport-cards {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
 }
 
-@media (min-width: 480px) {
-    .sport-cards {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
 @media (min-width: 768px) {
-    .sport-cards {
-        grid-template-columns: repeat(4, 1fr);
-    }
-}
-
-@media (min-width: 1024px) {
     .sport-cards {
         grid-template-columns: repeat(4, 1fr);
     }
@@ -777,10 +765,17 @@ body {
 }
 
 .sport-card-placeholder {
+    grid-column: 1 / -1;
     aspect-ratio: 16 / 9;
     background: var(--bg-card);
     border: 1px dashed var(--border-color);
     border-radius: var(--radius);
+}
+
+@media (min-width: 768px) {
+    .sport-card-placeholder {
+        grid-column: auto;
+    }
 }
 
 /* Landing Columns */
