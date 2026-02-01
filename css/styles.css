@@ -805,10 +805,12 @@ body {
 .product-list-item {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
     padding: 12px 16px;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
+    border-left: 3px solid var(--sport-color, var(--accent));
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -817,35 +819,47 @@ body {
 .product-list-item:hover {
     background: var(--bg-card-hover);
     border-color: var(--border-light);
+    border-left-color: var(--sport-color, var(--accent));
+    transform: translateX(2px);
 }
 
-.product-list-icon {
-    font-size: 1.25rem;
-    flex-shrink: 0;
-}
-
-.product-list-info {
+.product-list-content {
     flex: 1;
     min-width: 0;
 }
 
 .product-list-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
-.product-list-meta {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-}
-
-.product-list-arrow {
-    color: var(--text-muted);
+.product-list-badge {
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    background: var(--accent);
+    color: white;
+    border-radius: 3px;
     flex-shrink: 0;
+}
+
+.product-list-brand-logo {
+    height: 14px;
+    width: auto;
+    opacity: 0.5;
+    filter: brightness(0) invert(1);
+    flex-shrink: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.product-list-item:hover .product-list-brand-logo {
+    opacity: 0.8;
 }
 
 /* Legacy landing styles */
