@@ -195,6 +195,7 @@ function renderProductList(products) {
                     <div class="product-list-card-tags">
                         <span class="product-list-tag">${product.sport}</span>
                         <span class="product-list-tag">${product.brand}</span>
+                        <span class="product-list-tag">${product.year}</span>
                     </div>
                 </div>
             </div>
