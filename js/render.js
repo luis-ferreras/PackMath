@@ -10,13 +10,6 @@ import {
 
 export function renderSportsSidebar() {
     const sports = getAvailableSports();
-    const allProducts = getAllProducts();
-
-    // Get product counts per sport
-    const sportCounts = {};
-    allProducts.forEach(p => {
-        sportCounts[p.sport] = (sportCounts[p.sport] || 0) + 1;
-    });
 
     // Check if we're on landing (home) page
     const isHome = state.view === 'landing';
@@ -34,7 +27,6 @@ export function renderSportsSidebar() {
             <a class="nav-link ${isAllSports ? 'active' : ''}" onclick="setSportFilter('all')">
                 <span class="nav-link-icon">🏆</span>
                 All Sports
-                <span class="nav-link-count">${allProducts.length}</span>
             </a>
         </li>
         ${sports.map(sport => {
@@ -44,7 +36,6 @@ export function renderSportsSidebar() {
                     <a class="nav-link ${state.sportFilter === sport ? 'active' : ''}" onclick="setSportFilter('${sport}')">
                         <span class="nav-link-icon">${icon}</span>
                         ${sport}
-                        <span class="nav-link-count">${sportCounts[sport] || 0}</span>
                     </a>
                 </li>
             `;
