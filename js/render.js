@@ -370,6 +370,7 @@ export function renderTabContent() {
 
 function renderChecklistTab() {
     const checklist = getChecklistForProduct(state.product);
+    const product = getProduct(state.product);
 
     if (checklist.length === 0) {
         return `<div class="empty-state"><p class="empty-state-text">No checklist data available</p></div>`;
@@ -412,75 +413,101 @@ function renderChecklistTab() {
         return 0;
     });
 
-    const sortArrow = (col) => sortBy === col ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+    // Get sport logo for watermark
+    const sportLogo = product ? getSportLogo(product.sport) : null;
 
-    // Filters widget
+    // Stats bar
+    const statsHtml = `
+        <div class="checklist-stats">
+            <div class="checklist-stat">
+                <span class="checklist-stat-value">${totalCards}</span>
+                <span class="checklist-stat-label">Total Cards</span>
+            </div>
+            <div class="checklist-stat">
+                <span class="checklist-stat-value">${rookies.length}</span>
+                <span class="checklist-stat-label">Rookies</span>
+            </div>
+            <div class="checklist-stat">
+                <span class="checklist-stat-value">${sets.length}</span>
+                <span class="checklist-stat-label">Sets</span>
+            </div>
+            <div class="checklist-stat">
+                <span class="checklist-stat-value">${teams.length}</span>
+                <span class="checklist-stat-label">Teams</span>
+            </div>
+        </div>
+    `;
+
+    // Compact filters bar
     const filtersHtml = `
-        <div class="widget">
-            <div class="widget-header">
-                <span class="widget-title">Filters</span>
-                <span class="widget-badge">${filtered.length} of ${totalCards}</span>
+        <div class="checklist-filters">
+            <div class="checklist-search">
+                <svg class="checklist-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="M21 21l-4.35-4.35"></path>
+                </svg>
+                <input type="text" class="checklist-search-input" placeholder="Search players..." value="${searchQuery}" oninput="setChecklistSearch(this.value)">
             </div>
-            <div class="widget-content">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                    <select class="form-select" onchange="setChecklistSet(this.value)">
-                        <option value="all" ${setFilter === 'all' ? 'selected' : ''}>All Sets</option>
-                        ${sets.map(s => `<option value="${s}" ${setFilter === s ? 'selected' : ''}>${s}</option>`).join('')}
-                    </select>
-                    <select class="form-select" onchange="setChecklistTeam(this.value)">
-                        <option value="all" ${teamFilter === 'all' ? 'selected' : ''}>All Teams</option>
-                        ${teams.map(t => `<option value="${t}" ${teamFilter === t ? 'selected' : ''}>${t}</option>`).join('')}
-                    </select>
-                </div>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <input type="text" class="form-input" id="checklistSearchInput" placeholder="Search player..." value="${searchQuery}" oninput="setChecklistSearch(this.value)" style="flex: 1;">
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; white-space: nowrap;">
-                        <input type="checkbox" class="form-checkbox" ${rookieFilter ? 'checked' : ''} onchange="setChecklistRookieOnly(this.checked)">
-                        RC only
-                    </label>
-                </div>
+            <select class="checklist-select" onchange="setChecklistSet(this.value)">
+                <option value="all" ${setFilter === 'all' ? 'selected' : ''}>All Sets</option>
+                ${sets.map(s => `<option value="${s}" ${setFilter === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+            <select class="checklist-select" onchange="setChecklistTeam(this.value)">
+                <option value="all" ${teamFilter === 'all' ? 'selected' : ''}>All Teams</option>
+                ${teams.map(t => `<option value="${t}" ${teamFilter === t ? 'selected' : ''}>${t}</option>`).join('')}
+            </select>
+            <button class="checklist-filter-btn ${rookieFilter ? 'active' : ''}" onclick="setChecklistRookieOnly(${!rookieFilter})">
+                RC Only
+            </button>
+        </div>
+    `;
+
+    // Sort bar
+    const sortOptions = [
+        { value: 'card_num', label: '#' },
+        { value: 'player', label: 'Player' },
+        { value: 'team', label: 'Team' },
+        { value: 'set', label: 'Set' }
+    ];
+    const sortHtml = `
+        <div class="checklist-sort-bar">
+            <span class="checklist-results-count">${filtered.length} cards</span>
+            <div class="checklist-sort-options">
+                <span class="checklist-sort-label">Sort:</span>
+                ${sortOptions.map(opt => `
+                    <button class="checklist-sort-btn ${sortBy === opt.value ? 'active' : ''}" onclick="setChecklistSort('${opt.value}')">
+                        ${opt.label}${sortBy === opt.value ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                    </button>
+                `).join('')}
             </div>
         </div>
     `;
 
-    // Table
-    const tableHtml = `
-        <div class="widget">
-            <div class="widget-header">
-                <span class="widget-title">Checklist</span>
-            </div>
-            <div class="widget-content" style="padding: 0;">
-                <div class="table-scroll" style="max-height: 500px;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th style="cursor: pointer;" onclick="setChecklistSort('set')">Set${sortArrow('set')}</th>
-                                <th style="cursor: pointer; text-align: center; width: 60px;" onclick="setChecklistSort('card_num')">#${sortArrow('card_num')}</th>
-                                <th style="cursor: pointer;" onclick="setChecklistSort('player')">Player${sortArrow('player')}</th>
-                                <th style="cursor: pointer;" onclick="setChecklistSort('team')">Team${sortArrow('team')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${filtered.length > 0 ? filtered.map(card => {
-                                const isRookie = ['TRUE', 'true', '1', 'Yes', 'yes'].includes(card.rookie);
-                                return `
-                                    <tr>
-                                        <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${card.set_name || card.set_type || 'Base'}</td>
-                                        <td style="text-align: center;" class="mono text-muted">${card.card_num || '-'}</td>
-                                        <td>
-                                            ${card.player || 'Unknown'}
-                                            ${isRookie ? '<span class="tag tag-rc" style="margin-left: 6px;">RC</span>' : ''}
-                                        </td>
-                                        <td class="text-muted">${card.team || '-'}</td>
-                                    </tr>
-                                `;
-                            }).join('') : '<tr><td colspan="4" class="text-center text-muted" style="padding: 24px;">No cards match filters</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    // Card grid
+    const cardsHtml = filtered.length > 0 ? `
+        <div class="checklist-grid">
+            ${filtered.map(card => {
+                const isRookie = ['TRUE', 'true', '1', 'Yes', 'yes'].includes(card.rookie);
+                const setName = card.set_name || card.set_type || 'Base';
+                const sportLogoHtml = sportLogo
+                    ? `<img src="${sportLogo}" alt="" class="checklist-card-watermark">`
+                    : '';
+                return `
+                    <div class="checklist-card${isRookie ? ' is-rookie' : ''}">
+                        ${sportLogoHtml}
+                        <div class="checklist-card-content">
+                            <div class="checklist-card-header">
+                                <span class="checklist-card-number">#${card.card_num || '-'}</span>
+                                ${isRookie ? '<span class="checklist-card-rc">RC</span>' : ''}
+                            </div>
+                            <div class="checklist-card-player">${card.player || 'Unknown'}</div>
+                            <div class="checklist-card-meta">${card.team || '-'} &bull; ${setName}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
         </div>
-    `;
+    ` : '<div class="empty-state"><p class="empty-state-text">No cards match your filters</p></div>';
 
-    return filtersHtml + tableHtml;
+    return statsHtml + filtersHtml + sortHtml + cardsHtml;
 }
