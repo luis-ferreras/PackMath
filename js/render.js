@@ -252,25 +252,22 @@ function renderProductGrid(products) {
     }
 
     return products.map(product => {
-        const configs = getAvailableConfigs(product.id);
-        const configTags = configs.slice(0, 4).map(c => `<span class="config-tag">${c}</span>`).join('');
-        const moreConfigs = configs.length > 4 ? `<span class="config-tag">+${configs.length - 4}</span>` : '';
-
-        // Brand logo for card
-        const brandLogo = getBrandLogo(product.brand);
-        const brandLogoHtml = brandLogo
-            ? `<img src="${brandLogo}" alt="${product.brand}" class="product-card-brand-logo">`
+        const sportLogo = getSportLogo(product.sport);
+        const sportLogoHtml = sportLogo
+            ? `<img src="${sportLogo}" alt="${product.sport}" class="product-card-watermark">`
             : '';
+
+        // Clean up name: remove year (2025 or 2025-26 format) and brand
+        let displayName = product.name
+            .replace(/^\d{4}(-\d{2})?\s+/, '')  // Remove leading year
+            .replace(new RegExp(`^${product.brand}\\s+`, 'i'), '');  // Remove brand
 
         return `
             <div class="product-card" onclick="navigateToProduct('${product.id}')">
-                ${brandLogoHtml}
-                <div class="product-card-header">
-                    <div class="product-card-name">${product.name}</div>
-                    <div class="product-card-meta">${product.sport} &bull; ${product.brand} &bull; ${product.year}</div>
-                </div>
-                <div class="product-card-configs">
-                    ${configTags}${moreConfigs}
+                ${sportLogoHtml}
+                <div class="product-card-content">
+                    <div class="product-card-name">${displayName}</div>
+                    <div class="product-card-meta">${product.year} &bull; ${product.brand} &bull; ${product.sport}</div>
                 </div>
             </div>
         `;
