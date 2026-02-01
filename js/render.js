@@ -106,20 +106,6 @@ export function getSportLogo(sport) {
     return logos[sport] || null;
 }
 
-// Get sport accent color
-function getSportColor(sport) {
-    const colors = {
-        'NBA': '#C9082A',
-        'NFL': '#013369',
-        'MLB': '#002D72',
-        'NHL': '#000000',
-        'MLS': '#5D9741',
-        'UFC': '#D20A0A',
-        'WWE': '#000000'
-    };
-    return colors[sport] || '#6366f1';
-}
-
 // ========================================
 // Landing Page
 // ========================================
@@ -205,7 +191,6 @@ function renderProductList(products) {
     };
 
     return products.map(product => {
-        const sportColor = getSportColor(product.sport);
         const brandLogo = getBrandLogo(product.brand);
         const brandLogoHtml = brandLogo
             ? `<img src="${brandLogo}" alt="${product.brand}" class="product-list-brand-logo">`
@@ -215,7 +200,7 @@ function renderProductList(products) {
             : '';
 
         return `
-            <div class="product-list-item" onclick="navigateToProduct('${product.id}')" style="--sport-color: ${sportColor}">
+            <div class="product-list-item" onclick="navigateToProduct('${product.id}')">
                 <div class="product-list-content">
                     <div class="product-list-name">${product.name}${newBadge}</div>
                 </div>
