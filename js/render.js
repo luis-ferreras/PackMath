@@ -197,6 +197,7 @@ function renderProductList(products) {
                 ${sportLogoHtml}
                 <div class="product-list-card-content">
                     <div class="product-list-card-name">${displayName}</div>
+                    <div class="product-list-card-meta">${product.sport} &bull; ${product.brand}</div>
                 </div>
             </div>
         `;
