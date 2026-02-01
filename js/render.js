@@ -416,24 +416,42 @@ function renderChecklistTab() {
     // Get sport logo for watermark
     const sportLogo = product ? getSportLogo(product.sport) : null;
 
+    // Count card categories
+    const baseSet = checklist.filter(c => {
+        const setType = (c.set_type || c.set_name || '').toLowerCase();
+        return setType === 'base' || setType === 'base set' || setType.includes('base');
+    }).length;
+    const inserts = checklist.filter(c => {
+        const setType = (c.set_type || c.set_name || '').toLowerCase();
+        return setType.includes('insert') || (!setType.includes('base') && !setType.includes('auto') && !setType.includes('relic') && !setType.includes('mem') && setType !== '');
+    }).length;
+    const autographs = checklist.filter(c => {
+        const setType = (c.set_type || c.set_name || '').toLowerCase();
+        return setType.includes('auto');
+    }).length;
+    const memorabilia = checklist.filter(c => {
+        const setType = (c.set_type || c.set_name || '').toLowerCase();
+        return setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
+    }).length;
+
     // Stats bar
     const statsHtml = `
         <div class="checklist-stats">
             <div class="checklist-stat">
-                <span class="checklist-stat-value">${totalCards}</span>
-                <span class="checklist-stat-label">Total Cards</span>
+                <span class="checklist-stat-value">${baseSet}</span>
+                <span class="checklist-stat-label">Base Set</span>
             </div>
             <div class="checklist-stat">
-                <span class="checklist-stat-value">${rookies.length}</span>
-                <span class="checklist-stat-label">Rookies</span>
+                <span class="checklist-stat-value">${inserts}</span>
+                <span class="checklist-stat-label">Inserts</span>
             </div>
             <div class="checklist-stat">
-                <span class="checklist-stat-value">${sets.length}</span>
-                <span class="checklist-stat-label">Sets</span>
+                <span class="checklist-stat-value">${autographs}</span>
+                <span class="checklist-stat-label">Autographs</span>
             </div>
             <div class="checklist-stat">
-                <span class="checklist-stat-value">${teams.length}</span>
-                <span class="checklist-stat-label">Teams</span>
+                <span class="checklist-stat-value">${memorabilia}</span>
+                <span class="checklist-stat-label">Memorabilia</span>
             </div>
         </div>
     `;
