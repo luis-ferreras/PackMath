@@ -488,9 +488,9 @@ function renderChecklistTab() {
         <div class="checklist-list-container">
             <div class="checklist-list-header">
                 <span class="checklist-col-num">#</span>
+                <span class="checklist-col-set">Set</span>
                 <span class="checklist-col-player">Player</span>
                 <span class="checklist-col-team">Team</span>
-                <span class="checklist-col-set">Set</span>
             </div>
             <div class="checklist-list">
                 ${filtered.map(card => {
@@ -499,9 +499,9 @@ function renderChecklistTab() {
                     return `
                         <div class="checklist-row${isRookie ? ' is-rookie' : ''}">
                             <span class="checklist-col-num">${card.card_num || '-'}</span>
+                            <span class="checklist-col-set">${setName}</span>
                             <span class="checklist-col-player">${card.player || 'Unknown'}${isRookie ? '<span class="checklist-rc">RC</span>' : ''}</span>
                             <span class="checklist-col-team">${card.team || '-'}</span>
-                            <span class="checklist-col-set">${setName}</span>
                         </div>
                     `;
                 }).join('')}
