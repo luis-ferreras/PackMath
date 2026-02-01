@@ -800,21 +800,6 @@ body {
     border-radius: var(--radius);
 }
 
-/* Mobile divider between sections */
-.landing-column + .landing-column {
-    border-top: 1px solid var(--border-color);
-    padding-top: 24px;
-    margin-top: 0;
-}
-
-@media (min-width: 768px) {
-    .landing-column + .landing-column {
-        border-top: none;
-        padding-top: 20px;
-        margin-top: 0;
-    }
-}
-
 /* Product List Grid (compact cards) */
 .product-list-grid {
     display: grid;
