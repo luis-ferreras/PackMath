@@ -1,7 +1,9 @@
 import { state } from './state.js';
 import {
     getAvailableSports, getAllProducts, searchProducts, getProduct, getAvailableConfigs,
-    getConfigInfo, getChecklistForProduct
+    getConfigInfo, getChecklistForProduct, getOddsForProduct,
+    getAllParallelsForProduct, getAllInsertsForProduct, getAllAutographsForProduct,
+    getAllRelicsForProduct, getAllAutoRelicsForProduct
 } from './data.js';
 
 // ========================================
@@ -280,6 +282,7 @@ function renderProductGrid(products) {
 
 export function renderProductPage() {
     renderProductHero();
+    renderProductTabs();
     renderTabContent();
 }
 
@@ -360,13 +363,145 @@ function renderProductHero() {
 }
 
 // ========================================
-// Checklist
+// Product Tabs
 // ========================================
+
+export function renderProductTabs() {
+    const tabs = [
+        { id: 'odds', label: 'Odds' },
+        { id: 'checklist', label: 'Checklist' }
+    ];
+
+    const tabsHtml = tabs.map(tab => `
+        <button class="tab ${state.tab === tab.id ? 'active' : ''}" onclick="setTab('${tab.id}')">
+            ${tab.label}
+        </button>
+    `).join('');
+
+    document.getElementById('productTabs').innerHTML = tabsHtml;
+}
 
 export function renderTabContent() {
     const container = document.getElementById('tabContent');
-    container.innerHTML = renderChecklistTab();
+
+    switch (state.tab) {
+        case 'odds':
+            container.innerHTML = renderOddsTab();
+            break;
+        case 'checklist':
+            container.innerHTML = renderChecklistTab();
+            break;
+        default:
+            container.innerHTML = renderOddsTab();
+    }
 }
+
+// ========================================
+// Odds Tab
+// ========================================
+
+function renderOddsTab() {
+    const product = getProduct(state.product);
+    if (!product) {
+        return `<div class="empty-state"><p class="empty-state-text">Product not found</p></div>`;
+    }
+
+    const parallels = getAllParallelsForProduct(state.product);
+    const inserts = getAllInsertsForProduct(state.product);
+    const autographs = getAllAutographsForProduct(state.product);
+    const relics = getAllRelicsForProduct(state.product);
+    const autoRelics = getAllAutoRelicsForProduct(state.product);
+
+    const hasData = parallels.size > 0 || inserts.size > 0 || autographs.size > 0 || relics.size > 0 || autoRelics.size > 0;
+
+    if (!hasData) {
+        return `<div class="empty-state"><p class="empty-state-text">No odds data available</p></div>`;
+    }
+
+    // Get all available configs from the data
+    const allConfigs = new Set();
+    [parallels, inserts, autographs, relics, autoRelics].forEach(map => {
+        map.forEach(configData => {
+            Object.keys(configData).forEach(key => {
+                if (key !== 'isSSP') allConfigs.add(key);
+            });
+        });
+    });
+    const configs = [...allConfigs].sort();
+
+    let html = '';
+
+    // Base Parallels Section
+    if (parallels.size > 0) {
+        html += renderOddsSection('Base Parallels', parallels, configs);
+    }
+
+    // Inserts Section
+    if (inserts.size > 0) {
+        html += renderOddsSection('Inserts', inserts, configs);
+    }
+
+    // Autographs Section
+    if (autographs.size > 0) {
+        html += renderOddsSection('Autographs', autographs, configs);
+    }
+
+    // Relics Section
+    if (relics.size > 0) {
+        html += renderOddsSection('Memorabilia', relics, configs);
+    }
+
+    // Auto Relics Section
+    if (autoRelics.size > 0) {
+        html += renderOddsSection('Auto Relics', autoRelics, configs);
+    }
+
+    return html;
+}
+
+function renderOddsSection(title, dataMap, configs) {
+    const rows = [...dataMap.entries()].map(([name, configData]) => {
+        const cells = configs.map(config => {
+            const odds = configData[config];
+            return `<td class="odds-cell">${odds || '-'}</td>`;
+        }).join('');
+
+        const isSSP = configData.isSSP;
+        return `
+            <tr>
+                <td class="odds-name">${name}${isSSP ? '<span class="odds-ssp">SSP</span>' : ''}</td>
+                ${cells}
+            </tr>
+        `;
+    }).join('');
+
+    const headerCells = configs.map(config =>
+        `<th class="odds-config-header">${config.charAt(0).toUpperCase() + config.slice(1)}</th>`
+    ).join('');
+
+    return `
+        <div class="odds-section">
+            <h3 class="odds-section-title">${title}</h3>
+            <div class="odds-table-container">
+                <table class="odds-table">
+                    <thead>
+                        <tr>
+                            <th class="odds-name-header">Card Type</th>
+                            ${headerCells}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+// ========================================
+// Checklist Tab
+// ========================================
 
 function renderChecklistTab() {
     const checklist = getChecklistForProduct(state.product);

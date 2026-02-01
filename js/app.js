@@ -1,6 +1,6 @@
 import { loadData, getAvailableSports, getAllProducts, searchProducts, getProduct, getAvailableConfigs, PRODUCTS } from './data.js';
 import { state, updateURL, loadStateFromURL } from './state.js';
-import { renderLanding, renderSearchResults, renderProductPage, renderTabContent, renderSportsSidebar, renderSportFilterView } from './render.js';
+import { renderLanding, renderSearchResults, renderProductPage, renderTabContent, renderProductTabs, renderSportsSidebar, renderSportFilterView } from './render.js';
 
 // ========================================
 // View Management
@@ -56,8 +56,7 @@ function navigateToProduct(productId) {
     }
 
     state.product = productId;
-    state.tab = 'compare';
-    state.compareTab = 'base';
+    state.tab = 'odds';
 
     // Validate and set config - use first available if current is invalid
     const availableConfigs = getAvailableConfigs(productId);
@@ -82,7 +81,7 @@ function setConfig(config) {
 
 function setTab(tab) {
     state.tab = tab;
-    updateTabActiveState();
+    renderProductTabs();
     renderTabContent();
     updateURL();
 }
