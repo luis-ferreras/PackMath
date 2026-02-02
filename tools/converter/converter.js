@@ -656,7 +656,7 @@ function renderPreview() {
     const container = document.getElementById('previewContainer');
     const expectedCols = state.dataType === 'odds' ? ODDS_COLUMNS : CHECKLIST_COLUMNS;
 
-    const previewRows = state.parsedRows.slice(0, 10).map(row => {
+    const previewRows = state.parsedRows.map(row => {
         const mappedRow = {};
 
         mappedRow.product_id = state.productId;
@@ -697,9 +697,7 @@ function renderPreview() {
 
     html += '</tbody></table>';
 
-    if (state.parsedRows.length > 10) {
-        html += `<p class="preview-note">Showing first 10 of ${state.parsedRows.length} rows</p>`;
-    }
+    html += `<p class="preview-note">${state.parsedRows.length} total rows</p>`;
 
     container.innerHTML = html;
 }
