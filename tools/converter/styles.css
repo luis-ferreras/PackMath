@@ -388,14 +388,14 @@ body {
 .preview-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8125rem;
+    font-size: 0.6875rem;
 }
 
 .preview-table th {
-    padding: 10px 12px;
+    padding: 8px 10px;
     background: var(--bg-elevated);
     text-align: left;
-    font-size: 0.6875rem;
+    font-size: 0.625rem;
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -405,7 +405,7 @@ body {
 }
 
 .preview-table td {
-    padding: 8px 12px;
+    padding: 6px 10px;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-secondary);
     white-space: nowrap;
