@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PackMath Data Converter</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- PDF.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
     <div class="app">
@@ -63,20 +65,59 @@
                                 <span class="form-hint">hobby, retail, blaster, etc.</span>
                             </div>
                         </div>
+                        <div class="form-row" id="oddsCategoryRow">
+                            <div class="form-group">
+                                <label class="form-label">Card Category</label>
+                                <select class="form-input" id="cardCategory">
+                                    <option value="base">Base Parallels</option>
+                                    <option value="insert">Inserts</option>
+                                    <option value="autograph">Autographs</option>
+                                    <option value="relic">Memorabilia/Relics</option>
+                                    <option value="autograph_relic">Auto Relics</option>
+                                </select>
+                                <span class="form-hint">What type of cards are in this data?</span>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
-                <!-- Step 3: Paste Data -->
+                <!-- Step 3: Upload or Paste Data -->
                 <section class="step hidden" id="step3">
                     <div class="step-header">
                         <span class="step-number">3</span>
-                        <h2 class="step-title">Paste Your Data</h2>
+                        <h2 class="step-title">Upload PDF or Paste Data</h2>
                     </div>
                     <div class="step-content">
-                        <div class="paste-instructions" id="pasteInstructions">
-                            <!-- Instructions will be inserted here based on data type -->
+                        <!-- PDF Upload Area -->
+                        <div class="upload-section">
+                            <div class="upload-area" id="uploadArea">
+                                <input type="file" id="pdfInput" accept=".pdf" hidden>
+                                <div class="upload-icon">📄</div>
+                                <div class="upload-text">
+                                    <strong>Drop PDF here</strong> or <button class="upload-btn" onclick="document.getElementById('pdfInput').click()">Browse Files</button>
+                                </div>
+                                <div class="upload-hint">Supports odds sheets and checklists from Topps, Panini, etc.</div>
+                            </div>
+                            <div class="upload-status hidden" id="uploadStatus">
+                                <div class="upload-progress">
+                                    <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                                </div>
+                                <div class="upload-status-text" id="uploadStatusText">Processing PDF...</div>
+                            </div>
                         </div>
-                        <textarea class="paste-area" id="pasteArea" placeholder="Paste your data here..."></textarea>
+
+                        <div class="divider">
+                            <span>OR</span>
+                        </div>
+
+                        <!-- Paste Area -->
+                        <div class="paste-section">
+                            <div class="paste-instructions" id="pasteInstructions">
+                                <!-- Instructions will be inserted here based on data type -->
+                            </div>
+                            <textarea class="paste-area" id="pasteArea" placeholder="Paste your data here..."></textarea>
+                        </div>
+
                         <button class="btn btn-primary" onclick="parseData()">Parse Data</button>
                     </div>
                 </section>
