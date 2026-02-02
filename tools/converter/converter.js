@@ -706,6 +706,18 @@ function renderPreview() {
 
 // Detect if a card is a rookie card based on various indicators
 function detectRookieStatus(row) {
+    // First check if there's an explicitly mapped rookie column value
+    if (row.rookie) {
+        // Check if it contains "Rookie" or similar indicators
+        if (/rookie/i.test(row.rookie) || /^(true|yes|1|rc)$/i.test(row.rookie)) {
+            return 'true';
+        }
+        // If it's explicitly "false" or "no", respect that
+        if (/^(false|no|0)$/i.test(row.rookie)) {
+            return '';
+        }
+    }
+
     // Check card_num for RC prefix
     if (row.card_num && /^RC/i.test(row.card_num)) {
         return 'true';
