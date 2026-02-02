@@ -188,10 +188,18 @@ export async function loadData() {
         ODDS_RAW = oddsData;
         CHECKLIST = checklistData;
 
+        // Debug: expose to window for console access
+        window.DEBUG_DATA = { PRODUCTS, ODDS_RAW, CHECKLIST, CONFIGURATIONS };
+
         console.log('Data loaded:', Object.keys(PRODUCTS).length, 'products');
         console.log('  - Configurations:', CONFIGURATIONS.length);
         console.log('  - Odds entries:', ODDS_RAW.length);
         console.log('  - Checklist entries:', CHECKLIST.length);
+
+        // Debug: show unique product_ids in odds/checklist
+        console.log('  - Odds product_ids:', [...new Set(ODDS_RAW.map(r => r.product_id))]);
+        console.log('  - Checklist product_ids:', [...new Set(CHECKLIST.map(r => r.product_id))]);
+        console.log('  - Product IDs:', Object.keys(PRODUCTS));
 
         return true;
     } catch (error) {
