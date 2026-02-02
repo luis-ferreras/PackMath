@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PackMath Data Converter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="header-content">
+                <a href="../../index.html" class="logo">
+                    <div class="logo-icon">PM</div>
+                    <span class="logo-text">PackMath</span>
+                </a>
+                <h1 class="header-title">Data Converter</h1>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="container">
+                <!-- Step 1: Select Data Type -->
+                <section class="step" id="step1">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <h2 class="step-title">Select Data Type</h2>
+                    </div>
+                    <div class="step-content">
+                        <div class="data-type-options">
+                            <button class="data-type-btn" data-type="odds" onclick="selectDataType('odds')">
+                                <span class="data-type-icon">📊</span>
+                                <span class="data-type-label">Odds Data</span>
+                                <span class="data-type-desc">Parallels, inserts, autographs with odds</span>
+                            </button>
+                            <button class="data-type-btn" data-type="checklist" onclick="selectDataType('checklist')">
+                                <span class="data-type-icon">📋</span>
+                                <span class="data-type-label">Checklist</span>
+                                <span class="data-type-desc">Player names, card numbers, teams</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 2: Product Info -->
+                <section class="step hidden" id="step2">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <h2 class="step-title">Product Information</h2>
+                    </div>
+                    <div class="step-content">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Product ID (from your Products sheet)</label>
+                                <input type="text" class="form-input" id="productId" placeholder="e.g., 2025-26-topps-chrome-basketball">
+                                <span class="form-hint">This must match your product_url in the Products sheet</span>
+                            </div>
+                        </div>
+                        <div class="form-row" id="oddsConfigRow">
+                            <div class="form-group">
+                                <label class="form-label">Box Configuration</label>
+                                <input type="text" class="form-input" id="boxConfig" placeholder="e.g., hobby">
+                                <span class="form-hint">hobby, retail, blaster, etc.</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 3: Paste Data -->
+                <section class="step hidden" id="step3">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <h2 class="step-title">Paste Your Data</h2>
+                    </div>
+                    <div class="step-content">
+                        <div class="paste-instructions" id="pasteInstructions">
+                            <!-- Instructions will be inserted here based on data type -->
+                        </div>
+                        <textarea class="paste-area" id="pasteArea" placeholder="Paste your data here..."></textarea>
+                        <button class="btn btn-primary" onclick="parseData()">Parse Data</button>
+                    </div>
+                </section>
+
+                <!-- Step 4: Review & Map Columns -->
+                <section class="step hidden" id="step4">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <h2 class="step-title">Review & Map Columns</h2>
+                    </div>
+                    <div class="step-content">
+                        <div class="column-mapping" id="columnMapping">
+                            <!-- Column mapping UI will be inserted here -->
+                        </div>
+                        <div class="preview-section">
+                            <h3 class="preview-title">Data Preview</h3>
+                            <div class="preview-table-container" id="previewContainer">
+                                <!-- Preview table will be inserted here -->
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" onclick="goBack()">Back</button>
+                            <button class="btn btn-primary" onclick="generateCSV()">Generate CSV</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 5: Download CSV -->
+                <section class="step hidden" id="step5">
+                    <div class="step-header">
+                        <span class="step-number">5</span>
+                        <h2 class="step-title">Your CSV is Ready!</h2>
+                    </div>
+                    <div class="step-content">
+                        <div class="csv-output">
+                            <textarea class="csv-area" id="csvOutput" readonly></textarea>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" onclick="copyCSV()">Copy to Clipboard</button>
+                            <button class="btn btn-primary" onclick="downloadCSV()">Download CSV</button>
+                        </div>
+                        <div class="success-message hidden" id="copySuccess">Copied to clipboard!</div>
+                        <div class="next-steps">
+                            <h4>Next Steps:</h4>
+                            <ol>
+                                <li>Open your Google Sheet (Odds or Checklist)</li>
+                                <li>Select cell A1 on the correct year tab</li>
+                                <li>Paste the CSV data (Ctrl+V / Cmd+V)</li>
+                                <li>Or import the downloaded CSV file</li>
+                            </ol>
+                        </div>
+                        <button class="btn btn-link" onclick="startOver()">Convert More Data</button>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="converter.js"></script>
+</body>
+</html>
