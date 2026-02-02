@@ -78,6 +78,27 @@
                                 <span class="form-hint">What type of cards are in this data?</span>
                             </div>
                         </div>
+                        <!-- Checklist-specific fields -->
+                        <div class="form-row" id="checklistSetTypeRow" class="hidden">
+                            <div class="form-group">
+                                <label class="form-label">Set Type</label>
+                                <select class="form-input" id="setType">
+                                    <option value="base">Base</option>
+                                    <option value="insert">Insert</option>
+                                    <option value="autograph">Autograph</option>
+                                    <option value="relic">Memorabilia/Relic</option>
+                                    <option value="autograph_relic">Auto Relic</option>
+                                </select>
+                                <span class="form-hint">Type of cards in this checklist section</span>
+                            </div>
+                        </div>
+                        <div class="form-row" id="checklistSetNameRow" class="hidden">
+                            <div class="form-group">
+                                <label class="form-label">Set Name</label>
+                                <input type="text" class="form-input" id="setName" placeholder="e.g., Base Set, Rookie Variations, Gold Parallel">
+                                <span class="form-hint">Name of the specific set or parallel (leave blank for base)</span>
+                            </div>
+                        </div>
                     </div>
                 </section>
 

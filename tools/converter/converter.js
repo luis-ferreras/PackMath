@@ -13,6 +13,8 @@ let state = {
     productId: '',
     boxConfig: '',
     cardCategory: 'base',
+    setType: 'base',       // for checklist
+    setName: '',           // for checklist
     rawData: '',
     parsedRows: [],
     columns: [],
@@ -61,6 +63,8 @@ document.addEventListener('DOMContentLoaded', function() {
             state.productId = document.getElementById('productId').value.trim();
             state.boxConfig = document.getElementById('boxConfig').value.trim();
             state.cardCategory = document.getElementById('cardCategory')?.value || 'base';
+            state.setType = document.getElementById('setType')?.value || 'base';
+            state.setName = document.getElementById('setName')?.value.trim() || '';
 
             if (!state.productId) {
                 alert('Please enter a Product ID');
@@ -278,6 +282,8 @@ function startOver() {
         productId: '',
         boxConfig: '',
         cardCategory: 'base',
+        setType: 'base',
+        setName: '',
         rawData: '',
         parsedRows: [],
         columns: [],
@@ -291,6 +297,8 @@ function startOver() {
     document.getElementById('productId').value = '';
     document.getElementById('boxConfig').value = '';
     document.getElementById('cardCategory').value = 'base';
+    document.getElementById('setType').value = 'base';
+    document.getElementById('setName').value = '';
     document.getElementById('pasteArea').value = '';
     document.getElementById('csvOutput').value = '';
 
@@ -309,16 +317,22 @@ function selectDataType(type) {
     });
     document.querySelector(`[data-type="${type}"]`).classList.add('active');
 
-    // Show/hide odds-specific fields
+    // Show/hide type-specific fields
     const configRow = document.getElementById('oddsConfigRow');
     const categoryRow = document.getElementById('oddsCategoryRow');
+    const setTypeRow = document.getElementById('checklistSetTypeRow');
+    const setNameRow = document.getElementById('checklistSetNameRow');
 
     if (type === 'odds') {
         configRow?.classList.remove('hidden');
         categoryRow?.classList.remove('hidden');
+        setTypeRow?.classList.add('hidden');
+        setNameRow?.classList.add('hidden');
     } else {
         configRow?.classList.add('hidden');
         categoryRow?.classList.add('hidden');
+        setTypeRow?.classList.remove('hidden');
+        setNameRow?.classList.remove('hidden');
     }
 
     document.getElementById('pasteInstructions').innerHTML =
@@ -649,10 +663,19 @@ function renderPreview() {
         if (state.dataType === 'odds') {
             mappedRow.config = state.boxConfig;
             mappedRow.category = state.cardCategory;
+        } else {
+            // Checklist: add set_type and set_name
+            mappedRow.set_type = state.setType;
+            mappedRow.set_name = state.setName;
         }
 
         for (const [colIndex, colName] of Object.entries(state.columnMapping)) {
             mappedRow[colName] = row[parseInt(colIndex)] || '';
+        }
+
+        // Auto-detect rookie status for checklists
+        if (state.dataType === 'checklist') {
+            mappedRow.rookie = detectRookieStatus(mappedRow);
         }
 
         return mappedRow;
@@ -681,6 +704,35 @@ function renderPreview() {
     container.innerHTML = html;
 }
 
+// Detect if a card is a rookie card based on various indicators
+function detectRookieStatus(row) {
+    // Check card_num for RC prefix
+    if (row.card_num && /^RC/i.test(row.card_num)) {
+        return 'true';
+    }
+
+    // Check player name for RC suffix or (RC) tag
+    if (row.player) {
+        if (/\bRC\b/i.test(row.player) || /\(RC\)/i.test(row.player)) {
+            return 'true';
+        }
+    }
+
+    // Check set_name for rookie-related terms
+    if (row.set_name) {
+        if (/rookie/i.test(row.set_name)) {
+            return 'true';
+        }
+    }
+
+    // Check set_type
+    if (row.set_type && /rookie/i.test(row.set_type)) {
+        return 'true';
+    }
+
+    return '';
+}
+
 // ========================================
 // Step 5: Generate CSV
 // ========================================
@@ -692,28 +744,36 @@ function generateCSV() {
     csvRows.push(expectedCols.join(','));
 
     for (const row of state.parsedRows) {
-        const mappedRow = [];
+        // Build a mapped row object first
+        const rowData = {};
+        rowData.product_id = state.productId;
 
+        if (state.dataType === 'odds') {
+            rowData.config = state.boxConfig;
+            rowData.category = state.cardCategory;
+        } else {
+            rowData.set_type = state.setType;
+            rowData.set_name = state.setName;
+        }
+
+        // Map columns from parsed data
+        for (const [colIndex, colName] of Object.entries(state.columnMapping)) {
+            rowData[colName] = row[parseInt(colIndex)] || '';
+        }
+
+        // Auto-detect rookie for checklists
+        if (state.dataType === 'checklist') {
+            rowData.rookie = detectRookieStatus(rowData);
+        }
+
+        // Build CSV row
+        const mappedRow = [];
         for (const col of expectedCols) {
-            if (col === 'product_id') {
-                mappedRow.push(state.productId);
-            } else if (col === 'config') {
-                mappedRow.push(state.boxConfig);
-            } else if (col === 'category') {
-                mappedRow.push(state.cardCategory);
-            } else {
-                let value = '';
-                for (const [colIndex, colName] of Object.entries(state.columnMapping)) {
-                    if (colName === col) {
-                        value = row[parseInt(colIndex)] || '';
-                        break;
-                    }
-                }
-                if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-                    value = `"${value.replace(/"/g, '""')}"`;
-                }
-                mappedRow.push(value);
+            let value = rowData[col] || '';
+            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                value = `"${value.replace(/"/g, '""')}"`;
             }
+            mappedRow.push(value);
         }
 
         csvRows.push(mappedRow.join(','));
