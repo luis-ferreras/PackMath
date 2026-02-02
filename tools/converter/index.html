@@ -99,6 +99,10 @@
                                 <span class="form-hint">Name of the specific set or parallel (leave blank for base)</span>
                             </div>
                         </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" onclick="showStep(1)">Back</button>
+                            <button class="btn btn-primary" onclick="continueToStep3()">Continue</button>
+                        </div>
                     </div>
                 </section>
 
@@ -139,7 +143,10 @@
                             <textarea class="paste-area" id="pasteArea" placeholder="Paste your data here..."></textarea>
                         </div>
 
-                        <button class="btn btn-primary" onclick="parseData()">Parse Data</button>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" onclick="showStep(2)">Back</button>
+                            <button class="btn btn-primary" onclick="parseData()">Parse Data</button>
+                        </div>
                     </div>
                 </section>
 
@@ -177,6 +184,7 @@
                             <textarea class="csv-area" id="csvOutput" readonly></textarea>
                         </div>
                         <div class="action-buttons">
+                            <button class="btn btn-secondary" onclick="showStep(4)">Back</button>
                             <button class="btn btn-secondary" onclick="copyCSV()">Copy to Clipboard</button>
                             <button class="btn btn-primary" onclick="downloadCSV()">Download CSV</button>
                         </div>

@@ -52,33 +52,26 @@ const CHECKLIST_INSTRUCTIONS = `
 document.addEventListener('DOMContentLoaded', function() {
     // Set up PDF upload handlers
     setupPDFUpload();
-
-    // Add continue button to step 2
-    const step2Content = document.querySelector('#step2 .step-content');
-    if (step2Content && !step2Content.querySelector('.continue-btn')) {
-        const continueBtn = document.createElement('button');
-        continueBtn.className = 'btn btn-primary continue-btn';
-        continueBtn.textContent = 'Continue';
-        continueBtn.onclick = function() {
-            state.productId = document.getElementById('productId').value.trim();
-            state.boxConfig = document.getElementById('boxConfig').value.trim();
-            state.cardCategory = document.getElementById('cardCategory')?.value || 'base';
-            state.setType = document.getElementById('setType')?.value || 'base';
-            state.setName = document.getElementById('setName')?.value.trim() || '';
-
-            if (!state.productId) {
-                alert('Please enter a Product ID');
-                return;
-            }
-            if (state.dataType === 'odds' && !state.boxConfig) {
-                alert('Please enter a Box Configuration');
-                return;
-            }
-            showStep(3);
-        };
-        step2Content.appendChild(continueBtn);
-    }
 });
+
+// Continue from step 2 to step 3
+function continueToStep3() {
+    state.productId = document.getElementById('productId').value.trim();
+    state.boxConfig = document.getElementById('boxConfig').value.trim();
+    state.cardCategory = document.getElementById('cardCategory')?.value || 'base';
+    state.setType = document.getElementById('setType')?.value || 'base';
+    state.setName = document.getElementById('setName')?.value.trim() || '';
+
+    if (!state.productId) {
+        alert('Please enter a Product ID');
+        return;
+    }
+    if (state.dataType === 'odds' && !state.boxConfig) {
+        alert('Please enter a Box Configuration');
+        return;
+    }
+    showStep(3);
+}
 
 // ========================================
 // PDF Upload Handling
