@@ -102,11 +102,14 @@ function processProducts(rows) {
     const slugs = {};
 
     rows.forEach(row => {
-        if (row.product_id) {
+        // Use product_url as the canonical ID (if available), otherwise fall back to product_id
+        const productId = row.product_url || row.product_id;
+
+        if (productId) {
             // Build configs from Configuration sheet for this product
             const productConfigs = {};
             CONFIGURATIONS
-                .filter(c => c.product_id === row.product_id)
+                .filter(c => c.product_id === productId)
                 .forEach(c => {
                     productConfigs[c.box_config] = {
                         name: c.box_config,
@@ -126,14 +129,17 @@ function processProducts(rows) {
             const brand = row.product_brand || '';
             const releaseDate = row.release_date || '';
 
+            // Display name from product_id column (the friendly name)
+            const displayProductName = row.product_id || productId;
+
             // Build display name: [year] [brand] [product_id]
-            const displayName = [year, brand, row.product_id].filter(Boolean).join(' ');
+            const displayName = [year, brand, displayProductName].filter(Boolean).join(' ');
 
-            // Generate URL slug
-            const slug = generateSlug(year, brand, row.product_id);
+            // Generate URL slug from product_url or generate one
+            const slug = row.product_url || generateSlug(year, brand, displayProductName);
 
-            products[row.product_id] = {
-                id: row.product_id,
+            products[productId] = {
+                id: productId,
                 slug: slug,
                 name: displayName,
                 sport: row.product_sport || '',
@@ -144,8 +150,8 @@ function processProducts(rows) {
                 configs
             };
 
-            // Store reverse lookup
-            slugs[slug] = row.product_id;
+            // Store reverse lookup (slug -> internal ID)
+            slugs[slug] = productId;
         }
     });
 
