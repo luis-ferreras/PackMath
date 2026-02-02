@@ -2,11 +2,17 @@
 // PackMath Data Converter
 // ========================================
 
+// Initialize PDF.js worker
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
 // State
 let state = {
     dataType: null,        // 'odds' or 'checklist'
     productId: '',
     boxConfig: '',
+    cardCategory: 'base',
     rawData: '',
     parsedRows: [],
     columns: [],
@@ -19,118 +25,32 @@ const ODDS_COLUMNS = ['product_id', 'config', 'category', 'card_type', 'parallel
 const CHECKLIST_COLUMNS = ['product_id', 'set_type', 'set_name', 'card_num', 'player', 'team', 'rookie'];
 
 const ODDS_INSTRUCTIONS = `
-    <p><strong>How to get odds data from a PDF:</strong></p>
-    <ol>
-        <li>Open the PDF in your browser or PDF viewer</li>
-        <li>Select the odds table (usually has columns like: Card Type, Odds, etc.)</li>
-        <li>Copy the selected text (Ctrl+C / Cmd+C)</li>
-        <li>Paste it in the box below</li>
-    </ol>
-    <p><strong>Expected format:</strong> Each row should have card name and odds (e.g., "Refractor 1:4")</p>
-    <p><strong>Tip:</strong> You can also manually type or edit the data. One item per line.</p>
+    <p><strong>Paste odds data from your PDF:</strong></p>
+    <p>Each line should contain card name and odds. Examples:</p>
+    <ul>
+        <li>Refractor 1:4</li>
+        <li>Gold /50 1:12</li>
+        <li>Superfractor 1/1 1:549</li>
+    </ul>
 `;
 
 const CHECKLIST_INSTRUCTIONS = `
-    <p><strong>How to get checklist data from a PDF:</strong></p>
-    <ol>
-        <li>Open the PDF in your browser or PDF viewer</li>
-        <li>Select the checklist table</li>
-        <li>Copy the selected text (Ctrl+C / Cmd+C)</li>
-        <li>Paste it in the box below</li>
-    </ol>
-    <p><strong>Expected format:</strong> Each row should have card number, player name, team, etc.</p>
-    <p><strong>Tip:</strong> The parser will try to detect columns automatically.</p>
+    <p><strong>Paste checklist data from your PDF:</strong></p>
+    <p>Each line should contain card number, player name, and team. Examples:</p>
+    <ul>
+        <li>1 LeBron James Los Angeles Lakers</li>
+        <li>RC-1 Victor Wembanyama San Antonio Spurs</li>
+    </ul>
 `;
 
 // ========================================
-// Step Navigation
+// Initialize on DOM Ready
 // ========================================
 
-function showStep(stepNum) {
-    // Hide all steps
-    document.querySelectorAll('.step').forEach(step => {
-        step.classList.add('hidden');
-    });
-
-    // Show the requested step
-    document.getElementById(`step${stepNum}`).classList.remove('hidden');
-    state.currentStep = stepNum;
-}
-
-function goBack() {
-    if (state.currentStep > 1) {
-        showStep(state.currentStep - 1);
-    }
-}
-
-function startOver() {
-    state = {
-        dataType: null,
-        productId: '',
-        boxConfig: '',
-        rawData: '',
-        parsedRows: [],
-        columns: [],
-        columnMapping: {},
-        currentStep: 1
-    };
-
-    // Reset UI
-    document.querySelectorAll('.data-type-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.getElementById('productId').value = '';
-    document.getElementById('boxConfig').value = '';
-    document.getElementById('pasteArea').value = '';
-    document.getElementById('csvOutput').value = '';
-
-    showStep(1);
-}
-
-// ========================================
-// Step 1: Select Data Type
-// ========================================
-
-function selectDataType(type) {
-    state.dataType = type;
-
-    // Update UI
-    document.querySelectorAll('.data-type-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector(`[data-type="${type}"]`).classList.add('active');
-
-    // Show/hide config row based on type
-    const configRow = document.getElementById('oddsConfigRow');
-    if (type === 'odds') {
-        configRow.classList.remove('hidden');
-    } else {
-        configRow.classList.add('hidden');
-    }
-
-    // Update instructions
-    document.getElementById('pasteInstructions').innerHTML =
-        type === 'odds' ? ODDS_INSTRUCTIONS : CHECKLIST_INSTRUCTIONS;
-
-    // Move to step 2
-    showStep(2);
-}
-
-// ========================================
-// Step 2: Product Info (handled by step navigation)
-// ========================================
-
-// Watch for input changes to auto-advance
-document.getElementById('productId')?.addEventListener('input', function(e) {
-    state.productId = e.target.value.trim();
-});
-
-document.getElementById('boxConfig')?.addEventListener('input', function(e) {
-    state.boxConfig = e.target.value.trim();
-});
-
-// Add continue button functionality
 document.addEventListener('DOMContentLoaded', function() {
+    // Set up PDF upload handlers
+    setupPDFUpload();
+
     // Add continue button to step 2
     const step2Content = document.querySelector('#step2 .step-content');
     if (step2Content && !step2Content.querySelector('.continue-btn')) {
@@ -140,6 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
         continueBtn.onclick = function() {
             state.productId = document.getElementById('productId').value.trim();
             state.boxConfig = document.getElementById('boxConfig').value.trim();
+            state.cardCategory = document.getElementById('cardCategory')?.value || 'base';
 
             if (!state.productId) {
                 alert('Please enter a Product ID');
@@ -156,6 +77,257 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ========================================
+// PDF Upload Handling
+// ========================================
+
+function setupPDFUpload() {
+    const uploadArea = document.getElementById('uploadArea');
+    const pdfInput = document.getElementById('pdfInput');
+
+    if (!uploadArea || !pdfInput) return;
+
+    // Click to upload
+    uploadArea.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON') {
+            pdfInput.click();
+        }
+    });
+
+    // File input change
+    pdfInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            processPDF(file);
+        }
+    });
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+
+        const file = e.dataTransfer.files[0];
+        if (file && file.type === 'application/pdf') {
+            processPDF(file);
+        } else {
+            alert('Please upload a PDF file');
+        }
+    });
+}
+
+async function processPDF(file) {
+    const uploadArea = document.getElementById('uploadArea');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const progressBar = document.getElementById('uploadProgressBar');
+    const statusText = document.getElementById('uploadStatusText');
+
+    // Show progress
+    uploadArea.classList.add('hidden');
+    uploadStatus.classList.remove('hidden');
+    statusText.textContent = 'Loading PDF...';
+    progressBar.style.width = '10%';
+
+    try {
+        // Read file as ArrayBuffer
+        const arrayBuffer = await file.arrayBuffer();
+        progressBar.style.width = '30%';
+        statusText.textContent = 'Parsing PDF...';
+
+        // Load PDF with PDF.js
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const numPages = pdf.numPages;
+        progressBar.style.width = '50%';
+
+        let fullText = '';
+
+        // Extract text from all pages
+        for (let i = 1; i <= numPages; i++) {
+            statusText.textContent = `Extracting page ${i} of ${numPages}...`;
+            progressBar.style.width = `${50 + (40 * i / numPages)}%`;
+
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+
+            // Process text items with position awareness
+            const pageText = extractTextWithStructure(textContent);
+            fullText += pageText + '\n';
+        }
+
+        progressBar.style.width = '100%';
+        statusText.textContent = 'Done!';
+
+        // Put extracted text in paste area
+        document.getElementById('pasteArea').value = fullText.trim();
+
+        // Reset upload UI after a moment
+        setTimeout(() => {
+            uploadArea.classList.remove('hidden');
+            uploadStatus.classList.add('hidden');
+            progressBar.style.width = '0%';
+        }, 1000);
+
+    } catch (error) {
+        console.error('PDF processing error:', error);
+        alert('Error processing PDF: ' + error.message);
+
+        uploadArea.classList.remove('hidden');
+        uploadStatus.classList.add('hidden');
+    }
+}
+
+function extractTextWithStructure(textContent) {
+    // Sort items by vertical position (y), then horizontal (x)
+    const items = textContent.items.map(item => ({
+        text: item.str,
+        x: Math.round(item.transform[4]),
+        y: Math.round(item.transform[5]),
+        width: item.width,
+        height: item.height
+    }));
+
+    // Group items by approximate y position (same row)
+    const rows = [];
+    let currentRow = [];
+    let lastY = null;
+    const yTolerance = 5; // pixels
+
+    // Sort by y (descending, since PDF y is from bottom), then x
+    items.sort((a, b) => {
+        if (Math.abs(a.y - b.y) > yTolerance) {
+            return b.y - a.y; // Higher y values first (top of page)
+        }
+        return a.x - b.x; // Left to right
+    });
+
+    for (const item of items) {
+        if (item.text.trim() === '') continue;
+
+        if (lastY === null || Math.abs(item.y - lastY) > yTolerance) {
+            // New row
+            if (currentRow.length > 0) {
+                rows.push(currentRow);
+            }
+            currentRow = [item];
+            lastY = item.y;
+        } else {
+            currentRow.push(item);
+        }
+    }
+
+    if (currentRow.length > 0) {
+        rows.push(currentRow);
+    }
+
+    // Convert rows to text lines
+    const lines = rows.map(row => {
+        // Sort row items by x position
+        row.sort((a, b) => a.x - b.x);
+
+        // Join with appropriate spacing
+        let line = '';
+        let lastX = 0;
+
+        for (const item of row) {
+            // Add tab if there's a significant gap
+            if (lastX > 0 && item.x - lastX > 30) {
+                line += '\t';
+            } else if (line.length > 0 && !line.endsWith(' ') && !line.endsWith('\t')) {
+                line += ' ';
+            }
+            line += item.text;
+            lastX = item.x + (item.width || item.text.length * 5);
+        }
+
+        return line.trim();
+    });
+
+    return lines.filter(line => line.length > 0).join('\n');
+}
+
+// ========================================
+// Step Navigation
+// ========================================
+
+function showStep(stepNum) {
+    document.querySelectorAll('.step').forEach(step => {
+        step.classList.add('hidden');
+    });
+    document.getElementById(`step${stepNum}`).classList.remove('hidden');
+    state.currentStep = stepNum;
+}
+
+function goBack() {
+    if (state.currentStep > 1) {
+        showStep(state.currentStep - 1);
+    }
+}
+
+function startOver() {
+    state = {
+        dataType: null,
+        productId: '',
+        boxConfig: '',
+        cardCategory: 'base',
+        rawData: '',
+        parsedRows: [],
+        columns: [],
+        columnMapping: {},
+        currentStep: 1
+    };
+
+    document.querySelectorAll('.data-type-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById('productId').value = '';
+    document.getElementById('boxConfig').value = '';
+    document.getElementById('cardCategory').value = 'base';
+    document.getElementById('pasteArea').value = '';
+    document.getElementById('csvOutput').value = '';
+
+    showStep(1);
+}
+
+// ========================================
+// Step 1: Select Data Type
+// ========================================
+
+function selectDataType(type) {
+    state.dataType = type;
+
+    document.querySelectorAll('.data-type-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-type="${type}"]`).classList.add('active');
+
+    // Show/hide odds-specific fields
+    const configRow = document.getElementById('oddsConfigRow');
+    const categoryRow = document.getElementById('oddsCategoryRow');
+
+    if (type === 'odds') {
+        configRow?.classList.remove('hidden');
+        categoryRow?.classList.remove('hidden');
+    } else {
+        configRow?.classList.add('hidden');
+        categoryRow?.classList.add('hidden');
+    }
+
+    document.getElementById('pasteInstructions').innerHTML =
+        type === 'odds' ? ODDS_INSTRUCTIONS : CHECKLIST_INSTRUCTIONS;
+
+    showStep(2);
+}
+
+// ========================================
 // Step 3: Parse Data
 // ========================================
 
@@ -163,13 +335,12 @@ function parseData() {
     const rawText = document.getElementById('pasteArea').value.trim();
 
     if (!rawText) {
-        alert('Please paste some data first');
+        alert('Please upload a PDF or paste some data first');
         return;
     }
 
     state.rawData = rawText;
 
-    // Split into lines and parse
     const lines = rawText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
     if (lines.length === 0) {
@@ -177,15 +348,15 @@ function parseData() {
         return;
     }
 
-    // Try to detect if first line is a header
+    // Detect header row
     const firstLine = lines[0].toLowerCase();
     const hasHeader = firstLine.includes('card') || firstLine.includes('odds') ||
                       firstLine.includes('player') || firstLine.includes('team') ||
-                      firstLine.includes('number') || firstLine.includes('#');
+                      firstLine.includes('number') || firstLine.includes('#') ||
+                      firstLine.includes('parallel') || firstLine.includes('insert');
 
     const dataLines = hasHeader ? lines.slice(1) : lines;
 
-    // Parse based on data type
     if (state.dataType === 'odds') {
         state.parsedRows = parseOddsData(dataLines);
     } else {
@@ -197,10 +368,7 @@ function parseData() {
         return;
     }
 
-    // Detect columns
     detectColumns();
-
-    // Show column mapping UI
     renderColumnMapping();
     renderPreview();
 
@@ -211,45 +379,65 @@ function parseOddsData(lines) {
     const rows = [];
 
     for (const line of lines) {
-        // Try different parsing strategies
+        // Skip empty or header-like lines
+        if (!line || line.toLowerCase().includes('overall odds') || line.toLowerCase().includes('card type')) {
+            continue;
+        }
 
-        // Strategy 1: Tab-separated
+        // Tab-separated
         if (line.includes('\t')) {
-            const parts = line.split('\t').map(p => p.trim());
+            const parts = line.split('\t').map(p => p.trim()).filter(p => p);
             if (parts.length >= 2) {
-                rows.push(parts);
+                rows.push(normalizeOddsRow(parts));
                 continue;
             }
         }
 
-        // Strategy 2: Look for odds pattern (1:X or X:Y)
-        const oddsMatch = line.match(/^(.+?)\s+(1:\d+|\d+:\d+)\s*(.*)$/);
-        if (oddsMatch) {
-            const cardType = oddsMatch[1].trim();
-            const odds = oddsMatch[2].trim();
-            const extra = oddsMatch[3].trim();
+        // Look for odds pattern: card name followed by 1:X or /XX 1:X
+        // Patterns: "Refractor 1:4", "Gold /50 1:12", "Gold 50 1:12", "Superfractor 1/1 1:549"
+        const oddsPatterns = [
+            // Pattern: Name /XX 1:Y (numbered with slash)
+            /^(.+?)\s+\/(\d+)\s+(1:\d+|1\/\d+)$/,
+            // Pattern: Name #XX 1:Y (numbered with hash)
+            /^(.+?)\s+#(\d+)\s+(1:\d+|1\/\d+)$/,
+            // Pattern: Name XX 1:Y where XX is a number (could be numbered)
+            /^(.+?)\s+(\d+)\s+(1:\d+|1\/\d+)$/,
+            // Pattern: Name 1:Y (simple odds)
+            /^(.+?)\s+(1:\d+|1\/\d+)$/,
+            // Pattern: Name 1:Y:Z (case odds)
+            /^(.+?)\s+(1:\d+:\d+)$/
+        ];
 
-            // Check if there's a number (out_of) in the card type or extra
-            const numberedMatch = cardType.match(/^(.+?)\s*[/#]?\s*(\d+)\s*$/);
-            if (numberedMatch) {
-                rows.push([numberedMatch[1].trim(), numberedMatch[2], odds]);
-            } else if (extra && /^\d+$/.test(extra)) {
-                rows.push([cardType, extra, odds]);
-            } else {
-                rows.push([cardType, '', odds]);
+        let matched = false;
+        for (const pattern of oddsPatterns) {
+            const match = line.match(pattern);
+            if (match) {
+                if (match.length === 4) {
+                    // Has numbered
+                    rows.push([match[1].trim(), match[2], match[3]]);
+                } else {
+                    // Simple odds
+                    rows.push([match[1].trim(), '', match[2]]);
+                }
+                matched = true;
+                break;
             }
-            continue;
         }
 
-        // Strategy 3: Space-separated (last item might be odds)
-        const parts = line.split(/\s+/);
-        if (parts.length >= 2) {
-            const lastPart = parts[parts.length - 1];
-            if (/^1:\d+$/.test(lastPart) || /^\d+:\d+$/.test(lastPart)) {
-                const cardType = parts.slice(0, -1).join(' ');
-                rows.push([cardType, '', lastPart]);
+        if (!matched) {
+            // Fallback: split by multiple spaces
+            const parts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
+            if (parts.length >= 2) {
+                rows.push(normalizeOddsRow(parts));
             } else {
-                rows.push(parts);
+                // Last resort: just use the whole line
+                const simpleParts = line.split(/\s+/);
+                if (simpleParts.length >= 2) {
+                    const lastPart = simpleParts[simpleParts.length - 1];
+                    if (/^1:\d+/.test(lastPart) || /^1\/\d+/.test(lastPart)) {
+                        rows.push([simpleParts.slice(0, -1).join(' '), '', lastPart]);
+                    }
+                }
             }
         }
     }
@@ -257,35 +445,61 @@ function parseOddsData(lines) {
     return rows;
 }
 
+function normalizeOddsRow(parts) {
+    // Try to identify which part is the odds
+    const result = [];
+    let cardName = '';
+    let numbered = '';
+    let odds = '';
+
+    for (const part of parts) {
+        if (/^1:\d+/.test(part) || /^1\/\d+/.test(part)) {
+            odds = part;
+        } else if (/^\/?\d+$/.test(part) || /^#\d+$/.test(part)) {
+            numbered = part.replace(/[/#]/g, '');
+        } else {
+            cardName += (cardName ? ' ' : '') + part;
+        }
+    }
+
+    return [cardName, numbered, odds];
+}
+
 function parseChecklistData(lines) {
     const rows = [];
 
     for (const line of lines) {
-        // Strategy 1: Tab-separated
+        if (!line) continue;
+
+        // Tab-separated
         if (line.includes('\t')) {
-            const parts = line.split('\t').map(p => p.trim());
+            const parts = line.split('\t').map(p => p.trim()).filter(p => p);
             if (parts.length >= 2) {
                 rows.push(parts);
                 continue;
             }
         }
 
-        // Strategy 2: Detect card number at start
-        const cardNumMatch = line.match(/^(\d+|[A-Z]+-?\d+)\s+(.+)$/);
+        // Card number at start
+        const cardNumMatch = line.match(/^(\d+|[A-Z]+-?\d+|RC-?\d+)\s+(.+)$/i);
         if (cardNumMatch) {
             const cardNum = cardNumMatch[1];
             const rest = cardNumMatch[2];
-
-            // Try to split the rest by common delimiters
-            const parts = rest.split(/\s{2,}|\t|,\s*/);
+            const parts = rest.split(/\s{2,}|\t/).map(p => p.trim()).filter(p => p);
             rows.push([cardNum, ...parts]);
             continue;
         }
 
-        // Strategy 3: Just split by multiple spaces or tabs
-        const parts = line.split(/\s{2,}|\t/).map(p => p.trim()).filter(p => p);
-        if (parts.length >= 1) {
+        // Multiple spaces as delimiter
+        const parts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
+        if (parts.length >= 2) {
             rows.push(parts);
+        } else if (parts.length === 1) {
+            // Try single space split but be careful
+            const spaceParts = line.split(/\s+/);
+            if (spaceParts.length >= 3) {
+                rows.push(spaceParts);
+            }
         }
     }
 
@@ -295,55 +509,62 @@ function parseChecklistData(lines) {
 function detectColumns() {
     if (state.parsedRows.length === 0) return;
 
-    // Find max columns
     const maxCols = Math.max(...state.parsedRows.map(row => row.length));
 
-    // Create column labels
     state.columns = [];
     for (let i = 0; i < maxCols; i++) {
         state.columns.push(`Column ${i + 1}`);
     }
 
-    // Try to auto-detect column types based on content
-    const expectedCols = state.dataType === 'odds' ? ODDS_COLUMNS : CHECKLIST_COLUMNS;
     state.columnMapping = {};
 
-    // Simple auto-detection based on content patterns
     for (let i = 0; i < maxCols; i++) {
-        const sampleValues = state.parsedRows.slice(0, 5).map(row => row[i] || '');
+        const sampleValues = state.parsedRows.slice(0, 10).map(row => row[i] || '').filter(v => v);
 
-        // Check for odds pattern
-        if (sampleValues.some(v => /^1:\d+$/.test(v) || /^\d+:\d+$/.test(v))) {
+        // Odds pattern
+        if (sampleValues.some(v => /^1:\d+/.test(v) || /^1\/\d+/.test(v))) {
             state.columnMapping[i] = 'odds';
             continue;
         }
 
-        // Check for numbers (could be card_num or out_of)
-        if (sampleValues.every(v => /^\d+$/.test(v) || v === '')) {
-            if (state.dataType === 'checklist' && !Object.values(state.columnMapping).includes('card_num')) {
-                state.columnMapping[i] = 'card_num';
-            } else {
+        // Pure numbers (could be card_num or out_of)
+        if (sampleValues.length > 0 && sampleValues.every(v => /^\d+$/.test(v))) {
+            if (state.dataType === 'odds') {
                 state.columnMapping[i] = 'out_of';
+            } else if (!Object.values(state.columnMapping).includes('card_num')) {
+                state.columnMapping[i] = 'card_num';
             }
             continue;
         }
 
-        // Check for team names (often have city names or common suffixes)
-        const teamPatterns = /celtics|lakers|bulls|heat|warriors|nets|knicks|mavericks|suns|bucks/i;
+        // Card numbers with letters
+        if (sampleValues.some(v => /^[A-Z]+-?\d+$/i.test(v) || /^RC-?\d+$/i.test(v))) {
+            state.columnMapping[i] = 'card_num';
+            continue;
+        }
+
+        // Team names
+        const teamPatterns = /celtics|lakers|bulls|heat|warriors|nets|knicks|mavericks|suns|bucks|76ers|spurs|rockets|jazz|nuggets|clippers|grizzlies|pelicans|hawks|hornets|pacers|pistons|magic|wizards|raptors|cavaliers|timberwolves|thunder|blazers|kings/i;
         if (sampleValues.some(v => teamPatterns.test(v))) {
             state.columnMapping[i] = 'team';
             continue;
         }
 
-        // Check for rookie indicator
+        // Rookie indicator
         if (sampleValues.some(v => /^(true|false|yes|no|rc|rookie)$/i.test(v))) {
             state.columnMapping[i] = 'rookie';
             continue;
         }
 
-        // Default: first text column is likely card_type/player, second is parallel/team
-        if (!Object.values(state.columnMapping).includes(state.dataType === 'odds' ? 'card_type' : 'player')) {
-            state.columnMapping[i] = state.dataType === 'odds' ? 'card_type' : 'player';
+        // First unassigned text column
+        if (state.dataType === 'odds') {
+            if (!Object.values(state.columnMapping).includes('parallel')) {
+                state.columnMapping[i] = 'parallel';
+            }
+        } else {
+            if (!Object.values(state.columnMapping).includes('player')) {
+                state.columnMapping[i] = 'player';
+            }
         }
     }
 }
@@ -355,9 +576,7 @@ function detectColumns() {
 function renderColumnMapping() {
     const container = document.getElementById('columnMapping');
     const expectedCols = state.dataType === 'odds' ? ODDS_COLUMNS : CHECKLIST_COLUMNS;
-
-    // Filter out auto-populated columns
-    const selectableCols = expectedCols.filter(col => col !== 'product_id' && col !== 'config');
+    const selectableCols = expectedCols.filter(col => col !== 'product_id' && col !== 'config' && col !== 'category');
 
     let html = '<div class="mapping-grid">';
 
@@ -399,18 +618,15 @@ function renderPreview() {
     const container = document.getElementById('previewContainer');
     const expectedCols = state.dataType === 'odds' ? ODDS_COLUMNS : CHECKLIST_COLUMNS;
 
-    // Build preview data
     const previewRows = state.parsedRows.slice(0, 10).map(row => {
         const mappedRow = {};
 
-        // Auto-populate product_id and config
         mappedRow.product_id = state.productId;
         if (state.dataType === 'odds') {
             mappedRow.config = state.boxConfig;
-            mappedRow.category = 'base'; // Default, user can specify
+            mappedRow.category = state.cardCategory;
         }
 
-        // Map other columns
         for (const [colIndex, colName] of Object.entries(state.columnMapping)) {
             mappedRow[colName] = row[parseInt(colIndex)] || '';
         }
@@ -418,7 +634,6 @@ function renderPreview() {
         return mappedRow;
     });
 
-    // Render table
     let html = '<table class="preview-table"><thead><tr>';
     for (const col of expectedCols) {
         html += `<th>${formatColumnName(col)}</th>`;
@@ -448,14 +663,10 @@ function renderPreview() {
 
 function generateCSV() {
     const expectedCols = state.dataType === 'odds' ? ODDS_COLUMNS : CHECKLIST_COLUMNS;
-
-    // Build CSV rows
     const csvRows = [];
 
-    // Header
     csvRows.push(expectedCols.join(','));
 
-    // Data rows
     for (const row of state.parsedRows) {
         const mappedRow = [];
 
@@ -464,11 +675,9 @@ function generateCSV() {
                 mappedRow.push(state.productId);
             } else if (col === 'config') {
                 mappedRow.push(state.boxConfig);
-            } else if (col === 'category' && state.dataType === 'odds') {
-                // Let user specify or default to 'base'
-                mappedRow.push('base');
+            } else if (col === 'category') {
+                mappedRow.push(state.cardCategory);
             } else {
-                // Find mapped column
                 let value = '';
                 for (const [colIndex, colName] of Object.entries(state.columnMapping)) {
                     if (colName === col) {
@@ -476,7 +685,6 @@ function generateCSV() {
                         break;
                     }
                 }
-                // Escape CSV values
                 if (value.includes(',') || value.includes('"') || value.includes('\n')) {
                     value = `"${value.replace(/"/g, '""')}"`;
                 }
@@ -487,9 +695,7 @@ function generateCSV() {
         csvRows.push(mappedRow.join(','));
     }
 
-    const csvContent = csvRows.join('\n');
-    document.getElementById('csvOutput').value = csvContent;
-
+    document.getElementById('csvOutput').value = csvRows.join('\n');
     showStep(5);
 }
 
