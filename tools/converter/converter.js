@@ -473,7 +473,9 @@ function parseChecklistData(lines) {
 
         // Tab-separated
         if (line.includes('\t')) {
-            const parts = line.split('\t').map(p => p.trim()).filter(p => p);
+            let parts = line.split('\t').map(p => p.trim()).filter(p => p);
+            // Try to split "number + name" patterns in each part
+            parts = splitNumberNameParts(parts);
             if (parts.length >= 2) {
                 rows.push(parts);
                 continue;
@@ -491,7 +493,8 @@ function parseChecklistData(lines) {
         }
 
         // Multiple spaces as delimiter
-        const parts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
+        let parts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
+        parts = splitNumberNameParts(parts);
         if (parts.length >= 2) {
             rows.push(parts);
         } else if (parts.length === 1) {
@@ -504,6 +507,27 @@ function parseChecklistData(lines) {
     }
 
     return rows;
+}
+
+// Split parts that contain "number + name" patterns like "1 Pascal Siakam"
+function splitNumberNameParts(parts) {
+    const result = [];
+
+    for (const part of parts) {
+        // Pattern: starts with number(s), followed by space, then a name (letters)
+        // Examples: "1 Pascal Siakam", "10 Talen Horton-Tucker", "RC-1 Victor Wembanyama"
+        const match = part.match(/^(\d+|[A-Z]+-?\d+|RC-?\d+)\s+([A-Z][a-zA-Z].*)/i);
+
+        if (match) {
+            // Split into card number and player name
+            result.push(match[1]);  // card number
+            result.push(match[2]);  // player name
+        } else {
+            result.push(part);
+        }
+    }
+
+    return result;
 }
 
 function detectColumns() {
