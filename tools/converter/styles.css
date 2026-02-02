@@ -379,6 +379,8 @@ body {
 
 .preview-table-container {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 400px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
 }
