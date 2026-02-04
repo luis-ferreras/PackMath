@@ -552,7 +552,7 @@ function parseChecklistData(lines) {
         if (parsedRow) {
             rows.push(parsedRow);
             metadata.push({
-                set_type: normalizeSetType(currentSetType),
+                set_type: currentSetType,  // Use raw header text from PDF
                 set_name: currentSetName
             });
         }
@@ -665,25 +665,6 @@ function isStandaloneTeam(text) {
         }
     }
     return false;
-}
-
-// Normalize set_type header text to standard format
-// "AUTOGRAPH RELIC" -> "autograph_relic", "INSERT" -> "insert", etc.
-function normalizeSetType(headerText) {
-    if (!headerText) return '';
-
-    const text = headerText.toLowerCase().trim();
-
-    // Map common variations to standard values
-    if (/auto(graph)?\s*(relic|mem)/i.test(text)) return 'autograph_relic';
-    if (/auto(graph)?/i.test(text)) return 'autograph';
-    if (/relic|memorabilia|mem\b/i.test(text)) return 'relic';
-    if (/insert/i.test(text)) return 'insert';
-    if (/base/i.test(text)) return 'base';
-    if (/parallel/i.test(text)) return 'base';  // parallels are typically base variants
-
-    // Return lowercase version with spaces replaced by underscores
-    return text.replace(/\s+/g, '_');
 }
 
 // Detect if a line is a section header (set_type or set_name indicator)
