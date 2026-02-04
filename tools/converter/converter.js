@@ -867,7 +867,7 @@ function renderPreview() {
 
         // Auto-detect rookie status for checklists
         if (state.dataType === 'checklist') {
-            mappedRow.rookie = detectRookieStatus(mappedRow);
+            mappedRow.rookie = detectRookieStatus(mappedRow, row);
         }
 
         return mappedRow;
@@ -895,7 +895,8 @@ function renderPreview() {
 }
 
 // Detect if a card is a rookie card based on various indicators
-function detectRookieStatus(row) {
+// rawRow: optional array of original parsed values (to check unmapped columns)
+function detectRookieStatus(row, rawRow) {
     // First check if there's an explicitly mapped rookie column value
     if (row.rookie) {
         // Check if it contains "Rookie" or similar indicators
@@ -932,10 +933,19 @@ function detectRookieStatus(row) {
         return 'TRUE';
     }
 
-    // Check if "Rookie" appears anywhere in any field value
+    // Check if "Rookie" appears anywhere in any mapped field value
     for (const value of Object.values(row)) {
         if (value && typeof value === 'string' && /\brookie\b/i.test(value)) {
             return 'TRUE';
+        }
+    }
+
+    // Check unmapped columns from raw row data (e.g., 4th column "Rookie" that wasn't mapped)
+    if (rawRow && Array.isArray(rawRow)) {
+        for (const value of rawRow) {
+            if (value && typeof value === 'string' && /\brookie\b/i.test(value)) {
+                return 'TRUE';
+            }
         }
     }
 
@@ -972,7 +982,7 @@ function generateCSV() {
 
         // Auto-detect rookie for checklists
         if (state.dataType === 'checklist') {
-            rowData.rookie = detectRookieStatus(rowData);
+            rowData.rookie = detectRookieStatus(rowData, row);
         }
 
         // Build CSV row
