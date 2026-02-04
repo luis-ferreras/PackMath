@@ -13,10 +13,11 @@ let state = {
     productId: '',
     boxConfig: '',
     cardCategory: 'base',
-    setType: 'base',       // for checklist
-    setName: '',           // for checklist
+    setType: 'base',       // for checklist (default/fallback)
+    setName: '',           // for checklist (default/fallback)
     rawData: '',
     parsedRows: [],
+    rowMetadata: [],       // per-row metadata [{set_type, set_name}, ...]
     columns: [],
     columnMapping: {},
     currentStep: 1
@@ -279,6 +280,7 @@ function startOver() {
         setName: '',
         rawData: '',
         parsedRows: [],
+        rowMetadata: [],
         columns: [],
         columnMapping: {},
         currentStep: 1
@@ -366,8 +368,11 @@ function parseData() {
 
     if (state.dataType === 'odds') {
         state.parsedRows = parseOddsData(dataLines);
+        state.rowMetadata = [];
     } else {
-        state.parsedRows = parseChecklistData(dataLines);
+        const result = parseChecklistData(dataLines);
+        state.parsedRows = result.rows;
+        state.rowMetadata = result.metadata;
     }
 
     if (state.parsedRows.length === 0) {
@@ -474,9 +479,41 @@ function normalizeOddsRow(parts) {
 
 function parseChecklistData(lines) {
     const rows = [];
+    const metadata = [];
+
+    // Track current section headers
+    let currentSetType = '';
+    let currentSetName = '';
+    let pendingHeader = null;  // Store first header until we see second or card data
 
     for (const line of lines) {
         if (!line) continue;
+
+        // Check if this line is a section header
+        if (isSectionHeader(line)) {
+            const headerText = line.trim();
+
+            if (pendingHeader === null) {
+                // First header - could be set_type
+                pendingHeader = headerText;
+            } else {
+                // Second consecutive header - first was set_type, this is set_name
+                currentSetType = pendingHeader;
+                currentSetName = headerText;
+                pendingHeader = null;
+            }
+            continue;
+        }
+
+        // Not a header - if we have a pending header, it's actually set_name (single header case)
+        if (pendingHeader !== null) {
+            // Single header before card data - treat as set_name, keep previous set_type
+            currentSetName = pendingHeader;
+            pendingHeader = null;
+        }
+
+        // Parse card data
+        let parsedRow = null;
 
         // Tab-separated
         if (line.includes('\t')) {
@@ -484,37 +521,50 @@ function parseChecklistData(lines) {
             // Try to split "number + name" patterns in each part
             parts = splitNumberNameParts(parts);
             if (parts.length >= 2) {
-                rows.push(parts);
-                continue;
+                parsedRow = parts;
             }
         }
 
-        // Card number at start
-        const cardNumMatch = line.match(/^(\d+|[A-Z]+-?\d+|RC-?\d+)\s+(.+)$/i);
-        if (cardNumMatch) {
-            const cardNum = cardNumMatch[1];
-            const rest = cardNumMatch[2];
-            const parts = rest.split(/\s{2,}|\t/).map(p => p.trim()).filter(p => p);
-            rows.push([cardNum, ...parts]);
-            continue;
+        if (!parsedRow) {
+            // Card number at start
+            const cardNumMatch = line.match(/^(\d+|[A-Z]+-?\d+|RC-?\d+)\s+(.+)$/i);
+            if (cardNumMatch) {
+                const cardNum = cardNumMatch[1];
+                const rest = cardNumMatch[2];
+                const parts = rest.split(/\s{2,}|\t/).map(p => p.trim()).filter(p => p);
+                parsedRow = [cardNum, ...parts];
+            }
         }
 
-        // Multiple spaces as delimiter
-        let parts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
-        parts = splitNumberNameParts(parts);
-        if (parts.length >= 2) {
-            rows.push(parts);
-        } else if (parts.length === 1) {
-            // Single part - try to parse it intelligently
-            const parsed = parseLineWithTeamDetection(line);
-            if (parsed.length >= 2) {
-                rows.push(parsed);
+        if (!parsedRow) {
+            // Multiple spaces as delimiter
+            let parts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
+            parts = splitNumberNameParts(parts);
+            if (parts.length >= 2) {
+                parsedRow = parts;
+            } else if (parts.length === 1) {
+                // Single part - try to parse it intelligently
+                const parsed = parseLineWithTeamDetection(line);
+                if (parsed.length >= 2) {
+                    parsedRow = parsed;
+                }
             }
+        }
+
+        if (parsedRow) {
+            rows.push(parsedRow);
+            metadata.push({
+                set_type: currentSetType,
+                set_name: currentSetName
+            });
         }
     }
 
     // Post-process: find column with player+team combos and split them
-    return splitPlayerTeamColumn(rows);
+    const processedRows = splitPlayerTeamColumn(rows);
+
+    // Return both rows and metadata
+    return { rows: processedRows, metadata: metadata };
 }
 
 // Find the column that contains player+team combos and split it for ALL rows
@@ -616,6 +666,53 @@ function isStandaloneTeam(text) {
             }
         }
     }
+    return false;
+}
+
+// Detect if a line is a section header (set_type or set_name indicator)
+// Section headers are typically:
+// - All uppercase (or nearly all)
+// - Single column (no tabs)
+// - Don't start with a card number pattern
+// - Don't contain a team name
+// - Short (typically 1-3 words)
+function isSectionHeader(line) {
+    if (!line || line.length === 0) return false;
+
+    const trimmed = line.trim();
+
+    // Skip if it has tabs (multiple columns = card data)
+    if (trimmed.includes('\t')) return false;
+
+    // Skip if it starts with a card number pattern
+    if (/^(\d+|[A-Z]{1,4}-?\d+|RC-?\d+)\s/i.test(trimmed)) return false;
+
+    // Skip if it contains a team name
+    if (containsTeamName(trimmed)) return false;
+
+    // Skip if too long (headers are typically short)
+    if (trimmed.length > 50) return false;
+
+    // Skip if it looks like player data (mixed case with multiple words that aren't all caps)
+    const words = trimmed.split(/\s+/);
+    if (words.length > 4) return false;
+
+    // Check if mostly uppercase (allowing for small words like "of", "the", numbers)
+    const uppercaseChars = (trimmed.match(/[A-Z]/g) || []).length;
+    const lowercaseChars = (trimmed.match(/[a-z]/g) || []).length;
+    const totalLetters = uppercaseChars + lowercaseChars;
+
+    // At least 70% uppercase letters, or all caps
+    if (totalLetters > 0 && uppercaseChars / totalLetters >= 0.7) {
+        return true;
+    }
+
+    // Also accept known section header keywords
+    const headerKeywords = /^(base|insert|parallel|rookie|auto|autograph|relic|memorabilia|short print|sp|ssp|variation|subset|checklist)/i;
+    if (headerKeywords.test(trimmed)) {
+        return true;
+    }
+
     return false;
 }
 
@@ -848,7 +945,7 @@ function renderPreview() {
     const container = document.getElementById('previewContainer');
     const expectedCols = state.dataType === 'odds' ? ODDS_COLUMNS : CHECKLIST_COLUMNS;
 
-    const previewRows = state.parsedRows.map(row => {
+    const previewRows = state.parsedRows.map((row, rowIndex) => {
         const mappedRow = {};
 
         mappedRow.product_id = state.productId;
@@ -856,9 +953,10 @@ function renderPreview() {
             mappedRow.config = state.boxConfig;
             mappedRow.category = state.cardCategory;
         } else {
-            // Checklist: add set_type and set_name
-            mappedRow.set_type = state.setType;
-            mappedRow.set_name = state.setName;
+            // Checklist: add set_type and set_name (use per-row metadata if available)
+            const rowMeta = state.rowMetadata[rowIndex] || {};
+            mappedRow.set_type = rowMeta.set_type || state.setType;
+            mappedRow.set_name = rowMeta.set_name || state.setName;
         }
 
         for (const [colIndex, colName] of Object.entries(state.columnMapping)) {
@@ -962,7 +1060,7 @@ function generateCSV() {
 
     csvRows.push(expectedCols.join(','));
 
-    for (const row of state.parsedRows) {
+    state.parsedRows.forEach((row, rowIndex) => {
         // Build a mapped row object first
         const rowData = {};
         rowData.product_id = state.productId;
@@ -971,8 +1069,10 @@ function generateCSV() {
             rowData.config = state.boxConfig;
             rowData.category = state.cardCategory;
         } else {
-            rowData.set_type = state.setType;
-            rowData.set_name = state.setName;
+            // Use per-row metadata if available, fallback to global state
+            const rowMeta = state.rowMetadata[rowIndex] || {};
+            rowData.set_type = rowMeta.set_type || state.setType;
+            rowData.set_name = rowMeta.set_name || state.setName;
         }
 
         // Map columns from parsed data
@@ -996,7 +1096,7 @@ function generateCSV() {
         }
 
         csvRows.push(mappedRow.join(','));
-    }
+    });
 
     document.getElementById('csvOutput').value = csvRows.join('\n');
     showStep(5);
