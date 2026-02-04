@@ -544,15 +544,18 @@ function splitPlayerTeamColumn(rows) {
     for (const row of rows) {
         // Check if this specific row needs splitting
         const valueAtTeamCol = row[teamColumnIndex] || '';
-        const needsSplit = valueAtTeamCol.length > 10 && containsTeamName(valueAtTeamCol);
+
+        // Only split if:
+        // 1. Value is long enough to contain both player and team
+        // 2. Value contains a team name
+        // 3. Value is NOT just a standalone team name (like "Boston Celtics" alone)
+        const hasTeam = containsTeamName(valueAtTeamCol);
+        const isJustTeam = isStandaloneTeam(valueAtTeamCol);
+        const needsSplit = valueAtTeamCol.length > 10 && hasTeam && !isJustTeam;
 
         // Also check if this row already has a standalone team in a later column
         const hasStandaloneTeamLater = row.slice(teamColumnIndex + 1).some(v => {
-            if (!v) return false;
-            // A standalone team is short (just the team name) and matches a team pattern
-            const isTeamName = containsTeamName(v);
-            const isStandalone = v.length < 30 && isTeamName;
-            return isStandalone;
+            return v && isStandaloneTeam(v);
         });
 
         if (!needsSplit || hasStandaloneTeamLater) {
@@ -592,6 +595,25 @@ function containsTeamName(text) {
     for (const team of NBA_TEAMS) {
         if (textLower.includes(team.toLowerCase())) {
             return true;
+        }
+    }
+    return false;
+}
+
+// Check if text is JUST a team name (not combined with player)
+// Returns true for "Boston Celtics", false for "John Smith Boston Celtics"
+function isStandaloneTeam(text) {
+    if (!text) return false;
+    const textLower = text.toLowerCase().trim();
+    for (const team of NBA_TEAMS) {
+        const teamLower = team.toLowerCase();
+        // Check if the text starts with the team name
+        if (textLower.startsWith(teamLower)) {
+            // Allow for some trailing whitespace but not much more content
+            const remaining = textLower.substring(teamLower.length).trim();
+            if (remaining.length < 5) {
+                return true;
+            }
         }
     }
     return false;
