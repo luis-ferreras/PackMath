@@ -565,9 +565,14 @@ function splitNumberNameParts(parts) {
 
 // Split "Giannis Antetokounmpo Milwaukee Bucks" into ["Giannis Antetokounmpo", "Milwaukee Bucks"]
 function splitPlayerFromTeam(text) {
-    // Check if text contains a known team name
+    if (!text || text.length < 5) return [text];
+
+    const textLower = text.toLowerCase();
+
+    // Check if text contains a known team name (case-insensitive)
     for (const team of NBA_TEAMS) {
-        const teamIndex = text.indexOf(team);
+        const teamLower = team.toLowerCase();
+        const teamIndex = textLower.indexOf(teamLower);
         if (teamIndex > 0) {
             const player = text.substring(0, teamIndex).trim();
             const teamName = text.substring(teamIndex).trim();
