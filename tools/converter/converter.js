@@ -828,6 +828,13 @@ function detectRookieStatus(row) {
         return 'true';
     }
 
+    // Check if "Rookie" appears anywhere in any field value
+    for (const value of Object.values(row)) {
+        if (value && typeof value === 'string' && /\brookie\b/i.test(value)) {
+            return 'true';
+        }
+    }
+
     return '';
 }
 
