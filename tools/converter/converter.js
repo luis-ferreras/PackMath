@@ -513,7 +513,61 @@ function parseChecklistData(lines) {
         }
     }
 
-    return rows;
+    // Post-process: find column with player+team combos and split them
+    return splitPlayerTeamColumn(rows);
+}
+
+// Find the column that contains player+team combos and split it for ALL rows
+function splitPlayerTeamColumn(rows) {
+    if (rows.length === 0) return rows;
+
+    // Find which column index contains team names
+    let teamColumnIndex = -1;
+    for (let colIndex = 0; colIndex < rows[0].length; colIndex++) {
+        // Check if any row has a team name in this column
+        for (const row of rows) {
+            const value = row[colIndex] || '';
+            if (value.length > 10 && containsTeamName(value)) {
+                teamColumnIndex = colIndex;
+                break;
+            }
+        }
+        if (teamColumnIndex >= 0) break;
+    }
+
+    // If no column with team names found, return as-is
+    if (teamColumnIndex < 0) return rows;
+
+    // Split that column for ALL rows
+    const newRows = [];
+    for (const row of rows) {
+        const newRow = [];
+        for (let i = 0; i < row.length; i++) {
+            if (i === teamColumnIndex) {
+                // Split this column into player and team
+                const [player, team] = splitPlayerFromTeam(row[i]);
+                newRow.push(player);
+                newRow.push(team);
+            } else {
+                newRow.push(row[i]);
+            }
+        }
+        newRows.push(newRow);
+    }
+
+    return newRows;
+}
+
+// Check if text contains any known team name
+function containsTeamName(text) {
+    if (!text) return false;
+    const textLower = text.toLowerCase();
+    for (const team of NBA_TEAMS) {
+        if (textLower.includes(team.toLowerCase())) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // NBA team names for splitting player from team
@@ -567,24 +621,11 @@ function splitNumberNameParts(parts) {
         const match = part.match(/^(\d+|[A-Z]{1,3}-?\d+|RC-?\d+)\s+([A-Za-zÀ-ÿ][a-zA-ZÀ-ÿ.'-].*)/i);
 
         if (match) {
-            // Split into card number and player/team
+            // Split into card number and player name (team split happens in post-processing)
             result.push(match[1]);  // card number
-            // Split player from team (always returns 2 elements)
-            const [player, team] = splitPlayerFromTeam(match[2]);
-            result.push(player);
-            result.push(team);
+            result.push(match[2]);  // player name (may include team)
         } else {
-            // Check if this part looks like a player+team combo (contains letters, spaces, and is long enough)
-            // Pattern: starts with letter, has spaces, ends with letters, and is reasonably long
-            if (/^[A-Za-zÀ-ÿ].*\s+.*[A-Za-zÀ-ÿ]/.test(part) && part.length > 15) {
-                // Looks like it could be "Player Name Team Name" - try to split
-                const [player, team] = splitPlayerFromTeam(part);
-                // Always push both to maintain consistent column count
-                result.push(player);
-                result.push(team);
-            } else {
-                result.push(part);
-            }
+            result.push(part);
         }
     }
 
@@ -785,6 +826,13 @@ function detectRookieStatus(row) {
     // Check set_type
     if (row.set_type && /rookie/i.test(row.set_type)) {
         return 'true';
+    }
+
+    // Check if "Rookie" appears anywhere in any field value
+    for (const value of Object.values(row)) {
+        if (value && typeof value === 'string' && /\brookie\b/i.test(value)) {
+            return 'true';
+        }
     }
 
     return '';
