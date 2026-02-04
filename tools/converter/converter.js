@@ -524,8 +524,11 @@ function splitNumberNameParts(parts) {
         // Pattern: starts with number(s), followed by space, then a name
         // Examples: "1 Pascal Siakam", "10 Talen Horton-Tucker", "RC-1 Victor Wembanyama"
         // Also handles: "11 T.J. McConnell", "5 D'Angelo Russell", "19 P.J. Washington"
-        // The name part: starts with capital letter, followed by letter, period, or apostrophe
-        const match = part.match(/^(\d+|[A-Z]+-?\d+|RC-?\d+)\s+([A-Z][a-zA-Z.'].*)/i);
+        // Hyphenated names: "Nickeil Alexander-Walker", "Kentavious Caldwell-Pope"
+        // Accented names: "Yanic Konan-Niederhäuser", "José Calderón"
+        // Card number: digits, or short prefix (1-3 letters) + optional dash + digits
+        // Name: starts with letter (including accented), followed by letter/period/apostrophe/dash
+        const match = part.match(/^(\d+|[A-Z]{1,3}-?\d+|RC-?\d+)\s+([A-Za-zÀ-ÿ][a-zA-ZÀ-ÿ.'-].*)/i);
 
         if (match) {
             // Split into card number and player name
