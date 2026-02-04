@@ -516,6 +516,42 @@ function parseChecklistData(lines) {
     return rows;
 }
 
+// NBA team names for splitting player from team
+const NBA_TEAMS = [
+    'Atlanta Hawks', 'Boston Celtics', 'Brooklyn Nets', 'Charlotte Hornets',
+    'Chicago Bulls', 'Cleveland Cavaliers', 'Dallas Mavericks', 'Denver Nuggets',
+    'Detroit Pistons', 'Golden State Warriors', 'Houston Rockets', 'Indiana Pacers',
+    'Los Angeles Clippers', 'Los Angeles Lakers', 'LA Clippers', 'LA Lakers',
+    'Memphis Grizzlies', 'Miami Heat', 'Milwaukee Bucks', 'Minnesota Timberwolves',
+    'New Orleans Pelicans', 'New York Knicks', 'Oklahoma City Thunder', 'Orlando Magic',
+    'Philadelphia 76ers', 'Phoenix Suns', 'Portland Trail Blazers', 'Sacramento Kings',
+    'San Antonio Spurs', 'Toronto Raptors', 'Utah Jazz', 'Washington Wizards'
+];
+
+// Split "Giannis Antetokounmpo Milwaukee Bucks" into ["Giannis Antetokounmpo", "Milwaukee Bucks"]
+// ALWAYS returns exactly 2 elements to keep columns consistent
+function splitPlayerFromTeam(text) {
+    if (!text || text.length < 3) return [text, ''];
+
+    const textLower = text.toLowerCase();
+
+    // Check if text contains a known team name (case-insensitive)
+    for (const team of NBA_TEAMS) {
+        const teamLower = team.toLowerCase();
+        const teamIndex = textLower.indexOf(teamLower);
+        if (teamIndex > 0) {
+            const player = text.substring(0, teamIndex).trim();
+            const teamName = text.substring(teamIndex).trim();
+            if (player.length > 0) {
+                return [player, teamName];
+            }
+        }
+    }
+
+    // No team found - return original as player, empty team
+    return [text, ''];
+}
+
 // Split parts that contain "number + name" patterns like "1 Pascal Siakam"
 function splitNumberNameParts(parts) {
     const result = [];
@@ -533,9 +569,22 @@ function splitNumberNameParts(parts) {
         if (match) {
             // Split into card number and player/team
             result.push(match[1]);  // card number
-            result.push(match[2]);  // player name (may include team if combined)
+            // Split player from team (always returns 2 elements)
+            const [player, team] = splitPlayerFromTeam(match[2]);
+            result.push(player);
+            result.push(team);
         } else {
-            result.push(part);
+            // Check if this part looks like a player+team combo (contains letters, spaces, and is long enough)
+            // Pattern: starts with letter, has spaces, ends with letters, and is reasonably long
+            if (/^[A-Za-zÀ-ÿ].*\s+.*[A-Za-zÀ-ÿ]/.test(part) && part.length > 15) {
+                // Looks like it could be "Player Name Team Name" - try to split
+                const [player, team] = splitPlayerFromTeam(part);
+                // Always push both to maintain consistent column count
+                result.push(player);
+                result.push(team);
+            } else {
+                result.push(part);
+            }
         }
     }
 
