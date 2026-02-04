@@ -796,46 +796,46 @@ function detectRookieStatus(row) {
     if (row.rookie) {
         // Check if it contains "Rookie" or similar indicators
         if (/rookie/i.test(row.rookie) || /^(true|yes|1|rc)$/i.test(row.rookie)) {
-            return 'true';
+            return 'TRUE';
         }
         // If it's explicitly "false" or "no", respect that
         if (/^(false|no|0)$/i.test(row.rookie)) {
-            return '';
+            return 'FALSE';
         }
     }
 
     // Check card_num for RC prefix
     if (row.card_num && /^RC/i.test(row.card_num)) {
-        return 'true';
+        return 'TRUE';
     }
 
     // Check player name for RC suffix or (RC) tag
     if (row.player) {
         if (/\bRC\b/i.test(row.player) || /\(RC\)/i.test(row.player)) {
-            return 'true';
+            return 'TRUE';
         }
     }
 
     // Check set_name for rookie-related terms
     if (row.set_name) {
         if (/rookie/i.test(row.set_name)) {
-            return 'true';
+            return 'TRUE';
         }
     }
 
     // Check set_type
     if (row.set_type && /rookie/i.test(row.set_type)) {
-        return 'true';
+        return 'TRUE';
     }
 
     // Check if "Rookie" appears anywhere in any field value
     for (const value of Object.values(row)) {
         if (value && typeof value === 'string' && /\brookie\b/i.test(value)) {
-            return 'true';
+            return 'TRUE';
         }
     }
 
-    return '';
+    return 'FALSE';
 }
 
 // ========================================
