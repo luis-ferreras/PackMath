@@ -521,12 +521,13 @@ function parseChecklistData(lines) {
 function splitPlayerTeamColumn(rows) {
     if (rows.length === 0) return rows;
 
-    // Find which column index contains team names
+    // Find which column index contains combined player+team values (long strings with team names)
     let teamColumnIndex = -1;
     for (let colIndex = 0; colIndex < rows[0].length; colIndex++) {
-        // Check if any row has a team name in this column
+        // Check if any row has a combined player+team in this column
         for (const row of rows) {
             const value = row[colIndex] || '';
+            // Only consider it a combined column if the value is long (has both player AND team)
             if (value.length > 10 && containsTeamName(value)) {
                 teamColumnIndex = colIndex;
                 break;
@@ -535,24 +536,50 @@ function splitPlayerTeamColumn(rows) {
         if (teamColumnIndex >= 0) break;
     }
 
-    // If no column with team names found, return as-is
+    // If no column with combined player+team found, return as-is
     if (teamColumnIndex < 0) return rows;
 
-    // Split that column for ALL rows
+    // Split that column for rows that have combined player+team
     const newRows = [];
     for (const row of rows) {
-        const newRow = [];
-        for (let i = 0; i < row.length; i++) {
-            if (i === teamColumnIndex) {
-                // Split this column into player and team
-                const [player, team] = splitPlayerFromTeam(row[i]);
-                newRow.push(player);
-                newRow.push(team);
-            } else {
-                newRow.push(row[i]);
+        // Check if this specific row needs splitting
+        const valueAtTeamCol = row[teamColumnIndex] || '';
+        const needsSplit = valueAtTeamCol.length > 10 && containsTeamName(valueAtTeamCol);
+
+        // Also check if this row already has a standalone team in a later column
+        const hasStandaloneTeamLater = row.slice(teamColumnIndex + 1).some(v => {
+            if (!v) return false;
+            // A standalone team is short (just the team name) and matches a team pattern
+            const isTeamName = containsTeamName(v);
+            const isStandalone = v.length < 30 && isTeamName;
+            return isStandalone;
+        });
+
+        if (!needsSplit || hasStandaloneTeamLater) {
+            // Row doesn't need splitting or already has team separate - copy as-is
+            newRows.push([...row]);
+        } else {
+            // Split this row's combined player+team column
+            const newRow = [];
+            for (let i = 0; i < row.length; i++) {
+                if (i === teamColumnIndex) {
+                    const [player, team] = splitPlayerFromTeam(row[i]);
+                    newRow.push(player);
+                    newRow.push(team);
+                } else {
+                    newRow.push(row[i]);
+                }
             }
+            newRows.push(newRow);
         }
-        newRows.push(newRow);
+    }
+
+    // Normalize all rows to have the same number of columns
+    const maxCols = Math.max(...newRows.map(r => r.length));
+    for (const row of newRows) {
+        while (row.length < maxCols) {
+            row.push('');
+        }
     }
 
     return newRows;
