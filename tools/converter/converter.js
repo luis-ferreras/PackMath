@@ -292,7 +292,7 @@ function startOver() {
     document.getElementById('productId').value = '';
     document.getElementById('boxConfig').value = '';
     document.getElementById('cardCategory').value = 'base';
-    document.getElementById('setType').value = 'base';
+    // setType is auto-detected from headers, no UI element needed
     document.getElementById('setName').value = '';
     document.getElementById('pasteArea').value = '';
     document.getElementById('csvOutput').value = '';
@@ -315,18 +315,16 @@ function selectDataType(type) {
     // Show/hide type-specific fields
     const configRow = document.getElementById('oddsConfigRow');
     const categoryRow = document.getElementById('oddsCategoryRow');
-    const setTypeRow = document.getElementById('checklistSetTypeRow');
     const setNameRow = document.getElementById('checklistSetNameRow');
 
     if (type === 'odds') {
         configRow?.classList.remove('hidden');
         categoryRow?.classList.remove('hidden');
-        setTypeRow?.classList.add('hidden');
         setNameRow?.classList.add('hidden');
     } else {
         configRow?.classList.add('hidden');
         categoryRow?.classList.add('hidden');
-        setTypeRow?.classList.remove('hidden');
+        // setType is auto-detected from headers, only show setName field
         setNameRow?.classList.remove('hidden');
     }
 
@@ -554,7 +552,7 @@ function parseChecklistData(lines) {
         if (parsedRow) {
             rows.push(parsedRow);
             metadata.push({
-                set_type: currentSetType,
+                set_type: normalizeSetType(currentSetType),
                 set_name: currentSetName
             });
         }
@@ -669,6 +667,25 @@ function isStandaloneTeam(text) {
     return false;
 }
 
+// Normalize set_type header text to standard format
+// "AUTOGRAPH RELIC" -> "autograph_relic", "INSERT" -> "insert", etc.
+function normalizeSetType(headerText) {
+    if (!headerText) return '';
+
+    const text = headerText.toLowerCase().trim();
+
+    // Map common variations to standard values
+    if (/auto(graph)?\s*(relic|mem)/i.test(text)) return 'autograph_relic';
+    if (/auto(graph)?/i.test(text)) return 'autograph';
+    if (/relic|memorabilia|mem\b/i.test(text)) return 'relic';
+    if (/insert/i.test(text)) return 'insert';
+    if (/base/i.test(text)) return 'base';
+    if (/parallel/i.test(text)) return 'base';  // parallels are typically base variants
+
+    // Return lowercase version with spaces replaced by underscores
+    return text.replace(/\s+/g, '_');
+}
+
 // Detect if a line is a section header (set_type or set_name indicator)
 // Section headers are typically:
 // - All uppercase (or nearly all)
@@ -690,12 +707,13 @@ function isSectionHeader(line) {
     // Skip if it contains a team name
     if (containsTeamName(trimmed)) return false;
 
-    // Skip if too long (headers are typically short)
-    if (trimmed.length > 50) return false;
+    // Skip if too long (headers are typically short, but set names can be longer)
+    if (trimmed.length > 80) return false;
 
     // Skip if it looks like player data (mixed case with multiple words that aren't all caps)
     const words = trimmed.split(/\s+/);
-    if (words.length > 4) return false;
+    // Allow longer headers (set names can be quite long like "TOPPS CHROME GOLD LOGOMAN II")
+    if (words.length > 10) return false;
 
     // Check if mostly uppercase (allowing for small words like "of", "the", numbers)
     const uppercaseChars = (trimmed.match(/[A-Z]/g) || []).length;
