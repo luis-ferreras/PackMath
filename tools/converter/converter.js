@@ -505,10 +505,10 @@ function parseChecklistData(lines) {
         if (parts.length >= 2) {
             rows.push(parts);
         } else if (parts.length === 1) {
-            // Try single space split but be careful
-            const spaceParts = line.split(/\s+/);
-            if (spaceParts.length >= 3) {
-                rows.push(spaceParts);
+            // Single part - try to parse it intelligently
+            const parsed = parseLineWithTeamDetection(line);
+            if (parsed.length >= 2) {
+                rows.push(parsed);
             }
         }
     }
@@ -604,6 +604,61 @@ function splitPlayerFromTeam(text) {
 
     // No team found - return original as player, empty team
     return [text, ''];
+}
+
+// Parse a line by detecting where the team name starts
+// Handles: "1 Shai Gilgeous-Alexander Oklahoma City Thunder"
+// Returns: ["1", "Shai Gilgeous-Alexander", "Oklahoma City Thunder"]
+function parseLineWithTeamDetection(line) {
+    // First, try to extract card number from the start
+    const cardNumMatch = line.match(/^(\d+|[A-Z]{1,3}-?\d+|RC-?\d+)\s+(.+)$/i);
+
+    let cardNum = '';
+    let rest = line;
+
+    if (cardNumMatch) {
+        cardNum = cardNumMatch[1];
+        rest = cardNumMatch[2];
+    }
+
+    // Now try to find a team name in the rest
+    const restLower = rest.toLowerCase();
+    let bestTeamMatch = null;
+    let bestTeamIndex = -1;
+
+    for (const team of NBA_TEAMS) {
+        const teamLower = team.toLowerCase();
+        const teamIndex = restLower.indexOf(teamLower);
+        // Find the earliest team match (closest to player name)
+        if (teamIndex > 0 && (bestTeamIndex === -1 || teamIndex < bestTeamIndex)) {
+            bestTeamIndex = teamIndex;
+            bestTeamMatch = team;
+        }
+    }
+
+    if (bestTeamIndex > 0) {
+        const player = rest.substring(0, bestTeamIndex).trim();
+        const team = rest.substring(bestTeamIndex).trim();
+
+        if (cardNum) {
+            return [cardNum, player, team];
+        } else {
+            return [player, team];
+        }
+    }
+
+    // No team found - fall back to space splitting but keep hyphenated names together
+    const words = rest.split(/\s+/);
+    if (cardNum && words.length >= 1) {
+        // Assume the rest is the player name
+        return [cardNum, rest];
+    }
+
+    // Last resort: return the line split by spaces
+    if (cardNum) {
+        return [cardNum, ...words];
+    }
+    return words;
 }
 
 // Split parts that contain "number + name" patterns like "1 Pascal Siakam"
