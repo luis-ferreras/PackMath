@@ -516,6 +516,18 @@ function parseChecklistData(lines) {
     return rows;
 }
 
+// NBA team names for splitting player from team
+const NBA_TEAMS = [
+    'Atlanta Hawks', 'Boston Celtics', 'Brooklyn Nets', 'Charlotte Hornets',
+    'Chicago Bulls', 'Cleveland Cavaliers', 'Dallas Mavericks', 'Denver Nuggets',
+    'Detroit Pistons', 'Golden State Warriors', 'Houston Rockets', 'Indiana Pacers',
+    'Los Angeles Clippers', 'Los Angeles Lakers', 'LA Clippers', 'LA Lakers',
+    'Memphis Grizzlies', 'Miami Heat', 'Milwaukee Bucks', 'Minnesota Timberwolves',
+    'New Orleans Pelicans', 'New York Knicks', 'Oklahoma City Thunder', 'Orlando Magic',
+    'Philadelphia 76ers', 'Phoenix Suns', 'Portland Trail Blazers', 'Sacramento Kings',
+    'San Antonio Spurs', 'Toronto Raptors', 'Utah Jazz', 'Washington Wizards'
+];
+
 // Split parts that contain "number + name" patterns like "1 Pascal Siakam"
 function splitNumberNameParts(parts) {
     const result = [];
@@ -531,15 +543,42 @@ function splitNumberNameParts(parts) {
         const match = part.match(/^(\d+|[A-Z]{1,3}-?\d+|RC-?\d+)\s+([A-Za-zÀ-ÿ][a-zA-ZÀ-ÿ.'-].*)/i);
 
         if (match) {
-            // Split into card number and player name
+            // Split into card number and rest (player + possibly team)
             result.push(match[1]);  // card number
-            result.push(match[2]);  // player name
+
+            // Try to split player name from team name
+            const playerTeamSplit = splitPlayerFromTeam(match[2]);
+            result.push(...playerTeamSplit);
         } else {
-            result.push(part);
+            // Try to split player from team even without card number
+            const playerTeamSplit = splitPlayerFromTeam(part);
+            if (playerTeamSplit.length > 1) {
+                result.push(...playerTeamSplit);
+            } else {
+                result.push(part);
+            }
         }
     }
 
     return result;
+}
+
+// Split "Giannis Antetokounmpo Milwaukee Bucks" into ["Giannis Antetokounmpo", "Milwaukee Bucks"]
+function splitPlayerFromTeam(text) {
+    // Check if text contains a known team name
+    for (const team of NBA_TEAMS) {
+        const teamIndex = text.indexOf(team);
+        if (teamIndex > 0) {
+            const player = text.substring(0, teamIndex).trim();
+            const teamName = text.substring(teamIndex).trim();
+            if (player.length > 0) {
+                return [player, teamName];
+            }
+        }
+    }
+
+    // No team found, return as-is
+    return [text];
 }
 
 function detectColumns() {
