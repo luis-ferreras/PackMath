@@ -728,13 +728,17 @@ function splitPlayerTeamColumn(rows) {
     if (rows.length === 0) return rows;
 
     // Find which column index contains combined player+team values (long strings with team names)
+    // Must exclude standalone team names - we want columns with "Player Name Team Name" not just "Team Name"
     let teamColumnIndex = -1;
     for (let colIndex = 0; colIndex < rows[0].length; colIndex++) {
         // Check if any row has a combined player+team in this column
         for (const row of rows) {
             const value = row[colIndex] || '';
-            // Only consider it a combined column if the value is long (has both player AND team)
-            if (value.length > 10 && containsTeamName(value)) {
+            // Only consider it a combined column if:
+            // 1. Value is long enough to contain both player AND team
+            // 2. Value contains a team name
+            // 3. Value is NOT just a standalone team name
+            if (value.length > 10 && containsTeamName(value) && !isStandaloneTeam(value)) {
                 teamColumnIndex = colIndex;
                 break;
             }
