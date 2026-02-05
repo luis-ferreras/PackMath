@@ -517,3 +517,176 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--border-light);
 }
+
+/* ========================================
+   Combined Mode Styles
+   ======================================== */
+
+/* Combined Paste Section */
+.combined-paste-section {
+    margin-top: 16px;
+}
+
+.combined-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.combined-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.combined-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.combined-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.combined-icon {
+    font-size: 1.25rem;
+}
+
+.combined-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.combined-paste-section .paste-area {
+    flex: 1;
+    min-height: 250px;
+}
+
+/* Preview Tabs */
+.preview-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0;
+}
+
+.preview-tab {
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: -1px;
+}
+
+.preview-tab:hover {
+    color: var(--text-primary);
+}
+
+.preview-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.preview-tab-content {
+    min-height: 300px;
+}
+
+/* Validation Warnings */
+.validation-warnings {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid var(--amber);
+    border-radius: var(--radius-sm);
+}
+
+.validation-warnings h4 {
+    color: var(--amber);
+    margin: 0 0 12px 0;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.validation-warnings ul {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.validation-warnings li {
+    margin-bottom: 4px;
+}
+
+/* Combined Download Grid */
+.combined-download-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 16px;
+}
+
+.combined-download-card {
+    background: var(--bg-base);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.download-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.download-card-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.download-icon {
+    font-size: 1.5rem;
+}
+
+.csv-area-small {
+    min-height: 120px;
+    max-height: 150px;
+    font-size: 0.75rem;
+}
+
+.download-card-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.8125rem;
+}
+
+/* Responsive Combined Layout */
+@media (max-width: 768px) {
+    .combined-grid,
+    .combined-download-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .combined-paste-section .paste-area {
+        min-height: 180px;
+    }
+}
