@@ -1713,7 +1713,7 @@ function renderCombinedPreviewTable(containerId, rows, rowMetadata, columnMappin
 
         mappedRow.product_id = state.productId;
         if (dataType === 'odds') {
-            mappedRow.config = '';  // No config in combined mode
+            mappedRow.config = 'hobby';  // Default to hobby in combined mode
             // category is auto-detected and should be in the row
         } else {
             const rowMeta = rowMetadata[rowIndex] || {};
@@ -1939,7 +1939,7 @@ function generateCsvForDataset(rows, rowMetadata, columnMapping, expectedCols, d
         rowData.product_id = state.productId;
 
         if (dataType === 'odds') {
-            rowData.config = '';  // No config in combined mode
+            rowData.config = 'hobby';  // Default to hobby in combined mode
             // Map from row array directly since odds rows are already structured
             rowData.card_type = row[0] || '';
             rowData.parallel = row[1] || '';
