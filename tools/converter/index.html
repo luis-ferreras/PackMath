@@ -30,15 +30,20 @@
                     </div>
                     <div class="step-content">
                         <div class="data-type-options">
-                            <button class="data-type-btn" data-type="odds" onclick="selectDataType('odds')">
-                                <span class="data-type-icon">📊</span>
-                                <span class="data-type-label">Odds Data</span>
-                                <span class="data-type-desc">Parallels, inserts, autographs with odds</span>
+                            <button class="data-type-btn" data-type="combined" onclick="selectDataType('combined')">
+                                <span class="data-type-icon">📦</span>
+                                <span class="data-type-label">Combined</span>
+                                <span class="data-type-desc">Checklist + Odds together (recommended)</span>
                             </button>
                             <button class="data-type-btn" data-type="checklist" onclick="selectDataType('checklist')">
                                 <span class="data-type-icon">📋</span>
-                                <span class="data-type-label">Checklist</span>
+                                <span class="data-type-label">Checklist Only</span>
                                 <span class="data-type-desc">Player names, card numbers, teams</span>
+                            </button>
+                            <button class="data-type-btn" data-type="odds" onclick="selectDataType('odds')">
+                                <span class="data-type-icon">🎲</span>
+                                <span class="data-type-label">Odds Only</span>
+                                <span class="data-type-desc">Parallels, inserts with odds</span>
                             </button>
                         </div>
                     </div>
@@ -105,8 +110,8 @@
                         <h2 class="step-title">Upload PDF or Paste Data</h2>
                     </div>
                     <div class="step-content">
-                        <!-- PDF Upload Area -->
-                        <div class="upload-section">
+                        <!-- Single Mode: PDF Upload Area -->
+                        <div class="upload-section" id="singleUploadSection">
                             <div class="upload-area" id="uploadArea">
                                 <input type="file" id="pdfInput" accept=".pdf" hidden>
                                 <div class="upload-icon">📄</div>
@@ -123,16 +128,38 @@
                             </div>
                         </div>
 
-                        <div class="divider">
+                        <div class="divider" id="singleDivider">
                             <span>OR</span>
                         </div>
 
-                        <!-- Paste Area -->
-                        <div class="paste-section">
+                        <!-- Single Mode: Paste Area -->
+                        <div class="paste-section" id="singlePasteSection">
                             <div class="paste-instructions" id="pasteInstructions">
                                 <!-- Instructions will be inserted here based on data type -->
                             </div>
                             <textarea class="paste-area" id="pasteArea" placeholder="Paste your data here..."></textarea>
+                        </div>
+
+                        <!-- Combined Mode: Dual Paste Areas -->
+                        <div class="combined-paste-section hidden" id="combinedPasteSection">
+                            <div class="combined-grid">
+                                <div class="combined-column">
+                                    <div class="combined-header">
+                                        <span class="combined-icon">📋</span>
+                                        <h3>Checklist Data</h3>
+                                    </div>
+                                    <div class="combined-hint">Card numbers, player names, teams</div>
+                                    <textarea class="paste-area" id="checklistPasteArea" placeholder="Paste checklist data here..."></textarea>
+                                </div>
+                                <div class="combined-column">
+                                    <div class="combined-header">
+                                        <span class="combined-icon">🎲</span>
+                                        <h3>Odds Data</h3>
+                                    </div>
+                                    <div class="combined-hint">Card types, parallels, odds ratios</div>
+                                    <textarea class="paste-area" id="oddsPasteArea" placeholder="Paste odds data here..."></textarea>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="action-buttons">
@@ -149,12 +176,37 @@
                         <h2 class="step-title">Review Data</h2>
                     </div>
                     <div class="step-content">
-                        <div class="preview-section">
+                        <!-- Validation Warnings (combined mode) -->
+                        <div class="validation-warnings hidden" id="validationWarnings">
+                            <!-- Validation warnings will be inserted here -->
+                        </div>
+
+                        <!-- Single Mode Preview -->
+                        <div class="preview-section" id="singlePreviewSection">
                             <h3 class="preview-title">Data Preview</h3>
                             <div class="preview-table-container" id="previewContainer">
                                 <!-- Preview table will be inserted here -->
                             </div>
                         </div>
+
+                        <!-- Combined Mode Preview -->
+                        <div class="combined-preview-section hidden" id="combinedPreviewSection">
+                            <div class="preview-tabs">
+                                <button class="preview-tab active" data-tab="checklist" onclick="switchPreviewTab('checklist')">📋 Checklist</button>
+                                <button class="preview-tab" data-tab="odds" onclick="switchPreviewTab('odds')">🎲 Odds</button>
+                            </div>
+                            <div class="preview-tab-content" id="checklistPreviewTab">
+                                <div class="preview-table-container" id="checklistPreviewContainer">
+                                    <!-- Checklist preview will be inserted here -->
+                                </div>
+                            </div>
+                            <div class="preview-tab-content hidden" id="oddsPreviewTab">
+                                <div class="preview-table-container" id="oddsPreviewContainer">
+                                    <!-- Odds preview will be inserted here -->
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="action-buttons">
                             <button class="btn btn-secondary" onclick="goBack()">Back</button>
                             <button class="btn btn-primary" onclick="generateCSV()">Generate CSV</button>
@@ -169,14 +221,47 @@
                         <h2 class="step-title">Your CSV is Ready!</h2>
                     </div>
                     <div class="step-content">
-                        <div class="csv-output">
+                        <!-- Single Mode Output -->
+                        <div class="csv-output" id="singleCsvOutput">
                             <textarea class="csv-area" id="csvOutput" readonly></textarea>
                         </div>
-                        <div class="action-buttons">
+                        <div class="action-buttons" id="singleDownloadButtons">
                             <button class="btn btn-secondary" onclick="showStep(4)">Back</button>
                             <button class="btn btn-secondary" onclick="copyCSV()">Copy to Clipboard</button>
                             <button class="btn btn-primary" onclick="downloadCSV()">Download CSV</button>
                         </div>
+
+                        <!-- Combined Mode Output -->
+                        <div class="combined-csv-output hidden" id="combinedCsvOutput">
+                            <div class="combined-download-grid">
+                                <div class="combined-download-card">
+                                    <div class="download-card-header">
+                                        <span class="download-icon">📋</span>
+                                        <h3>Checklist CSV</h3>
+                                    </div>
+                                    <textarea class="csv-area csv-area-small" id="checklistCsvOutput" readonly></textarea>
+                                    <div class="download-card-buttons">
+                                        <button class="btn btn-secondary btn-small" onclick="copyCSV('checklist')">Copy</button>
+                                        <button class="btn btn-primary btn-small" onclick="downloadCSV('checklist')">Download</button>
+                                    </div>
+                                </div>
+                                <div class="combined-download-card">
+                                    <div class="download-card-header">
+                                        <span class="download-icon">🎲</span>
+                                        <h3>Odds CSV</h3>
+                                    </div>
+                                    <textarea class="csv-area csv-area-small" id="oddsCsvOutput" readonly></textarea>
+                                    <div class="download-card-buttons">
+                                        <button class="btn btn-secondary btn-small" onclick="copyCSV('odds')">Copy</button>
+                                        <button class="btn btn-primary btn-small" onclick="downloadCSV('odds')">Download</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="action-buttons hidden" id="combinedBackButton">
+                            <button class="btn btn-secondary" onclick="showStep(4)">Back</button>
+                        </div>
+
                         <div class="success-message hidden" id="copySuccess">Copied to clipboard!</div>
                         <div class="next-steps">
                             <h4>Next Steps:</h4>

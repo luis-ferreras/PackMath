@@ -12,7 +12,7 @@ const REFERENCE_DATA_KEY = 'packmath_reference_cardtypes';
 
 // State
 let state = {
-    dataType: null,        // 'odds' or 'checklist'
+    dataType: null,        // 'odds', 'checklist', or 'combined'
     productId: '',
     boxConfig: '',
     cardCategory: 'base',
@@ -23,7 +23,18 @@ let state = {
     rowMetadata: [],       // per-row metadata [{set_type, set_name}, ...]
     columns: [],
     columnMapping: {},
-    currentStep: 1
+    currentStep: 1,
+    // Combined mode additional state
+    checklistRawData: '',
+    oddsRawData: '',
+    checklistParsedRows: [],
+    checklistRowMetadata: [],
+    oddsParsedRows: [],
+    checklistColumns: [],
+    oddsColumns: [],
+    checklistColumnMapping: {},
+    oddsColumnMapping: {},
+    validationWarnings: []
 };
 
 // ========================================
@@ -155,6 +166,25 @@ function continueToStep3() {
         alert('Please enter a Box Configuration');
         return;
     }
+
+    // Show/hide appropriate paste sections based on mode
+    const singleUploadSection = document.getElementById('singleUploadSection');
+    const singleDivider = document.getElementById('singleDivider');
+    const singlePasteSection = document.getElementById('singlePasteSection');
+    const combinedPasteSection = document.getElementById('combinedPasteSection');
+
+    if (state.dataType === 'combined') {
+        singleUploadSection?.classList.add('hidden');
+        singleDivider?.classList.add('hidden');
+        singlePasteSection?.classList.add('hidden');
+        combinedPasteSection?.classList.remove('hidden');
+    } else {
+        singleUploadSection?.classList.remove('hidden');
+        singleDivider?.classList.remove('hidden');
+        singlePasteSection?.classList.remove('hidden');
+        combinedPasteSection?.classList.add('hidden');
+    }
+
     showStep(3);
 }
 
@@ -367,7 +397,18 @@ function startOver() {
         rowMetadata: [],
         columns: [],
         columnMapping: {},
-        currentStep: 1
+        currentStep: 1,
+        // Combined mode state
+        checklistRawData: '',
+        oddsRawData: '',
+        checklistParsedRows: [],
+        checklistRowMetadata: [],
+        oddsParsedRows: [],
+        checklistColumns: [],
+        oddsColumns: [],
+        checklistColumnMapping: {},
+        oddsColumnMapping: {},
+        validationWarnings: []
     };
 
     document.querySelectorAll('.data-type-btn').forEach(btn => {
@@ -380,6 +421,27 @@ function startOver() {
     document.getElementById('setName').value = '';
     document.getElementById('pasteArea').value = '';
     document.getElementById('csvOutput').value = '';
+
+    // Reset combined mode paste areas
+    const checklistPasteArea = document.getElementById('checklistPasteArea');
+    const oddsPasteArea = document.getElementById('oddsPasteArea');
+    if (checklistPasteArea) checklistPasteArea.value = '';
+    if (oddsPasteArea) oddsPasteArea.value = '';
+
+    // Reset combined mode CSV outputs
+    const checklistCsvOutput = document.getElementById('checklistCsvOutput');
+    const oddsCsvOutput = document.getElementById('oddsCsvOutput');
+    if (checklistCsvOutput) checklistCsvOutput.value = '';
+    if (oddsCsvOutput) oddsCsvOutput.value = '';
+
+    // Reset UI to default state
+    document.getElementById('singlePreviewSection')?.classList.remove('hidden');
+    document.getElementById('combinedPreviewSection')?.classList.add('hidden');
+    document.getElementById('validationWarnings')?.classList.add('hidden');
+    document.getElementById('singleCsvOutput')?.classList.remove('hidden');
+    document.getElementById('singleDownloadButtons')?.classList.remove('hidden');
+    document.getElementById('combinedCsvOutput')?.classList.add('hidden');
+    document.getElementById('combinedBackButton')?.classList.add('hidden');
 
     showStep(1);
 }
@@ -407,6 +469,12 @@ function selectDataType(type) {
         categoryRow?.classList.remove('hidden');
         referenceDataRow?.classList.remove('hidden');
         setNameRow?.classList.add('hidden');
+    } else if (type === 'combined') {
+        // Combined mode - only show product ID
+        configRow?.classList.add('hidden');
+        categoryRow?.classList.add('hidden');
+        referenceDataRow?.classList.add('hidden');
+        setNameRow?.classList.add('hidden');
     } else {
         configRow?.classList.add('hidden');
         categoryRow?.classList.add('hidden');
@@ -415,8 +483,11 @@ function selectDataType(type) {
         setNameRow?.classList.remove('hidden');
     }
 
-    document.getElementById('pasteInstructions').innerHTML =
-        type === 'odds' ? ODDS_INSTRUCTIONS : CHECKLIST_INSTRUCTIONS;
+    // Update instructions based on type
+    if (type !== 'combined') {
+        document.getElementById('pasteInstructions').innerHTML =
+            type === 'odds' ? ODDS_INSTRUCTIONS : CHECKLIST_INSTRUCTIONS;
+    }
 
     showStep(2);
 }
@@ -426,6 +497,12 @@ function selectDataType(type) {
 // ========================================
 
 function parseData() {
+    // Handle combined mode differently
+    if (state.dataType === 'combined') {
+        parseCombinedData();
+        return;
+    }
+
     const rawText = document.getElementById('pasteArea').value.trim();
 
     if (!rawText) {
@@ -476,6 +553,270 @@ function parseData() {
     renderPreview();
 
     showStep(4);
+}
+
+// Parse combined checklist + odds data
+function parseCombinedData() {
+    const checklistText = document.getElementById('checklistPasteArea').value.trim();
+    const oddsText = document.getElementById('oddsPasteArea').value.trim();
+
+    if (!checklistText && !oddsText) {
+        alert('Please paste data in at least one of the areas');
+        return;
+    }
+
+    state.checklistRawData = checklistText;
+    state.oddsRawData = oddsText;
+    state.validationWarnings = [];
+
+    // Parse checklist first (to get set_names for odds parsing)
+    let checklistSetNames = [];
+    if (checklistText) {
+        const checklistLines = checklistText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+        // Detect header row
+        const firstLine = checklistLines[0]?.toLowerCase() || '';
+        const hasHeader = firstLine.includes('card') || firstLine.includes('player') ||
+                          firstLine.includes('team') || firstLine.includes('number');
+        const dataLines = hasHeader ? checklistLines.slice(1) : checklistLines;
+
+        const result = parseChecklistData(dataLines);
+        state.checklistParsedRows = result.rows;
+        state.checklistRowMetadata = result.metadata;
+
+        // Extract set_names for odds parsing
+        checklistSetNames = [...new Set(result.metadata.map(m => m.set_name).filter(n => n))];
+    } else {
+        state.checklistParsedRows = [];
+        state.checklistRowMetadata = [];
+    }
+
+    // Parse odds using checklist set_names as reference
+    if (oddsText) {
+        const oddsLines = oddsText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+        // Detect header row
+        const firstLine = oddsLines[0]?.toLowerCase() || '';
+        const hasHeader = firstLine.includes('odds') || firstLine.includes('card') || firstLine.includes('parallel');
+        const dataLines = hasHeader ? oddsLines.slice(1) : oddsLines;
+
+        state.oddsParsedRows = parseOddsDataWithReference(dataLines, checklistSetNames);
+
+        // Validate: check for card types not found in checklist
+        if (checklistSetNames.length > 0) {
+            validateOddsAgainstChecklist(state.oddsParsedRows, checklistSetNames);
+        }
+    } else {
+        state.oddsParsedRows = [];
+    }
+
+    if (state.checklistParsedRows.length === 0 && state.oddsParsedRows.length === 0) {
+        alert('Could not parse any data. Please check the format.');
+        return;
+    }
+
+    // Detect columns for both datasets
+    detectColumnsForCombined();
+    renderCombinedPreview();
+
+    showStep(4);
+}
+
+// Parse odds data with specific reference set names
+function parseOddsDataWithReference(lines, referenceCardTypes) {
+    const rows = [];
+
+    for (const line of lines) {
+        // Skip empty or header-like lines
+        if (!line || line.toLowerCase().includes('overall odds') || line.toLowerCase().includes('card type')) {
+            continue;
+        }
+
+        let cardName = '';
+        let numbered = '';
+        let odds = '';
+
+        // Tab-separated
+        if (line.includes('\t')) {
+            const parts = line.split('\t').map(p => normalizeWhitespace(p)).filter(p => p);
+            if (parts.length >= 2) {
+                const normalized = normalizeOddsRow(parts);
+                cardName = normalized[0];
+                numbered = normalized[1];
+                odds = normalized[2];
+            }
+        }
+
+        if (!cardName) {
+            // Look for odds pattern: card name followed by 1:X or /XX 1:X
+            const oddsPatterns = [
+                /^(.+?)\s+\/(\d+)\s+(1:\d+|1\/\d+)$/,
+                /^(.+?)\s+#(\d+)\s+(1:\d+|1\/\d+)$/,
+                /^(.+?)\s+(\d+)\s+(1:\d+|1\/\d+)$/,
+                /^(.+?)\s+(1:\d+|1\/\d+)$/,
+                /^(.+?)\s+(1:\d+:\d+)$/
+            ];
+
+            for (const pattern of oddsPatterns) {
+                const match = line.match(pattern);
+                if (match) {
+                    if (match.length === 4) {
+                        cardName = match[1].trim();
+                        numbered = match[2];
+                        odds = match[3];
+                    } else {
+                        cardName = match[1].trim();
+                        odds = match[2];
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (!cardName) {
+            // Fallback: split by multiple spaces
+            const parts = line.split(/\s{2,}/).map(p => normalizeWhitespace(p)).filter(p => p);
+            if (parts.length >= 2) {
+                const normalized = normalizeOddsRow(parts);
+                cardName = normalized[0];
+                numbered = normalized[1];
+                odds = normalized[2];
+            } else {
+                const simpleParts = line.split(/\s+/);
+                if (simpleParts.length >= 2) {
+                    const lastPart = simpleParts[simpleParts.length - 1];
+                    if (/^1:\d+/.test(lastPart) || /^1\/\d+/.test(lastPart)) {
+                        cardName = simpleParts.slice(0, -1).join(' ');
+                        odds = lastPart;
+                    }
+                }
+            }
+        }
+
+        if (cardName) {
+            // Split cardName into card_type and parallel using provided reference
+            const { cardType, parallel } = splitCardTypeAndParallel(cardName, referenceCardTypes);
+            const category = detectCategory(cardType);
+            rows.push([cardType, parallel, numbered, odds, category]);
+        }
+    }
+
+    return rows;
+}
+
+// Validate odds card types against checklist set names
+function validateOddsAgainstChecklist(oddsRows, checklistSetNames) {
+    const checklistSetNamesLower = checklistSetNames.map(n => n.toLowerCase());
+    const unmatchedTypes = new Set();
+
+    for (const row of oddsRows) {
+        const cardType = row[0];
+        if (cardType && !checklistSetNamesLower.includes(cardType.toLowerCase())) {
+            // Check if it's a base card (which might not be in checklist headers)
+            if (!/^base$/i.test(cardType)) {
+                unmatchedTypes.add(cardType);
+            }
+        }
+    }
+
+    if (unmatchedTypes.size > 0) {
+        state.validationWarnings.push({
+            type: 'unmatched_card_types',
+            message: 'Card types in odds not found in checklist:',
+            items: Array.from(unmatchedTypes)
+        });
+    }
+}
+
+// Detect columns for combined mode
+function detectColumnsForCombined() {
+    // Checklist columns
+    if (state.checklistParsedRows.length > 0) {
+        const maxCols = Math.max(...state.checklistParsedRows.map(row => row.length));
+        state.checklistColumns = [];
+        for (let i = 0; i < maxCols; i++) {
+            state.checklistColumns.push(`Column ${i + 1}`);
+        }
+        state.checklistColumnMapping = detectColumnMappingForRows(state.checklistParsedRows, 'checklist');
+    }
+
+    // Odds columns
+    if (state.oddsParsedRows.length > 0) {
+        const maxCols = Math.max(...state.oddsParsedRows.map(row => row.length));
+        state.oddsColumns = [];
+        for (let i = 0; i < maxCols; i++) {
+            state.oddsColumns.push(`Column ${i + 1}`);
+        }
+        state.oddsColumnMapping = detectColumnMappingForRows(state.oddsParsedRows, 'odds');
+    }
+}
+
+// Detect column mapping for a set of rows
+function detectColumnMappingForRows(rows, dataType) {
+    const mapping = {};
+    const maxCols = Math.max(...rows.map(row => row.length));
+
+    for (let i = 0; i < maxCols; i++) {
+        const sampleValues = rows.slice(0, 10).map(row => row[i] || '').filter(v => v);
+
+        if (dataType === 'odds') {
+            // Odds-specific mapping
+            if (sampleValues.some(v => /^1:\d+/.test(v) || /^1\/\d+/.test(v))) {
+                mapping[i] = 'odds';
+                continue;
+            }
+            if (sampleValues.length > 0 && sampleValues.every(v => /^\d+$/.test(v))) {
+                mapping[i] = 'out_of';
+                continue;
+            }
+            if (!Object.values(mapping).includes('card_type') && i === 0) {
+                mapping[i] = 'card_type';
+                continue;
+            }
+            if (!Object.values(mapping).includes('parallel') && i === 1) {
+                mapping[i] = 'parallel';
+                continue;
+            }
+            if (!Object.values(mapping).includes('category')) {
+                const categories = ['base', 'insert', 'autograph', 'relic', 'autograph_relic'];
+                if (sampleValues.some(v => categories.includes(v.toLowerCase()))) {
+                    mapping[i] = 'category';
+                    continue;
+                }
+            }
+        } else {
+            // Checklist-specific mapping (reuse existing logic)
+            if (sampleValues.some(v => /^1:\d+/.test(v) || /^1\/\d+/.test(v))) {
+                mapping[i] = 'odds';
+                continue;
+            }
+            if (sampleValues.length > 0 && sampleValues.every(v => /^\d+$/.test(v))) {
+                if (!Object.values(mapping).includes('card_num')) {
+                    mapping[i] = 'card_num';
+                }
+                continue;
+            }
+            if (sampleValues.some(v => /^[A-Z]+-?\d+$/i.test(v) || /^RC-?\d+$/i.test(v))) {
+                mapping[i] = 'card_num';
+                continue;
+            }
+            const teamPatterns = /celtics|lakers|bulls|heat|warriors|nets|knicks|mavericks|suns|bucks|76ers|spurs|rockets|jazz|nuggets|clippers|grizzlies|pelicans|hawks|hornets|pacers|pistons|magic|wizards|raptors|cavaliers|timberwolves|thunder|blazers|kings/i;
+            if (sampleValues.some(v => teamPatterns.test(v))) {
+                mapping[i] = 'team';
+                continue;
+            }
+            if (sampleValues.some(v => /^(true|false|yes|no|rc|rookie)$/i.test(v))) {
+                mapping[i] = 'rookie';
+                continue;
+            }
+            if (!Object.values(mapping).includes('player')) {
+                mapping[i] = 'player';
+                continue;
+            }
+        }
+    }
+
+    return mapping;
 }
 
 function parseOddsData(lines) {
@@ -1122,6 +1463,11 @@ function formatColumnName(col) {
 }
 
 function renderPreview() {
+    // Show single preview section, hide combined preview section
+    document.getElementById('singlePreviewSection')?.classList.remove('hidden');
+    document.getElementById('combinedPreviewSection')?.classList.add('hidden');
+    document.getElementById('validationWarnings')?.classList.add('hidden');
+
     const container = document.getElementById('previewContainer');
     const expectedCols = state.dataType === 'odds' ? ODDS_COLUMNS : CHECKLIST_COLUMNS;
 
@@ -1170,6 +1516,129 @@ function renderPreview() {
     html += `<p class="preview-note">${state.parsedRows.length} total rows</p>`;
 
     container.innerHTML = html;
+}
+
+// Render combined preview with tabs for checklist and odds
+function renderCombinedPreview() {
+    // Show/hide appropriate preview sections
+    document.getElementById('singlePreviewSection')?.classList.add('hidden');
+    document.getElementById('combinedPreviewSection')?.classList.remove('hidden');
+
+    // Show validation warnings if any
+    const warningsContainer = document.getElementById('validationWarnings');
+    if (state.validationWarnings.length > 0) {
+        let warningsHtml = '<h4>⚠️ Validation Warnings</h4><ul>';
+        for (const warning of state.validationWarnings) {
+            warningsHtml += `<li>${warning.message}<ul>`;
+            for (const item of warning.items) {
+                warningsHtml += `<li>${escapeHtml(item)}</li>`;
+            }
+            warningsHtml += '</ul></li>';
+        }
+        warningsHtml += '</ul>';
+        warningsContainer.innerHTML = warningsHtml;
+        warningsContainer.classList.remove('hidden');
+    } else {
+        warningsContainer.classList.add('hidden');
+    }
+
+    // Render checklist preview
+    if (state.checklistParsedRows.length > 0) {
+        renderCombinedPreviewTable(
+            'checklistPreviewContainer',
+            state.checklistParsedRows,
+            state.checklistRowMetadata,
+            state.checklistColumnMapping,
+            CHECKLIST_COLUMNS,
+            'checklist'
+        );
+    } else {
+        document.getElementById('checklistPreviewContainer').innerHTML = '<p class="preview-note">No checklist data</p>';
+    }
+
+    // Render odds preview
+    if (state.oddsParsedRows.length > 0) {
+        renderCombinedPreviewTable(
+            'oddsPreviewContainer',
+            state.oddsParsedRows,
+            [],
+            state.oddsColumnMapping,
+            ODDS_COLUMNS,
+            'odds'
+        );
+    } else {
+        document.getElementById('oddsPreviewContainer').innerHTML = '<p class="preview-note">No odds data</p>';
+    }
+}
+
+// Render a preview table for combined mode
+function renderCombinedPreviewTable(containerId, rows, rowMetadata, columnMapping, expectedCols, dataType) {
+    const container = document.getElementById(containerId);
+
+    const previewRows = rows.map((row, rowIndex) => {
+        const mappedRow = {};
+
+        mappedRow.product_id = state.productId;
+        if (dataType === 'odds') {
+            mappedRow.config = '';  // No config in combined mode
+            // category is auto-detected and should be in the row
+        } else {
+            const rowMeta = rowMetadata[rowIndex] || {};
+            mappedRow.set_type = rowMeta.set_type || '';
+            mappedRow.set_name = rowMeta.set_name || '';
+        }
+
+        for (const [colIndex, colName] of Object.entries(columnMapping)) {
+            mappedRow[colName] = row[parseInt(colIndex)] || '';
+        }
+
+        // For odds, map from row array directly since it's already structured
+        if (dataType === 'odds') {
+            mappedRow.card_type = row[0] || '';
+            mappedRow.parallel = row[1] || '';
+            mappedRow.out_of = row[2] || '';
+            mappedRow.odds = row[3] || '';
+            mappedRow.category = row[4] || '';
+        }
+
+        // Auto-detect rookie status for checklists
+        if (dataType === 'checklist') {
+            mappedRow.rookie = detectRookieStatus(mappedRow, row);
+        }
+
+        return mappedRow;
+    });
+
+    let html = '<table class="preview-table"><thead><tr>';
+    for (const col of expectedCols) {
+        html += `<th>${formatColumnName(col)}</th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+    for (const row of previewRows) {
+        html += '<tr>';
+        for (const col of expectedCols) {
+            html += `<td>${escapeHtml(row[col] || '')}</td>`;
+        }
+        html += '</tr>';
+    }
+
+    html += '</tbody></table>';
+    html += `<p class="preview-note">${rows.length} total rows</p>`;
+
+    container.innerHTML = html;
+}
+
+// Switch between preview tabs
+function switchPreviewTab(tab) {
+    // Update tab buttons
+    document.querySelectorAll('.preview-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+
+    // Show/hide tab content
+    document.getElementById('checklistPreviewTab')?.classList.toggle('hidden', tab !== 'checklist');
+    document.getElementById('oddsPreviewTab')?.classList.toggle('hidden', tab !== 'odds');
 }
 
 // Detect if a card is a rookie card based on various indicators
@@ -1235,6 +1704,11 @@ function detectRookieStatus(row, rawRow) {
 // ========================================
 
 function generateCSV() {
+    if (state.dataType === 'combined') {
+        generateCombinedCSV();
+        return;
+    }
+
     const expectedCols = state.dataType === 'odds' ? ODDS_COLUMNS : CHECKLIST_COLUMNS;
     const csvRows = [];
 
@@ -1279,11 +1753,105 @@ function generateCSV() {
     });
 
     document.getElementById('csvOutput').value = csvRows.join('\n');
+
+    // Show single mode UI, hide combined mode UI
+    document.getElementById('singleCsvOutput')?.classList.remove('hidden');
+    document.getElementById('singleDownloadButtons')?.classList.remove('hidden');
+    document.getElementById('combinedCsvOutput')?.classList.add('hidden');
+    document.getElementById('combinedBackButton')?.classList.add('hidden');
+
     showStep(5);
 }
 
-function copyCSV() {
-    const csvOutput = document.getElementById('csvOutput');
+// Generate both CSVs for combined mode
+function generateCombinedCSV() {
+    // Generate checklist CSV
+    const checklistCsv = generateCsvForDataset(
+        state.checklistParsedRows,
+        state.checklistRowMetadata,
+        state.checklistColumnMapping,
+        CHECKLIST_COLUMNS,
+        'checklist'
+    );
+
+    // Generate odds CSV
+    const oddsCsv = generateCsvForDataset(
+        state.oddsParsedRows,
+        [],
+        state.oddsColumnMapping,
+        ODDS_COLUMNS,
+        'odds'
+    );
+
+    // Populate output areas
+    document.getElementById('checklistCsvOutput').value = checklistCsv;
+    document.getElementById('oddsCsvOutput').value = oddsCsv;
+
+    // Show combined mode UI, hide single mode UI
+    document.getElementById('singleCsvOutput')?.classList.add('hidden');
+    document.getElementById('singleDownloadButtons')?.classList.add('hidden');
+    document.getElementById('combinedCsvOutput')?.classList.remove('hidden');
+    document.getElementById('combinedBackButton')?.classList.remove('hidden');
+
+    showStep(5);
+}
+
+// Generate CSV for a specific dataset
+function generateCsvForDataset(rows, rowMetadata, columnMapping, expectedCols, dataType) {
+    const csvRows = [];
+    csvRows.push(expectedCols.join(','));
+
+    rows.forEach((row, rowIndex) => {
+        const rowData = {};
+        rowData.product_id = state.productId;
+
+        if (dataType === 'odds') {
+            rowData.config = '';  // No config in combined mode
+            // Map from row array directly since odds rows are already structured
+            rowData.card_type = row[0] || '';
+            rowData.parallel = row[1] || '';
+            rowData.out_of = row[2] || '';
+            rowData.odds = row[3] || '';
+            rowData.category = row[4] || '';
+        } else {
+            const rowMeta = rowMetadata[rowIndex] || {};
+            rowData.set_type = rowMeta.set_type || '';
+            rowData.set_name = rowMeta.set_name || '';
+
+            // Map columns from parsed data
+            for (const [colIndex, colName] of Object.entries(columnMapping)) {
+                rowData[colName] = row[parseInt(colIndex)] || '';
+            }
+
+            // Auto-detect rookie
+            rowData.rookie = detectRookieStatus(rowData, row);
+        }
+
+        // Build CSV row
+        const mappedRow = [];
+        for (const col of expectedCols) {
+            let value = rowData[col] || '';
+            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                value = `"${value.replace(/"/g, '""')}"`;
+            }
+            mappedRow.push(value);
+        }
+
+        csvRows.push(mappedRow.join(','));
+    });
+
+    return csvRows.join('\n');
+}
+
+function copyCSV(type) {
+    let csvOutput;
+
+    if (state.dataType === 'combined' && type) {
+        csvOutput = document.getElementById(type === 'checklist' ? 'checklistCsvOutput' : 'oddsCsvOutput');
+    } else {
+        csvOutput = document.getElementById('csvOutput');
+    }
+
     csvOutput.select();
     document.execCommand('copy');
 
@@ -1294,9 +1862,16 @@ function copyCSV() {
     }, 2000);
 }
 
-function downloadCSV() {
-    const csvContent = document.getElementById('csvOutput').value;
-    const filename = `${state.dataType}_${state.productId.replace(/[^a-z0-9]/gi, '_')}.csv`;
+function downloadCSV(type) {
+    let csvContent, filename;
+
+    if (state.dataType === 'combined' && type) {
+        csvContent = document.getElementById(type === 'checklist' ? 'checklistCsvOutput' : 'oddsCsvOutput').value;
+        filename = `${type}_${state.productId.replace(/[^a-z0-9]/gi, '_')}.csv`;
+    } else {
+        csvContent = document.getElementById('csvOutput').value;
+        filename = `${state.dataType}_${state.productId.replace(/[^a-z0-9]/gi, '_')}.csv`;
+    }
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
