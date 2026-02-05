@@ -563,7 +563,102 @@ body {
 
 .combined-paste-section .paste-area {
     flex: 1;
-    min-height: 250px;
+    min-height: 150px;
+}
+
+/* Combined Upload Area */
+.combined-upload-area {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--bg-base);
+}
+
+.combined-upload-area:hover {
+    border-color: var(--accent);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.combined-upload-area.drag-over {
+    border-color: var(--accent);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.combined-upload-area.has-file {
+    border-color: var(--emerald);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.combined-upload-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.upload-icon-small {
+    font-size: 1.25rem;
+}
+
+.upload-btn-small {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.875rem;
+    padding: 0;
+    text-decoration: underline;
+}
+
+.upload-btn-small:hover {
+    color: var(--accent-hover);
+}
+
+.combined-upload-status {
+    padding: 8px 12px;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-sm);
+    margin-top: 8px;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.combined-upload-status.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--emerald);
+}
+
+.combined-upload-status.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--red);
+}
+
+.combined-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 12px 0;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.combined-divider::before,
+.combined-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.combined-divider span {
+    padding: 0 10px;
 }
 
 /* Preview Tabs */

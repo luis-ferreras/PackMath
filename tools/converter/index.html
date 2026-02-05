@@ -140,7 +140,7 @@
                             <textarea class="paste-area" id="pasteArea" placeholder="Paste your data here..."></textarea>
                         </div>
 
-                        <!-- Combined Mode: Dual Paste Areas -->
+                        <!-- Combined Mode: Dual Upload/Paste Areas -->
                         <div class="combined-paste-section hidden" id="combinedPasteSection">
                             <div class="combined-grid">
                                 <div class="combined-column">
@@ -149,6 +149,21 @@
                                         <h3>Checklist Data</h3>
                                     </div>
                                     <div class="combined-hint">Card numbers, player names, teams</div>
+
+                                    <!-- Checklist PDF Upload -->
+                                    <div class="combined-upload-area" id="checklistUploadArea">
+                                        <input type="file" id="checklistPdfInput" accept=".pdf" hidden>
+                                        <div class="combined-upload-content">
+                                            <span class="upload-icon-small">📄</span>
+                                            <span>Drop PDF or <button type="button" class="upload-btn-small" onclick="document.getElementById('checklistPdfInput').click()">Browse</button></span>
+                                        </div>
+                                    </div>
+                                    <div class="combined-upload-status hidden" id="checklistUploadStatus">
+                                        <span class="upload-status-text" id="checklistUploadStatusText">Processing...</span>
+                                    </div>
+
+                                    <div class="combined-divider"><span>or paste</span></div>
+
                                     <textarea class="paste-area" id="checklistPasteArea" placeholder="Paste checklist data here..."></textarea>
                                 </div>
                                 <div class="combined-column">
@@ -157,6 +172,21 @@
                                         <h3>Odds Data</h3>
                                     </div>
                                     <div class="combined-hint">Card types, parallels, odds ratios</div>
+
+                                    <!-- Odds PDF Upload -->
+                                    <div class="combined-upload-area" id="oddsUploadArea">
+                                        <input type="file" id="oddsPdfInput" accept=".pdf" hidden>
+                                        <div class="combined-upload-content">
+                                            <span class="upload-icon-small">📄</span>
+                                            <span>Drop PDF or <button type="button" class="upload-btn-small" onclick="document.getElementById('oddsPdfInput').click()">Browse</button></span>
+                                        </div>
+                                    </div>
+                                    <div class="combined-upload-status hidden" id="oddsUploadStatus">
+                                        <span class="upload-status-text" id="oddsUploadStatusText">Processing...</span>
+                                    </div>
+
+                                    <div class="combined-divider"><span>or paste</span></div>
+
                                     <textarea class="paste-area" id="oddsPasteArea" placeholder="Paste odds data here..."></textarea>
                                 </div>
                             </div>
