@@ -88,6 +88,27 @@ function viewReferenceData() {
 const ODDS_COLUMNS = ['product_id', 'config', 'category', 'card_type', 'parallel', 'out_of', 'odds'];
 const CHECKLIST_COLUMNS = ['product_id', 'set_type', 'set_name', 'card_num', 'player', 'team', 'rookie'];
 
+// Known parallel names for fallback detection when reference data isn't available
+// These are matched at the END of card names (case-insensitive)
+// Sorted by length (longest first) to match multi-word parallels first
+const KNOWN_PARALLELS = [
+    // Multi-word parallels (must come first for proper matching)
+    'Summer Solstice', 'Winter Solstice', 'Moon Beam', 'Witching Hour', 'Black Light',
+    'Gold Vinyl', 'Gold Wave', 'Green Wave', 'Blue Wave', 'Red Wave',
+    'Asia Exclusive', 'Hobby Exclusive', 'Retail Exclusive',
+    'Fast Break', 'Disco', 'Choice', 'Snakeskin', 'Mojo', 'Camo',
+    'White Sparkle', 'Red White Blue', 'Tie Dye',
+    // Single-word parallels
+    'Zodiac', 'Morning', 'Twilight', 'Dusk', 'Moonrise', 'Equinox',
+    'Midnight', 'Daybreak', 'Shimmer', 'Sparkle',
+    'Gold', 'Silver', 'Bronze', 'Platinum', 'Diamond',
+    'Red', 'Blue', 'Green', 'Orange', 'Purple', 'Pink', 'Yellow', 'Black', 'White',
+    'Refractor', 'Prizm', 'Holo', 'Foil', 'Chrome',
+    'Superfractor', 'Xfractor', 'Hyper', 'Atomic',
+    'Ice', 'Lava', 'Magenta', 'Cyan', 'Teal', 'Neon',
+    'Rated Rookie', 'Optic', 'Select', 'Mosaic'
+];
+
 const ODDS_INSTRUCTIONS = `
     <p><strong>Paste odds data from your PDF:</strong></p>
     <p>Each line should contain card name and odds. Examples:</p>
@@ -552,24 +573,27 @@ function parseOddsData(lines) {
 function splitCardTypeAndParallel(fullName, referenceCardTypes) {
     if (!fullName) return { cardType: '', parallel: '' };
 
-    // Sort by length (longest first) to match most specific card type
-    const sortedTypes = [...referenceCardTypes].sort((a, b) => b.length - a.length);
-
-    // Try to match a known card type (case-insensitive)
     const fullNameLower = fullName.toLowerCase();
-    for (const cardType of sortedTypes) {
-        const cardTypeLower = cardType.toLowerCase();
-        if (fullNameLower.startsWith(cardTypeLower)) {
-            // Found a match - extract parallel from remaining text
-            const remaining = fullName.substring(cardType.length).trim();
-            return {
-                cardType: cardType,
-                parallel: remaining || ''
-            };
+
+    // Strategy 1: Try to match a known card type from reference data (most accurate)
+    if (referenceCardTypes && referenceCardTypes.length > 0) {
+        // Sort by length (longest first) to match most specific card type
+        const sortedTypes = [...referenceCardTypes].sort((a, b) => b.length - a.length);
+
+        for (const cardType of sortedTypes) {
+            const cardTypeLower = cardType.toLowerCase();
+            if (fullNameLower.startsWith(cardTypeLower)) {
+                // Found a match - extract parallel from remaining text
+                const remaining = fullName.substring(cardType.length).trim();
+                return {
+                    cardType: cardType,
+                    parallel: remaining || ''
+                };
+            }
         }
     }
 
-    // No reference match - try to detect base card pattern
+    // Strategy 2: Try to detect base card pattern
     // "Base Zodiac" -> cardType: "Base", parallel: "Zodiac"
     if (/^base\s+/i.test(fullName)) {
         const parts = fullName.split(/\s+/);
@@ -577,6 +601,23 @@ function splitCardTypeAndParallel(fullName, referenceCardTypes) {
             cardType: parts[0],
             parallel: parts.slice(1).join(' ')
         };
+    }
+
+    // Strategy 3: Check if name ends with a known parallel (fallback)
+    // "Rookie Jersey Autographs Twilight" -> cardType: "Rookie Jersey Autographs", parallel: "Twilight"
+    for (const parallel of KNOWN_PARALLELS) {
+        const parallelLower = parallel.toLowerCase();
+        // Check if the name ends with this parallel (with a space before it)
+        if (fullNameLower.endsWith(' ' + parallelLower)) {
+            const cardType = fullName.substring(0, fullName.length - parallel.length).trim();
+            // Only use this if there's actually a card type left
+            if (cardType.length > 0) {
+                return {
+                    cardType: cardType,
+                    parallel: parallel
+                };
+            }
+        }
     }
 
     // No match found - return full name as card_type with no parallel
