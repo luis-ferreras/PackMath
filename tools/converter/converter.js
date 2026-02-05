@@ -378,15 +378,18 @@ function selectDataType(type) {
     // Show/hide type-specific fields
     const configRow = document.getElementById('oddsConfigRow');
     const categoryRow = document.getElementById('oddsCategoryRow');
+    const referenceDataRow = document.getElementById('referenceDataRow');
     const setNameRow = document.getElementById('checklistSetNameRow');
 
     if (type === 'odds') {
         configRow?.classList.remove('hidden');
         categoryRow?.classList.remove('hidden');
+        referenceDataRow?.classList.remove('hidden');
         setNameRow?.classList.add('hidden');
     } else {
         configRow?.classList.add('hidden');
         categoryRow?.classList.add('hidden');
+        referenceDataRow?.classList.add('hidden');
         // setType is auto-detected from headers, only show setName field
         setNameRow?.classList.remove('hidden');
     }
