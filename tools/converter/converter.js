@@ -146,6 +146,8 @@ const CHECKLIST_INSTRUCTIONS = `
 document.addEventListener('DOMContentLoaded', function() {
     // Set up PDF upload handlers
     setupPDFUpload();
+    // Set up combined mode PDF upload handlers
+    setupCombinedPDFUploads();
     // Show reference data status
     updateReferenceDataStatus();
 });
@@ -235,6 +237,133 @@ function setupPDFUpload() {
             alert('Please upload a PDF file');
         }
     });
+}
+
+// Setup PDF upload handlers for combined mode (checklist + odds)
+function setupCombinedPDFUploads() {
+    // Checklist PDF upload
+    setupCombinedUploadArea(
+        'checklistUploadArea',
+        'checklistPdfInput',
+        'checklistUploadStatus',
+        'checklistUploadStatusText',
+        'checklistPasteArea'
+    );
+
+    // Odds PDF upload
+    setupCombinedUploadArea(
+        'oddsUploadArea',
+        'oddsPdfInput',
+        'oddsUploadStatus',
+        'oddsUploadStatusText',
+        'oddsPasteArea'
+    );
+}
+
+// Setup a single combined mode upload area
+function setupCombinedUploadArea(uploadAreaId, inputId, statusId, statusTextId, pasteAreaId) {
+    const uploadArea = document.getElementById(uploadAreaId);
+    const pdfInput = document.getElementById(inputId);
+
+    if (!uploadArea || !pdfInput) return;
+
+    // Click on area to trigger file input
+    uploadArea.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON') {
+            pdfInput.click();
+        }
+    });
+
+    // File input change
+    pdfInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            processCombinedPDF(file, uploadAreaId, statusId, statusTextId, pasteAreaId);
+        }
+    });
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+
+        const file = e.dataTransfer.files[0];
+        if (file && file.type === 'application/pdf') {
+            processCombinedPDF(file, uploadAreaId, statusId, statusTextId, pasteAreaId);
+        } else {
+            alert('Please upload a PDF file');
+        }
+    });
+}
+
+// Process PDF for combined mode and populate the target paste area
+async function processCombinedPDF(file, uploadAreaId, statusId, statusTextId, pasteAreaId) {
+    const uploadArea = document.getElementById(uploadAreaId);
+    const uploadStatus = document.getElementById(statusId);
+    const statusText = document.getElementById(statusTextId);
+
+    // Show processing status
+    uploadStatus?.classList.remove('hidden');
+    if (statusText) statusText.textContent = 'Processing...';
+
+    try {
+        // Read file as ArrayBuffer
+        const arrayBuffer = await file.arrayBuffer();
+
+        // Load PDF with PDF.js
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const numPages = pdf.numPages;
+
+        let fullText = '';
+
+        // Extract text from all pages
+        for (let i = 1; i <= numPages; i++) {
+            if (statusText) statusText.textContent = `Page ${i}/${numPages}...`;
+
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+
+            // Process text items with position awareness
+            const pageText = extractTextWithStructure(textContent);
+            fullText += pageText + '\n';
+        }
+
+        // Put extracted text in the target paste area
+        const pasteArea = document.getElementById(pasteAreaId);
+        if (pasteArea) {
+            pasteArea.value = fullText.trim();
+        }
+
+        // Mark upload area as having a file
+        uploadArea?.classList.add('has-file');
+
+        // Update status to show success
+        if (statusText) statusText.textContent = `✓ ${file.name}`;
+
+        // Hide status after a moment
+        setTimeout(() => {
+            uploadStatus?.classList.add('hidden');
+        }, 2000);
+
+    } catch (error) {
+        console.error('PDF processing error:', error);
+        if (statusText) statusText.textContent = 'Error: ' + error.message;
+
+        // Hide status after showing error
+        setTimeout(() => {
+            uploadStatus?.classList.add('hidden');
+        }, 3000);
+    }
 }
 
 async function processPDF(file) {
@@ -427,6 +556,10 @@ function startOver() {
     const oddsPasteArea = document.getElementById('oddsPasteArea');
     if (checklistPasteArea) checklistPasteArea.value = '';
     if (oddsPasteArea) oddsPasteArea.value = '';
+
+    // Reset combined mode upload areas
+    document.getElementById('checklistUploadArea')?.classList.remove('has-file');
+    document.getElementById('oddsUploadArea')?.classList.remove('has-file');
 
     // Reset combined mode CSV outputs
     const checklistCsvOutput = document.getElementById('checklistCsvOutput');
