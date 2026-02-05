@@ -452,7 +452,6 @@ function parseData() {
     }
 
     detectColumns();
-    renderColumnMapping();
     renderPreview();
 
     showStep(4);
@@ -1074,45 +1073,8 @@ function detectColumns() {
 }
 
 // ========================================
-// Step 4: Column Mapping UI
+// Step 4: Preview UI
 // ========================================
-
-function renderColumnMapping() {
-    const container = document.getElementById('columnMapping');
-    const expectedCols = state.dataType === 'odds' ? ODDS_COLUMNS : CHECKLIST_COLUMNS;
-    const selectableCols = expectedCols.filter(col => col !== 'product_id' && col !== 'config' && col !== 'category');
-
-    let html = '<div class="mapping-grid">';
-
-    for (let i = 0; i < state.columns.length; i++) {
-        const sampleValues = state.parsedRows.slice(0, 3).map(row => row[i] || '-').join(', ');
-        const currentMapping = state.columnMapping[i] || '';
-
-        html += `
-            <div class="mapping-item">
-                <div class="mapping-sample">${escapeHtml(sampleValues.substring(0, 50))}${sampleValues.length > 50 ? '...' : ''}</div>
-                <select class="mapping-select" onchange="updateMapping(${i}, this.value)">
-                    <option value="">-- Skip --</option>
-                    ${selectableCols.map(col =>
-                        `<option value="${col}" ${currentMapping === col ? 'selected' : ''}>${formatColumnName(col)}</option>`
-                    ).join('')}
-                </select>
-            </div>
-        `;
-    }
-
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-function updateMapping(columnIndex, value) {
-    if (value) {
-        state.columnMapping[columnIndex] = value;
-    } else {
-        delete state.columnMapping[columnIndex];
-    }
-    renderPreview();
-}
 
 function formatColumnName(col) {
     return col.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');

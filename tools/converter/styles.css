@@ -374,46 +374,6 @@ body {
     color: var(--amber);
 }
 
-/* Column Mapping */
-.mapping-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
-.mapping-item {
-    background: var(--bg-base);
-    border-radius: var(--radius-sm);
-    padding: 12px;
-}
-
-.mapping-sample {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
-    margin-bottom: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.mapping-select {
-    width: 100%;
-    padding: 8px 12px;
-    background: var(--bg-input);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: var(--text-primary);
-    font-size: 0.875rem;
-    cursor: pointer;
-}
-
-.mapping-select:focus {
-    outline: none;
-    border-color: var(--accent);
-}
-
 /* Preview Table */
 .preview-section {
     margin-bottom: 24px;
