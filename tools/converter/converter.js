@@ -7,6 +7,9 @@ if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
+// LocalStorage key for saved reference data
+const REFERENCE_DATA_KEY = 'packmath_reference_cardtypes';
+
 // State
 let state = {
     dataType: null,        // 'odds' or 'checklist'
@@ -22,6 +25,64 @@ let state = {
     columnMapping: {},
     currentStep: 1
 };
+
+// ========================================
+// Reference Data Management (for odds parsing)
+// ========================================
+
+// Save card types from checklist to localStorage
+function saveReferenceCardTypes(setNames) {
+    const uniqueNames = [...new Set(setNames.filter(n => n && n.trim()))];
+    localStorage.setItem(REFERENCE_DATA_KEY, JSON.stringify(uniqueNames));
+    updateReferenceDataStatus();
+    return uniqueNames.length;
+}
+
+// Load saved card types from localStorage
+function loadReferenceCardTypes() {
+    try {
+        const data = localStorage.getItem(REFERENCE_DATA_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        console.error('Error loading reference data:', e);
+        return [];
+    }
+}
+
+// Clear saved reference data
+function clearReferenceData() {
+    localStorage.removeItem(REFERENCE_DATA_KEY);
+    updateReferenceDataStatus();
+}
+
+// Update UI to show reference data status
+function updateReferenceDataStatus() {
+    const statusEl = document.getElementById('referenceDataStatus');
+    if (!statusEl) return;
+
+    const cardTypes = loadReferenceCardTypes();
+    if (cardTypes.length > 0) {
+        statusEl.innerHTML = `
+            <div class="reference-status has-data">
+                <span>✓ ${cardTypes.length} card types loaded from checklist</span>
+                <button type="button" class="btn-small" onclick="viewReferenceData()">View</button>
+                <button type="button" class="btn-small btn-danger" onclick="clearReferenceData()">Clear</button>
+            </div>
+        `;
+    } else {
+        statusEl.innerHTML = `
+            <div class="reference-status no-data">
+                <span>⚠ No reference data. Process a checklist first for accurate card_type/parallel splitting.</span>
+            </div>
+        `;
+    }
+}
+
+// Show saved reference data
+function viewReferenceData() {
+    const cardTypes = loadReferenceCardTypes();
+    alert('Saved Card Types:\n\n' + cardTypes.join('\n'));
+}
 
 // Expected columns for each data type
 const ODDS_COLUMNS = ['product_id', 'config', 'category', 'card_type', 'parallel', 'out_of', 'odds'];
@@ -53,6 +114,8 @@ const CHECKLIST_INSTRUCTIONS = `
 document.addEventListener('DOMContentLoaded', function() {
     // Set up PDF upload handlers
     setupPDFUpload();
+    // Show reference data status
+    updateReferenceDataStatus();
 });
 
 // Continue from step 2 to step 3
@@ -371,6 +434,13 @@ function parseData() {
         const result = parseChecklistData(dataLines);
         state.parsedRows = result.rows;
         state.rowMetadata = result.metadata;
+
+        // Save unique set_name values as reference for future odds parsing
+        const setNames = result.metadata.map(m => m.set_name).filter(n => n);
+        const savedCount = saveReferenceCardTypes(setNames);
+        if (savedCount > 0) {
+            console.log(`Saved ${savedCount} unique card types for odds reference`);
+        }
     }
 
     if (state.parsedRows.length === 0) {
@@ -387,6 +457,7 @@ function parseData() {
 
 function parseOddsData(lines) {
     const rows = [];
+    const referenceCardTypes = loadReferenceCardTypes();
 
     for (const line of lines) {
         // Skip empty or header-like lines
@@ -394,65 +465,149 @@ function parseOddsData(lines) {
             continue;
         }
 
+        let cardName = '';
+        let numbered = '';
+        let odds = '';
+
         // Tab-separated
         if (line.includes('\t')) {
             const parts = line.split('\t').map(p => p.trim()).filter(p => p);
             if (parts.length >= 2) {
-                rows.push(normalizeOddsRow(parts));
-                continue;
+                const normalized = normalizeOddsRow(parts);
+                cardName = normalized[0];
+                numbered = normalized[1];
+                odds = normalized[2];
             }
         }
 
-        // Look for odds pattern: card name followed by 1:X or /XX 1:X
-        // Patterns: "Refractor 1:4", "Gold /50 1:12", "Gold 50 1:12", "Superfractor 1/1 1:549"
-        const oddsPatterns = [
-            // Pattern: Name /XX 1:Y (numbered with slash)
-            /^(.+?)\s+\/(\d+)\s+(1:\d+|1\/\d+)$/,
-            // Pattern: Name #XX 1:Y (numbered with hash)
-            /^(.+?)\s+#(\d+)\s+(1:\d+|1\/\d+)$/,
-            // Pattern: Name XX 1:Y where XX is a number (could be numbered)
-            /^(.+?)\s+(\d+)\s+(1:\d+|1\/\d+)$/,
-            // Pattern: Name 1:Y (simple odds)
-            /^(.+?)\s+(1:\d+|1\/\d+)$/,
-            // Pattern: Name 1:Y:Z (case odds)
-            /^(.+?)\s+(1:\d+:\d+)$/
-        ];
+        if (!cardName) {
+            // Look for odds pattern: card name followed by 1:X or /XX 1:X
+            const oddsPatterns = [
+                // Pattern: Name /XX 1:Y (numbered with slash)
+                /^(.+?)\s+\/(\d+)\s+(1:\d+|1\/\d+)$/,
+                // Pattern: Name #XX 1:Y (numbered with hash)
+                /^(.+?)\s+#(\d+)\s+(1:\d+|1\/\d+)$/,
+                // Pattern: Name XX 1:Y where XX is a number (could be numbered)
+                /^(.+?)\s+(\d+)\s+(1:\d+|1\/\d+)$/,
+                // Pattern: Name 1:Y (simple odds)
+                /^(.+?)\s+(1:\d+|1\/\d+)$/,
+                // Pattern: Name 1:Y:Z (case odds)
+                /^(.+?)\s+(1:\d+:\d+)$/
+            ];
 
-        let matched = false;
-        for (const pattern of oddsPatterns) {
-            const match = line.match(pattern);
-            if (match) {
-                if (match.length === 4) {
-                    // Has numbered
-                    rows.push([match[1].trim(), match[2], match[3]]);
-                } else {
-                    // Simple odds
-                    rows.push([match[1].trim(), '', match[2]]);
+            for (const pattern of oddsPatterns) {
+                const match = line.match(pattern);
+                if (match) {
+                    if (match.length === 4) {
+                        cardName = match[1].trim();
+                        numbered = match[2];
+                        odds = match[3];
+                    } else {
+                        cardName = match[1].trim();
+                        odds = match[2];
+                    }
+                    break;
                 }
-                matched = true;
-                break;
             }
         }
 
-        if (!matched) {
+        if (!cardName) {
             // Fallback: split by multiple spaces
             const parts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
             if (parts.length >= 2) {
-                rows.push(normalizeOddsRow(parts));
+                const normalized = normalizeOddsRow(parts);
+                cardName = normalized[0];
+                numbered = normalized[1];
+                odds = normalized[2];
             } else {
                 // Last resort: just use the whole line
                 const simpleParts = line.split(/\s+/);
                 if (simpleParts.length >= 2) {
                     const lastPart = simpleParts[simpleParts.length - 1];
                     if (/^1:\d+/.test(lastPart) || /^1\/\d+/.test(lastPart)) {
-                        rows.push([simpleParts.slice(0, -1).join(' '), '', lastPart]);
+                        cardName = simpleParts.slice(0, -1).join(' ');
+                        odds = lastPart;
                     }
                 }
             }
         }
+
+        if (cardName) {
+            // Split cardName into card_type and parallel using reference data
+            const { cardType, parallel } = splitCardTypeAndParallel(cardName, referenceCardTypes);
+            // Auto-detect category based on card type
+            const category = detectCategory(cardType);
+            // Row format: [card_type, parallel, out_of, odds, category]
+            rows.push([cardType, parallel, numbered, odds, category]);
+        }
     }
 
     return rows;
+}
+
+// Split combined card name into card_type and parallel using reference data
+// "Rookie Jersey Autographs Twilight" -> cardType: "Rookie Jersey Autographs", parallel: "Twilight"
+function splitCardTypeAndParallel(fullName, referenceCardTypes) {
+    if (!fullName) return { cardType: '', parallel: '' };
+
+    // Sort by length (longest first) to match most specific card type
+    const sortedTypes = [...referenceCardTypes].sort((a, b) => b.length - a.length);
+
+    // Try to match a known card type (case-insensitive)
+    const fullNameLower = fullName.toLowerCase();
+    for (const cardType of sortedTypes) {
+        const cardTypeLower = cardType.toLowerCase();
+        if (fullNameLower.startsWith(cardTypeLower)) {
+            // Found a match - extract parallel from remaining text
+            const remaining = fullName.substring(cardType.length).trim();
+            return {
+                cardType: cardType,
+                parallel: remaining || ''
+            };
+        }
+    }
+
+    // No reference match - try to detect base card pattern
+    // "Base Zodiac" -> cardType: "Base", parallel: "Zodiac"
+    if (/^base\s+/i.test(fullName)) {
+        const parts = fullName.split(/\s+/);
+        return {
+            cardType: parts[0],
+            parallel: parts.slice(1).join(' ')
+        };
+    }
+
+    // No match found - return full name as card_type with no parallel
+    return { cardType: fullName, parallel: '' };
+}
+
+// Auto-detect category based on card type name
+function detectCategory(cardType) {
+    if (!cardType) return 'base';
+
+    const nameLower = cardType.toLowerCase();
+
+    // Check for autograph indicators
+    if (/auto(graph)?|signature/i.test(nameLower)) {
+        // Check if also has relic
+        if (/relic|memorabilia|patch|jersey|mem\b/i.test(nameLower)) {
+            return 'autograph_relic';
+        }
+        return 'autograph';
+    }
+
+    // Check for relic/memorabilia indicators
+    if (/relic|memorabilia|patch|jersey|mem\b/i.test(nameLower)) {
+        return 'relic';
+    }
+
+    // Check for base
+    if (/^base/i.test(nameLower)) {
+        return 'base';
+    }
+
+    // Default to insert for everything else
+    return 'insert';
 }
 
 function normalizeOddsRow(parts) {
