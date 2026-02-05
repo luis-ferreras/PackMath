@@ -673,7 +673,8 @@ function parseChecklistData(lines) {
 
         // Tab-separated
         if (line.includes('\t')) {
-            let parts = line.split('\t').map(p => p.trim()).filter(p => p);
+            // Normalize whitespace in each cell to handle non-breaking spaces
+            let parts = line.split('\t').map(p => normalizeWhitespace(p)).filter(p => p);
             // Try to split "number + name" patterns in each part
             parts = splitNumberNameParts(parts);
             if (parts.length >= 2) {
@@ -687,14 +688,15 @@ function parseChecklistData(lines) {
             if (cardNumMatch) {
                 const cardNum = cardNumMatch[1];
                 const rest = cardNumMatch[2];
-                const parts = rest.split(/\s{2,}|\t/).map(p => p.trim()).filter(p => p);
+                // Normalize whitespace to handle non-breaking spaces
+                const parts = rest.split(/\s{2,}|\t/).map(p => normalizeWhitespace(p)).filter(p => p);
                 parsedRow = [cardNum, ...parts];
             }
         }
 
         if (!parsedRow) {
             // Multiple spaces as delimiter
-            let parts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
+            let parts = line.split(/\s{2,}/).map(p => normalizeWhitespace(p)).filter(p => p);
             parts = splitNumberNameParts(parts);
             if (parts.length >= 2) {
                 parsedRow = parts;
@@ -801,9 +803,10 @@ function splitPlayerTeamColumn(rows) {
 // Check if text contains any known team name
 function containsTeamName(text) {
     if (!text) return false;
-    const textLower = text.toLowerCase();
+    // Normalize whitespace to handle non-breaking spaces and multiple spaces
+    const textNorm = normalizeWhitespace(text).toLowerCase();
     for (const team of NBA_TEAMS) {
-        if (textLower.includes(team.toLowerCase())) {
+        if (textNorm.includes(team.toLowerCase())) {
             return true;
         }
     }
@@ -814,13 +817,14 @@ function containsTeamName(text) {
 // Returns true for "Boston Celtics", false for "John Smith Boston Celtics"
 function isStandaloneTeam(text) {
     if (!text) return false;
-    const textLower = text.toLowerCase().trim();
+    // Normalize whitespace to handle non-breaking spaces and multiple spaces
+    const textNorm = normalizeWhitespace(text).toLowerCase();
     for (const team of NBA_TEAMS) {
         const teamLower = team.toLowerCase();
         // Check if the text starts with the team name
-        if (textLower.startsWith(teamLower)) {
+        if (textNorm.startsWith(teamLower)) {
             // Allow for some trailing whitespace but not much more content
-            const remaining = textLower.substring(teamLower.length).trim();
+            const remaining = textNorm.substring(teamLower.length).trim();
             if (remaining.length < 5) {
                 return true;
             }
@@ -877,6 +881,13 @@ function isSectionHeader(line) {
     return false;
 }
 
+// Normalize whitespace: replace all whitespace variants (non-breaking, multiple spaces, etc.) with single space
+function normalizeWhitespace(text) {
+    if (!text) return '';
+    // Replace all whitespace (including non-breaking spaces \u00A0) with regular space, then collapse multiples
+    return text.replace(/[\s\u00A0]+/g, ' ').trim();
+}
+
 // NBA team names for splitting player from team
 const NBA_TEAMS = [
     'Atlanta Hawks', 'Boston Celtics', 'Brooklyn Nets', 'Charlotte Hornets',
@@ -894,15 +905,17 @@ const NBA_TEAMS = [
 function splitPlayerFromTeam(text) {
     if (!text || text.length < 3) return [text, ''];
 
-    const textLower = text.toLowerCase();
+    // Normalize whitespace to handle non-breaking spaces and multiple spaces
+    const textNorm = normalizeWhitespace(text);
+    const textNormLower = textNorm.toLowerCase();
 
     // Check if text contains a known team name (case-insensitive)
     for (const team of NBA_TEAMS) {
         const teamLower = team.toLowerCase();
-        const teamIndex = textLower.indexOf(teamLower);
+        const teamIndex = textNormLower.indexOf(teamLower);
         if (teamIndex > 0) {
-            const player = text.substring(0, teamIndex).trim();
-            const teamName = text.substring(teamIndex).trim();
+            const player = textNorm.substring(0, teamIndex).trim();
+            const teamName = textNorm.substring(teamIndex).trim();
             if (player.length > 0) {
                 return [player, teamName];
             }
@@ -917,11 +930,14 @@ function splitPlayerFromTeam(text) {
 // Handles: "1 Shai Gilgeous-Alexander Oklahoma City Thunder"
 // Returns: ["1", "Shai Gilgeous-Alexander", "Oklahoma City Thunder"]
 function parseLineWithTeamDetection(line) {
+    // Normalize whitespace to handle non-breaking spaces and multiple spaces
+    const normalizedLine = normalizeWhitespace(line);
+
     // First, try to extract card number from the start
-    const cardNumMatch = line.match(/^(\d+|[A-Z]{1,3}-?\d+|RC-?\d+)\s+(.+)$/i);
+    const cardNumMatch = normalizedLine.match(/^(\d+|[A-Z]{1,3}-?\d+|RC-?\d+)\s+(.+)$/i);
 
     let cardNum = '';
-    let rest = line;
+    let rest = normalizedLine;
 
     if (cardNumMatch) {
         cardNum = cardNumMatch[1];
