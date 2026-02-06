@@ -162,6 +162,8 @@ document.addEventListener('DOMContentLoaded', function() {
     setupPDFUpload();
     // Set up combined mode PDF upload handlers
     setupCombinedPDFUploads();
+    // Set up combined multi-config mode PDF upload handlers
+    setupCombinedMultiConfigUploads();
     // Show reference data status
     updateReferenceDataStatus();
 });
@@ -188,17 +190,26 @@ function continueToStep3() {
     const singleDivider = document.getElementById('singleDivider');
     const singlePasteSection = document.getElementById('singlePasteSection');
     const combinedPasteSection = document.getElementById('combinedPasteSection');
+    const combinedMultiConfigSection = document.getElementById('combinedMultiConfigSection');
 
     if (state.dataType === 'combined') {
         singleUploadSection?.classList.add('hidden');
         singleDivider?.classList.add('hidden');
         singlePasteSection?.classList.add('hidden');
         combinedPasteSection?.classList.remove('hidden');
+        combinedMultiConfigSection?.classList.add('hidden');
+    } else if (state.dataType === 'combinedMultiConfig') {
+        singleUploadSection?.classList.add('hidden');
+        singleDivider?.classList.add('hidden');
+        singlePasteSection?.classList.add('hidden');
+        combinedPasteSection?.classList.add('hidden');
+        combinedMultiConfigSection?.classList.remove('hidden');
     } else {
         singleUploadSection?.classList.remove('hidden');
         singleDivider?.classList.remove('hidden');
         singlePasteSection?.classList.remove('hidden');
         combinedPasteSection?.classList.add('hidden');
+        combinedMultiConfigSection?.classList.add('hidden');
     }
 
     showStep(3);
@@ -272,6 +283,120 @@ function setupCombinedPDFUploads() {
         'oddsUploadStatusText',
         'oddsPasteArea'
     );
+}
+
+// Set up PDF uploads for combined multi-config mode
+function setupCombinedMultiConfigUploads() {
+    // Checklist PDF upload
+    setupCombinedUploadArea(
+        'mcChecklistUploadArea',
+        'mcChecklistPdfInput',
+        'mcChecklistUploadStatus',
+        'mcChecklistUploadStatusText',
+        'mcChecklistPasteArea'
+    );
+
+    // Multi-config odds PDF upload (uses special extraction)
+    setupMultiConfigOddsUploadArea(
+        'mcOddsUploadArea',
+        'mcOddsPdfInput',
+        'mcOddsUploadStatus',
+        'mcOddsUploadStatusText',
+        'mcOddsPasteArea'
+    );
+}
+
+// Setup multi-config odds upload area (uses extractMultiConfigText)
+function setupMultiConfigOddsUploadArea(uploadAreaId, inputId, statusId, statusTextId, pasteAreaId) {
+    const uploadArea = document.getElementById(uploadAreaId);
+    const pdfInput = document.getElementById(inputId);
+
+    if (!uploadArea || !pdfInput) return;
+
+    uploadArea.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON') {
+            pdfInput.click();
+        }
+    });
+
+    pdfInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            processMultiConfigOddsPDF(file, uploadAreaId, statusId, statusTextId, pasteAreaId);
+        }
+    });
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+
+        const file = e.dataTransfer.files[0];
+        if (file && file.type === 'application/pdf') {
+            processMultiConfigOddsPDF(file, uploadAreaId, statusId, statusTextId, pasteAreaId);
+        } else {
+            alert('Please upload a PDF file');
+        }
+    });
+}
+
+// Process PDF for multi-config odds with comma-separated output
+async function processMultiConfigOddsPDF(file, uploadAreaId, statusId, statusTextId, pasteAreaId) {
+    const uploadArea = document.getElementById(uploadAreaId);
+    const uploadStatus = document.getElementById(statusId);
+    const statusText = document.getElementById(statusTextId);
+    const configCount = parseInt(document.getElementById('configCount')?.value || '1', 10);
+
+    uploadStatus?.classList.remove('hidden');
+    if (statusText) statusText.textContent = 'Processing...';
+
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const numPages = pdf.numPages;
+
+        let fullText = '';
+
+        for (let i = 1; i <= numPages; i++) {
+            if (statusText) statusText.textContent = `Page ${i}/${numPages}...`;
+
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+
+            // Use multi-config extraction with comma-separated output
+            const pageText = extractMultiConfigText(textContent, configCount);
+            fullText += pageText + '\n';
+        }
+
+        const pasteArea = document.getElementById(pasteAreaId);
+        if (pasteArea) {
+            pasteArea.value = fullText.trim();
+        }
+
+        uploadArea?.classList.add('has-file');
+        if (statusText) statusText.textContent = `✓ ${file.name}`;
+
+        setTimeout(() => {
+            uploadStatus?.classList.add('hidden');
+        }, 2000);
+
+    } catch (error) {
+        console.error('PDF processing error:', error);
+        if (statusText) statusText.textContent = 'Error: ' + error.message;
+
+        setTimeout(() => {
+            uploadStatus?.classList.add('hidden');
+        }, 3000);
+    }
 }
 
 // Setup a single combined mode upload area
@@ -847,6 +972,16 @@ function selectDataType(type) {
         categoryRow?.classList.add('hidden');
         referenceDataRow?.classList.add('hidden');
         setNameRow?.classList.add('hidden');
+    } else if (type === 'combinedMultiConfig') {
+        // Combined multi-config mode - show product ID and config setup
+        configRow?.classList.add('hidden');
+        categoryRow?.classList.add('hidden');
+        referenceDataRow?.classList.add('hidden');
+        setNameRow?.classList.add('hidden');
+        document.getElementById('multiConfigSetupRow')?.classList.remove('hidden');
+        document.getElementById('multiConfigNamesRow')?.classList.remove('hidden');
+        // Initialize config inputs
+        updateConfigInputs();
     } else {
         configRow?.classList.add('hidden');
         categoryRow?.classList.add('hidden');
@@ -856,7 +991,7 @@ function selectDataType(type) {
     }
 
     // Update instructions based on type
-    if (type !== 'combined') {
+    if (type !== 'combined' && type !== 'combinedMultiConfig') {
         let instructions = CHECKLIST_INSTRUCTIONS;
         if (type === 'odds') {
             instructions = ODDS_INSTRUCTIONS;
@@ -877,6 +1012,12 @@ function parseData() {
     // Handle combined mode differently
     if (state.dataType === 'combined') {
         parseCombinedData();
+        return;
+    }
+
+    // Handle combined multi-config mode
+    if (state.dataType === 'combinedMultiConfig') {
+        parseCombinedMultiConfigData();
         return;
     }
 
@@ -1489,6 +1630,192 @@ function parseCombinedData() {
     renderCombinedPreview();
 
     showStep(4);
+}
+
+// Parse combined multi-config data (checklist + multi-column odds)
+function parseCombinedMultiConfigData() {
+    const checklistText = document.getElementById('mcChecklistPasteArea')?.value.trim() || '';
+    const oddsText = document.getElementById('mcOddsPasteArea')?.value.trim() || '';
+
+    if (!checklistText && !oddsText) {
+        alert('Please paste data in at least one of the areas');
+        return;
+    }
+
+    // Get manually entered config names
+    const configs = getManualConfigNames();
+
+    if (configs.length === 0 || !configs[0].original.trim()) {
+        alert('Please enter config names in Step 2');
+        return;
+    }
+
+    state.checklistRawData = checklistText;
+    state.validationWarnings = [];
+
+    // Parse checklist
+    if (checklistText) {
+        const checklistLines = checklistText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+        // Detect header row
+        const firstLine = checklistLines[0]?.toLowerCase() || '';
+        const hasHeader = firstLine.includes('card') || firstLine.includes('player') ||
+                          firstLine.includes('team') || firstLine.includes('number');
+        const dataLines = hasHeader ? checklistLines.slice(1) : checklistLines;
+
+        const result = parseChecklistData(dataLines);
+        state.checklistParsedRows = result.rows;
+        state.checklistRowMetadata = result.metadata;
+    } else {
+        state.checklistParsedRows = [];
+        state.checklistRowMetadata = [];
+    }
+
+    // Parse multi-config odds
+    if (oddsText) {
+        state.multiConfigParsedRows = parseMultiConfigOddsText(oddsText, configs);
+    } else {
+        state.multiConfigParsedRows = [];
+    }
+
+    if (state.checklistParsedRows.length === 0 && state.multiConfigParsedRows.length === 0) {
+        alert('Could not parse any data. Please check the format.');
+        return;
+    }
+
+    // Detect columns for checklist
+    if (state.checklistParsedRows.length > 0) {
+        const maxCols = Math.max(...state.checklistParsedRows.map(row => row.length));
+        state.checklistColumns = [];
+        for (let i = 0; i < maxCols; i++) {
+            state.checklistColumns.push(`Column ${i + 1}`);
+        }
+        state.checklistColumnMapping = detectColumnMappingForRows(state.checklistParsedRows, 'checklist');
+    }
+
+    state.multiConfigConfigs = configs;
+
+    // Render preview
+    renderCombinedMultiConfigPreview();
+
+    showStep(4);
+}
+
+// Parse multi-config odds text into rows
+function parseMultiConfigOddsText(rawText, configs) {
+    const lines = rawText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    const outputRows = [];
+
+    // Find where data starts
+    let dataStartLine = 0;
+    for (let i = 0; i < lines.length; i++) {
+        if (/\d+:\d+/.test(lines[i]) || lines[i].includes(',')) {
+            dataStartLine = i;
+            break;
+        }
+    }
+
+    for (let i = dataStartLine; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (!/\d+:\d+/.test(line) && !line.includes('-')) continue;
+        if (isHeaderLine(line)) continue;
+
+        let cardName, oddsValues;
+
+        if (line.includes(',')) {
+            const parts = line.split(',').map(p => p.trim());
+            cardName = parts[0];
+            oddsValues = parts.slice(1);
+        } else {
+            cardName = extractCardName(line);
+            if (!cardName) continue;
+            oddsValues = extractOddsFromLine(line, cardName);
+        }
+
+        if (!cardName) continue;
+
+        const { cardType, parallel } = splitCardNameIntoTypeAndParallel(cardName);
+        const category = detectCategoryFromCardName(cardName);
+
+        for (let j = 0; j < configs.length; j++) {
+            const odds = oddsValues[j] || '-';
+            outputRows.push({
+                config: configs[j].original,
+                card_type: cardType,
+                parallel: parallel || 'Common',
+                out_of: '-',
+                odds: odds,
+                category: category
+            });
+        }
+    }
+
+    return outputRows;
+}
+
+// Render preview for combined multi-config mode
+function renderCombinedMultiConfigPreview() {
+    // Show combined preview section
+    document.getElementById('singlePreviewSection')?.classList.add('hidden');
+    document.getElementById('combinedPreviewSection')?.classList.remove('hidden');
+
+    // Render checklist preview
+    const checklistContainer = document.getElementById('checklistPreviewContainer');
+    if (checklistContainer && state.checklistParsedRows.length > 0) {
+        renderPreviewTable(checklistContainer, state.checklistParsedRows, state.checklistColumnMapping, 'checklist');
+    } else if (checklistContainer) {
+        checklistContainer.innerHTML = '<p class="preview-note">No checklist data</p>';
+    }
+
+    // Render multi-config odds preview
+    const oddsContainer = document.getElementById('oddsPreviewContainer');
+    if (oddsContainer && state.multiConfigParsedRows.length > 0) {
+        renderMultiConfigOddsPreviewTable(oddsContainer);
+    } else if (oddsContainer) {
+        oddsContainer.innerHTML = '<p class="preview-note">No odds data</p>';
+    }
+}
+
+// Render multi-config odds preview table
+function renderMultiConfigOddsPreviewTable(container) {
+    const expectedCols = ODDS_COLUMNS;
+
+    let html = '<table class="preview-table"><thead><tr>';
+    for (const col of expectedCols) {
+        html += `<th>${formatColumnName(col)}</th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+    for (const row of state.multiConfigParsedRows.slice(0, 100)) {
+        html += '<tr>';
+        html += `<td>${escapeHtml(state.productId)}</td>`;
+        html += `<td>${escapeHtml(row.config)}</td>`;
+        html += `<td>${escapeHtml(row.category)}</td>`;
+        html += `<td>${escapeHtml(row.card_type)}</td>`;
+        html += `<td>${escapeHtml(row.parallel)}</td>`;
+        html += `<td>${escapeHtml(row.out_of)}</td>`;
+        html += `<td>${escapeHtml(row.odds)}</td>`;
+        html += '</tr>';
+    }
+
+    html += '</tbody></table>';
+
+    if (state.multiConfigParsedRows.length > 100) {
+        html += `<p class="preview-note">Showing first 100 of ${state.multiConfigParsedRows.length} rows</p>`;
+    }
+
+    // Add summary
+    const configCounts = {};
+    state.multiConfigParsedRows.forEach(row => {
+        configCounts[row.config] = (configCounts[row.config] || 0) + 1;
+    });
+
+    html = `<div class="preview-summary">
+        <p><strong>${state.multiConfigParsedRows.length}</strong> total rows across <strong>${Object.keys(configCounts).length}</strong> configurations</p>
+    </div>` + html;
+
+    container.innerHTML = html;
 }
 
 // Parse odds data with specific reference set names
@@ -2578,6 +2905,11 @@ function generateCSV() {
         return;
     }
 
+    if (state.dataType === 'combinedMultiConfig') {
+        generateCombinedMultiConfigCSV();
+        return;
+    }
+
     if (state.dataType === 'multiConfigOdds') {
         generateMultiConfigCSV();
         return;
@@ -2702,6 +3034,62 @@ function generateCombinedCSV() {
     document.getElementById('combinedBackButton')?.classList.remove('hidden');
 
     showStep(5);
+}
+
+// Generate CSV for combined multi-config mode
+function generateCombinedMultiConfigCSV() {
+    // Generate checklist CSV using normal combined method
+    const checklistCsv = generateCsvForDataset(
+        state.checklistParsedRows,
+        state.checklistRowMetadata,
+        state.checklistColumnMapping,
+        CHECKLIST_COLUMNS,
+        'checklist'
+    );
+
+    // Generate multi-config odds CSV
+    const oddsCsv = generateMultiConfigOddsCsv();
+
+    // Populate output areas
+    document.getElementById('checklistCsvOutput').value = checklistCsv;
+    document.getElementById('oddsCsvOutput').value = oddsCsv;
+
+    // Show combined mode UI, hide single mode UI
+    document.getElementById('singleCsvOutput')?.classList.add('hidden');
+    document.getElementById('singleDownloadButtons')?.classList.add('hidden');
+    document.getElementById('combinedCsvOutput')?.classList.remove('hidden');
+    document.getElementById('combinedBackButton')?.classList.remove('hidden');
+
+    showStep(5);
+}
+
+// Generate multi-config odds CSV string
+function generateMultiConfigOddsCsv() {
+    const expectedCols = ODDS_COLUMNS;
+    const csvRows = [];
+
+    csvRows.push(expectedCols.join(','));
+
+    state.multiConfigParsedRows.forEach(row => {
+        const rowData = {
+            product_id: state.productId,
+            config: row.config,
+            category: row.category,
+            card_type: row.card_type,
+            parallel: row.parallel,
+            out_of: row.out_of,
+            odds: row.odds
+        };
+
+        const mappedRow = [];
+        for (const col of expectedCols) {
+            mappedRow.push(formatCsvValue(rowData[col], col));
+        }
+
+        csvRows.push(mappedRow.join(','));
+    });
+
+    return csvRows.join('\n');
 }
 
 // Generate CSV for a specific dataset

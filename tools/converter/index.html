@@ -35,6 +35,11 @@
                                 <span class="data-type-label">Combined</span>
                                 <span class="data-type-desc">Checklist + Odds together (recommended)</span>
                             </button>
+                            <button class="data-type-btn" data-type="combinedMultiConfig" onclick="selectDataType('combinedMultiConfig')">
+                                <span class="data-type-icon">📦</span>
+                                <span class="data-type-label">Combined (Multi-Config)</span>
+                                <span class="data-type-desc">Checklist + Multi-column odds</span>
+                            </button>
                             <button class="data-type-btn" data-type="checklist" onclick="selectDataType('checklist')">
                                 <span class="data-type-icon">📋</span>
                                 <span class="data-type-label">Checklist Only</span>
@@ -212,6 +217,58 @@
                                     <div class="combined-divider"><span>or paste</span></div>
 
                                     <textarea class="paste-area" id="oddsPasteArea" placeholder="Paste odds data here..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Combined Multi-Config Mode: Checklist + Multi-Column Odds -->
+                        <div class="combined-paste-section hidden" id="combinedMultiConfigSection">
+                            <div class="combined-grid">
+                                <div class="combined-column">
+                                    <div class="combined-header">
+                                        <span class="combined-icon">📋</span>
+                                        <h3>Checklist Data</h3>
+                                    </div>
+                                    <div class="combined-hint">Card numbers, player names, teams</div>
+
+                                    <!-- Checklist PDF Upload -->
+                                    <div class="combined-upload-area" id="mcChecklistUploadArea">
+                                        <input type="file" id="mcChecklistPdfInput" accept=".pdf" hidden>
+                                        <div class="combined-upload-content">
+                                            <span class="upload-icon-small">📄</span>
+                                            <span>Drop PDF or <button type="button" class="upload-btn-small" onclick="document.getElementById('mcChecklistPdfInput').click()">Browse</button></span>
+                                        </div>
+                                    </div>
+                                    <div class="combined-upload-status hidden" id="mcChecklistUploadStatus">
+                                        <span class="upload-status-text" id="mcChecklistUploadStatusText">Processing...</span>
+                                    </div>
+
+                                    <div class="combined-divider"><span>or paste</span></div>
+
+                                    <textarea class="paste-area" id="mcChecklistPasteArea" placeholder="Paste checklist data here..."></textarea>
+                                </div>
+                                <div class="combined-column">
+                                    <div class="combined-header">
+                                        <span class="combined-icon">📊</span>
+                                        <h3>Multi-Config Odds Data</h3>
+                                    </div>
+                                    <div class="combined-hint">Card names with odds for each config (comma-separated)</div>
+
+                                    <!-- Multi-Config Odds PDF Upload -->
+                                    <div class="combined-upload-area" id="mcOddsUploadArea">
+                                        <input type="file" id="mcOddsPdfInput" accept=".pdf" hidden>
+                                        <div class="combined-upload-content">
+                                            <span class="upload-icon-small">📄</span>
+                                            <span>Drop PDF or <button type="button" class="upload-btn-small" onclick="document.getElementById('mcOddsPdfInput').click()">Browse</button></span>
+                                        </div>
+                                    </div>
+                                    <div class="combined-upload-status hidden" id="mcOddsUploadStatus">
+                                        <span class="upload-status-text" id="mcOddsUploadStatusText">Processing...</span>
+                                    </div>
+
+                                    <div class="combined-divider"><span>or paste</span></div>
+
+                                    <textarea class="paste-area" id="mcOddsPasteArea" placeholder="Card Name, 1:3, 1:1, -, 1:7, ..."></textarea>
                                 </div>
                             </div>
                         </div>
