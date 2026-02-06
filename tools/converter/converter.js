@@ -1776,11 +1776,18 @@ function renderCombinedMultiConfigPreview() {
     document.getElementById('combinedPreviewSection')?.classList.remove('hidden');
 
     // Render checklist preview
-    const checklistContainer = document.getElementById('checklistPreviewContainer');
-    if (checklistContainer && state.checklistParsedRows.length > 0) {
-        renderPreviewTable(checklistContainer, state.checklistParsedRows, state.checklistColumnMapping, 'checklist');
-    } else if (checklistContainer) {
-        checklistContainer.innerHTML = '<p class="preview-note">No checklist data</p>';
+    if (state.checklistParsedRows.length > 0) {
+        renderCombinedPreviewTable(
+            'checklistPreviewContainer',
+            state.checklistParsedRows,
+            state.checklistRowMetadata,
+            state.checklistColumnMapping,
+            CHECKLIST_COLUMNS,
+            'checklist'
+        );
+    } else {
+        const container = document.getElementById('checklistPreviewContainer');
+        if (container) container.innerHTML = '<p class="preview-note">No checklist data</p>';
     }
 
     // Render multi-config odds preview
