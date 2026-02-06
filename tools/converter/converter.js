@@ -944,33 +944,34 @@ function parseData() {
 
 // Parse multi-config odds data (multiple box configs as columns)
 function parseMultiConfigOdds() {
-    const rawText = document.getElementById('pasteArea').value.trim();
+    try {
+        const rawText = document.getElementById('pasteArea').value.trim();
 
-    if (!rawText) {
-        alert('Please upload a PDF or paste some data first');
-        return;
-    }
+        if (!rawText) {
+            alert('Please upload a PDF or paste some data first');
+            return;
+        }
 
-    // Get manually entered config names
-    const configs = getManualConfigNames();
+        // Get manually entered config names
+        const configs = getManualConfigNames();
 
-    if (configs.length === 0 || !configs[0].original.trim()) {
-        alert('Please enter at least one config name in Step 2');
-        return;
-    }
+        if (configs.length === 0 || !configs[0].original.trim()) {
+            alert('Please enter at least one config name in Step 2');
+            return;
+        }
 
-    state.rawData = rawText;
+        state.rawData = rawText;
 
-    // Split into lines and parse as tab/space separated values
-    const lines = rawText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        // Split into lines and parse as tab/space separated values
+        const lines = rawText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
-    if (lines.length < 1) {
-        alert('No data found');
-        return;
-    }
+        if (lines.length < 1) {
+            alert('No data found');
+            return;
+        }
 
-    console.log('Using manual configs:', configs.map(c => c.original));
-    console.log('Number of data lines:', lines.length);
+        console.log('Using manual configs:', configs.map(c => c.original));
+        console.log('Number of data lines:', lines.length);
 
     // Find where the actual data starts - look for lines with odds patterns (1:X)
     let dataStartLine = 0;
@@ -1036,23 +1037,25 @@ function parseMultiConfigOdds() {
     if (outputRows.length === 0) {
         // Count odds patterns in the raw text for debugging
         const allOddsMatches = rawText.match(/\d+:\d+/g) || [];
-        const configsFound = configs.map(c => c.normalized).join(', ');
+        const linesWithOdds = lines.filter(l => /\d+:\d+/.test(l)).length;
 
         let errorMsg = 'No valid odds data found.\n\n';
-        errorMsg += `Configs detected: ${configsFound || 'none'}\n`;
-        errorMsg += `Odds patterns found: ${allOddsMatches.length}\n\n`;
+        errorMsg += `Lines with odds patterns: ${linesWithOdds}\n`;
+        errorMsg += `Total odds patterns: ${allOddsMatches.length}\n\n`;
 
         if (allOddsMatches.length === 0) {
-            errorMsg += 'The PDF text doesn\'t contain odds ratios (1:X format).\n';
-            errorMsg += 'The table data may be on a different page or not extracting properly.';
+            errorMsg += 'The extracted text contains NO odds ratios (1:X format).\n\n';
+            errorMsg += 'The PDF table data is not extracting properly.\n\n';
+            errorMsg += 'SOLUTION: Copy the odds table from your PDF and paste directly into the text area, OR open the PDF in a browser and copy the table from there.';
         } else {
-            errorMsg += 'Odds were found but couldn\'t be matched to card names.\n';
-            errorMsg += 'Try copying the table from the PDF into a spreadsheet first.';
+            errorMsg += 'Odds were found but all lines were filtered as headers.\n';
+            errorMsg += 'Try pasting the data in comma-separated format:\n';
+            errorMsg += 'Card Name, 1:3, 1:1, -, 1:7, ...';
         }
 
-        console.log('Debug - Configs found:', configs);
-        console.log('Debug - Odds patterns found:', allOddsMatches.slice(0, 20));
-        console.log('Debug - First 10 lines:', lines.slice(0, 10));
+        console.log('Debug - Configs:', configs.map(c => c.original));
+        console.log('Debug - All lines:', lines);
+        console.log('Debug - Odds found:', allOddsMatches);
 
         alert(errorMsg);
         return;
@@ -1068,6 +1071,11 @@ function parseMultiConfigOdds() {
     renderMultiConfigPreview();
 
     showStep(4);
+
+    } catch (error) {
+        console.error('Parse error:', error);
+        alert('Error parsing data: ' + error.message + '\n\nCheck the browser console for details.');
+    }
 }
 
 // Split a row into cells (handles tabs, multiple spaces, and common delimiters)
@@ -1198,21 +1206,36 @@ function extractCardName(line) {
     return null;
 }
 
-// Check if a line looks like a header row
+// Check if a line looks like a header row or noise
 function isHeaderLine(line) {
     const lower = line.toLowerCase();
 
     // Check for common header keywords
     if (lower.includes('card type') || lower.includes('odds per') ||
         lower.includes('overall odds') || lower.includes('insert odds') ||
-        lower.includes('pack odds')) {
+        lower.includes('pack odds') || lower.includes('card ')) {
         return true;
     }
 
-    // Check if it has multiple config-like keywords
-    const configKeywords = ['hobby', 'jumbo', 'breaker', 'sapphire', 'hanger', 'mega', 'blaster', 'retail', 'value', 'fanatics'];
+    // Check if it has ANY config-like keywords (these are headers, not card names)
+    const configKeywords = ['hobby', 'jumbo', 'breaker', 'sapphire', 'hanger', 'mega', 'blaster', 'retail', 'value', 'fanatics', 'distributor', 'hta', 'chrome', 'nba-'];
     const matches = configKeywords.filter(kw => lower.includes(kw));
-    if (matches.length >= 3) {
+    if (matches.length >= 1) {
+        return true;
+    }
+
+    // Skip lines with year patterns (2025-, 2024-, etc.)
+    if (/20\d{2}[-\s]/.test(line)) {
+        return true;
+    }
+
+    // Skip lines that are mostly dashes or special characters
+    if (/^[\s\-–—]+$/.test(line.trim())) {
+        return true;
+    }
+
+    // Skip lines with "PACK", "BOX", "SET" alone (header remnants)
+    if (/^(pack|box|set)\s*$/i.test(line.trim())) {
         return true;
     }
 
