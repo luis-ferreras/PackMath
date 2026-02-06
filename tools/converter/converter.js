@@ -143,10 +143,14 @@ const CHECKLIST_INSTRUCTIONS = `
 `;
 
 const MULTI_CONFIG_ODDS_INSTRUCTIONS = `
-    <p><strong>Paste multi-config odds data from your PDF:</strong></p>
-    <p>First row should be headers with box configuration names (Hobby, Jumbo, etc.)</p>
-    <p>Each row should have card name followed by odds for each config.</p>
-    <p>Empty cells are OK - not all cards appear in all configs.</p>
+    <p><strong>Upload your multi-config odds PDF or paste the data:</strong></p>
+    <ol>
+        <li>Enter the number of box configs and their names in Step 2 first</li>
+        <li>Upload the PDF or paste the odds table data here</li>
+        <li>The parser will skip the PDF header and use your manually entered config names</li>
+        <li>Each row should have: Card Name, followed by odds (1:X) for each config</li>
+    </ol>
+    <p><em>Empty odds cells will become dashes (-) in the output.</em></p>
 `;
 
 // ========================================
@@ -596,6 +600,52 @@ function startOver() {
 // Step 1: Select Data Type
 // ========================================
 
+// Update config name inputs based on count
+function updateConfigInputs() {
+    const count = parseInt(document.getElementById('configCount')?.value || '1', 10);
+    const container = document.getElementById('configNamesContainer');
+    if (!container) return;
+
+    // Store existing values
+    const existingValues = [];
+    container.querySelectorAll('.config-name-input').forEach(input => {
+        existingValues.push(input.value);
+    });
+
+    // Generate new inputs
+    let html = '<div class="config-names-container">';
+    for (let i = 0; i < count; i++) {
+        const existingValue = existingValues[i] || '';
+        html += `
+            <div class="config-name-row">
+                <span class="config-number">${i + 1}.</span>
+                <input type="text" class="form-input config-name-input"
+                       id="configName${i}"
+                       placeholder="e.g., HTA HOBBY DISTRIBUTOR"
+                       value="${escapeHtml(existingValue)}">
+            </div>
+        `;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Get manually entered config names
+function getManualConfigNames() {
+    const count = parseInt(document.getElementById('configCount')?.value || '1', 10);
+    const configs = [];
+    for (let i = 0; i < count; i++) {
+        const input = document.getElementById(`configName${i}`);
+        const name = input?.value.trim() || `Config ${i + 1}`;
+        configs.push({
+            original: name,
+            normalized: name,
+            index: i + 1
+        });
+    }
+    return configs;
+}
+
 function selectDataType(type) {
     state.dataType = type;
 
@@ -610,17 +660,25 @@ function selectDataType(type) {
     const referenceDataRow = document.getElementById('referenceDataRow');
     const setNameRow = document.getElementById('checklistSetNameRow');
 
+    // Hide multi-config fields by default
+    document.getElementById('multiConfigSetupRow')?.classList.add('hidden');
+    document.getElementById('multiConfigNamesRow')?.classList.add('hidden');
+
     if (type === 'odds') {
         configRow?.classList.remove('hidden');
         categoryRow?.classList.remove('hidden');
         referenceDataRow?.classList.remove('hidden');
         setNameRow?.classList.add('hidden');
     } else if (type === 'multiConfigOdds') {
-        // Multi-config odds - no config/category needed, they're in the data
+        // Multi-config odds - show config setup fields
         configRow?.classList.add('hidden');
         categoryRow?.classList.add('hidden');
         referenceDataRow?.classList.add('hidden');
         setNameRow?.classList.add('hidden');
+        document.getElementById('multiConfigSetupRow')?.classList.remove('hidden');
+        document.getElementById('multiConfigNamesRow')?.classList.remove('hidden');
+        // Initialize config inputs
+        updateConfigInputs();
     } else if (type === 'combined') {
         // Combined mode - only show product ID
         configRow?.classList.add('hidden');
@@ -731,70 +789,53 @@ function parseMultiConfigOdds() {
         return;
     }
 
+    // Get manually entered config names
+    const configs = getManualConfigNames();
+
+    if (configs.length === 0 || !configs[0].original.trim()) {
+        alert('Please enter at least one config name in Step 2');
+        return;
+    }
+
     state.rawData = rawText;
 
     // Split into lines and parse as tab/space separated values
     const lines = rawText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
-    if (lines.length < 2) {
-        alert('Need at least a header row and one data row');
+    if (lines.length < 1) {
+        alert('No data found');
         return;
     }
 
-    // Try to find config names in the first few lines (PDF extraction can be messy)
-    let configs = [];
-    let headerEndLine = 0;
+    console.log('Using manual configs:', configs.map(c => c.original));
+    console.log('Number of data lines:', lines.length);
 
-    // First, try the standard approach with first line
-    const headerCells = splitMultiConfigRow(lines[0]);
-    configs = parseMultiConfigHeaders(headerCells);
-
-    // If that didn't work, try combining multiple lines to find headers
-    if (configs.length === 0) {
-        console.log('Standard header parsing failed, trying to find configs in text...');
-
-        // Try to find configs by scanning the first few lines for keywords
-        const headerText = lines.slice(0, Math.min(10, lines.length)).join(' ');
-        configs = findConfigsInText(headerText);
-
-        // Find where the actual data starts (first line with odds patterns)
-        for (let i = 0; i < lines.length; i++) {
-            if (/\d+:\d+/.test(lines[i])) {
-                headerEndLine = i;
-                break;
-            }
+    // Find where the actual data starts - look for lines with odds patterns (1:X)
+    let dataStartLine = 0;
+    for (let i = 0; i < lines.length; i++) {
+        if (/\d+:\d+/.test(lines[i])) {
+            dataStartLine = i;
+            break;
         }
     }
 
-    if (configs.length === 0) {
-        alert('Could not detect box configurations. The data format may not be supported.\n\nTip: Try copying the PDF table into a spreadsheet first, then copy from there.');
-        console.log('Header parsing failed. First few lines:', lines.slice(0, 5));
-        return;
-    }
-
-    console.log('Detected configs:', configs);
+    console.log('Data starts at line:', dataStartLine);
 
     // Parse data rows and transform to output format
     const outputRows = [];
 
-    // Start from the correct line (after headers)
-    const startLine = headerEndLine > 0 ? headerEndLine : 1;
-
-    for (let i = startLine; i < lines.length; i++) {
+    for (let i = dataStartLine; i < lines.length; i++) {
         const line = lines[i];
 
-        // Skip lines that look like headers or noise
-        if (isHeaderOrNoiseLine(line, configs)) continue;
+        // Skip lines without any odds patterns
+        if (!/\d+:\d+/.test(line) && !/^\w/.test(line)) continue;
 
-        const cells = splitMultiConfigRow(line);
-        if (cells.length === 0) continue;
-
-        // First cell is the card name
-        const cardName = cells[0].trim();
+        // Extract card name (text before the first odds pattern or number)
+        const cardName = extractCardName(line);
         if (!cardName) continue;
 
-        // Skip if the card name looks like a config name (it's a header remnant)
-        if (configs.some(c => cardName.toLowerCase().includes(c.normalized))) continue;
+        // Skip if line looks like a header
+        if (isHeaderLine(line)) continue;
 
         // Split card name into card_type and parallel
         const { cardType, parallel } = splitCardNameIntoTypeAndParallel(cardName);
@@ -802,44 +843,21 @@ function parseMultiConfigOdds() {
         // Auto-detect category from card name
         const category = detectCategoryFromCardName(cardName);
 
-        // For each config column that has a value, create an output row
-        // Handle both standard column extraction and extracting odds from the line
-        const oddsInLine = extractOddsFromLine(line, cardName);
+        // Extract all odds values from the line
+        const oddsValues = extractOddsFromLine(line, cardName);
 
-        if (oddsInLine.length > 0 && oddsInLine.length === configs.length) {
-            // We found the exact number of odds values as configs
-            for (let j = 0; j < configs.length; j++) {
-                const odds = oddsInLine[j];
-                if (odds && odds !== '-' && odds !== 'N/A') {
-                    outputRows.push({
-                        config: configs[j].normalized,
-                        configOriginal: configs[j].original,
-                        card_type: cardType,
-                        parallel: parallel || 'Common',
-                        out_of: '-',
-                        odds: odds,
-                        category: category
-                    });
-                }
-            }
-        } else {
-            // Fall back to column-based extraction
-            for (let j = 0; j < configs.length; j++) {
-                const configIndex = j + 1; // +1 because first column is card name
-                const odds = cells[configIndex]?.trim() || '';
-
-                if (odds && odds !== '-' && odds !== 'N/A' && /\d+:\d+/.test(odds)) {
-                    outputRows.push({
-                        config: configs[j].normalized,
-                        configOriginal: configs[j].original,
-                        card_type: cardType,
-                        parallel: parallel || 'Common',
-                        out_of: '-',
-                        odds: odds,
-                        category: category
-                    });
-                }
-            }
+        // Create a row for EACH config, using dash for empty odds
+        for (let j = 0; j < configs.length; j++) {
+            const odds = oddsValues[j] || '-';
+            outputRows.push({
+                config: configs[j].original,
+                configOriginal: configs[j].original,
+                card_type: cardType,
+                parallel: parallel || 'Common',
+                out_of: '-',
+                odds: odds,
+                category: category
+            });
         }
     }
 
@@ -983,6 +1001,46 @@ function isHeaderOrNoiseLine(line, configs) {
 
     // Skip very short lines
     if (line.trim().length < 3) {
+        return true;
+    }
+
+    return false;
+}
+
+// Extract card name from a line (text before the first odds pattern)
+function extractCardName(line) {
+    // Find the position of the first odds pattern (1:X)
+    const oddsMatch = line.match(/\d+:\d+/);
+    if (oddsMatch) {
+        const cardName = line.substring(0, oddsMatch.index).trim();
+        // Clean up any trailing spaces or special characters
+        return cardName.replace(/[\s\-–—]+$/, '').trim();
+    }
+
+    // If no odds found, the whole line might be a card name (rare)
+    // But only if it doesn't contain numbers that look like config headers
+    if (!/\d{4}/.test(line) && !/distributor|hobby|jumbo|breaker/i.test(line)) {
+        return line.trim();
+    }
+
+    return null;
+}
+
+// Check if a line looks like a header row
+function isHeaderLine(line) {
+    const lower = line.toLowerCase();
+
+    // Check for common header keywords
+    if (lower.includes('card type') || lower.includes('odds per') ||
+        lower.includes('overall odds') || lower.includes('insert odds') ||
+        lower.includes('pack odds')) {
+        return true;
+    }
+
+    // Check if it has multiple config-like keywords
+    const configKeywords = ['hobby', 'jumbo', 'breaker', 'sapphire', 'hanger', 'mega', 'blaster', 'retail', 'value', 'fanatics'];
+    const matches = configKeywords.filter(kw => lower.includes(kw));
+    if (matches.length >= 3) {
         return true;
     }
 
@@ -2543,7 +2601,8 @@ function escapeHtml(text) {
 // Spreadsheets interpret "1:111" as time and convert to decimals
 // Using ="1:111" format creates a formula that returns the text value
 function formatCsvValue(value, columnName) {
-    if (!value) return '';
+    // Empty values become dashes to avoid blank cells
+    if (!value || value === '') return '-';
 
     let str = String(value);
 

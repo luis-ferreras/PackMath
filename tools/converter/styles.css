@@ -796,6 +796,36 @@ body {
     font-size: 0.8125rem;
 }
 
+/* Multi-Config Name Inputs */
+.config-names-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.config-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.config-name-row .config-number {
+    width: 24px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.config-name-row .form-input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+}
+
 /* Responsive Combined Layout */
 @media (max-width: 768px) {
     .combined-grid,
