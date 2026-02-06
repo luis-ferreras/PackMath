@@ -21,12 +21,13 @@ export const SHEETS = {
 };
 
 // Year tabs to fetch from each sheet
-// Add new years here as they become available
-export const YEAR_TABS = [
-    '2025-26'
-    // '2024-25',
-    // '2026-27',
-];
+// Each entry maps tab name to its gid (sheet ID within the spreadsheet)
+// gid=0 is typically the first sheet
+export const YEAR_TABS = {
+    '2025-26': 0
+    // '2024-25': 123456789,  // Add gid when creating new year tabs
+    // '2026-27': 987654321,
+};
 
 export const DEFAULT_CONFIGS = {
     hobby: { name: 'Hobby Box', packs: 20, cardsPerPack: 4 },
@@ -38,11 +39,17 @@ export const DEFAULT_CONFIGS = {
 };
 
 // Build URL to fetch a specific tab from a specific sheet
+// Uses /export?format=csv&gid= which is more reliable than gviz endpoint
 export function getSheetURL(sheetKey, tabName) {
     const sheet = SHEETS[sheetKey];
     if (!sheet) {
         console.error(`Unknown sheet: ${sheetKey}`);
         return null;
     }
-    return `https://docs.google.com/spreadsheets/d/${sheet.id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+    const gid = YEAR_TABS[tabName];
+    if (gid === undefined) {
+        console.error(`Unknown tab: ${tabName}`);
+        return null;
+    }
+    return `https://docs.google.com/spreadsheets/d/${sheet.id}/export?format=csv&gid=${gid}`;
 }

@@ -84,9 +84,10 @@ async function fetchSheetTab(sheetKey, tabName) {
 async function fetchAllYearTabs(sheetKey) {
     const allData = [];
 
-    // Fetch all year tabs in parallel
+    // Fetch all year tabs in parallel (YEAR_TABS is an object mapping tab name to gid)
+    const tabNames = Object.keys(YEAR_TABS);
     const results = await Promise.all(
-        YEAR_TABS.map(yearTab => fetchSheetTab(sheetKey, yearTab))
+        tabNames.map(yearTab => fetchSheetTab(sheetKey, yearTab))
     );
 
     // Combine all results
