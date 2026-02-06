@@ -2016,21 +2016,23 @@ function escapeHtml(text) {
 }
 
 // Format a value for CSV export
-// For odds values (like "1:111"), prefix with apostrophe to prevent spreadsheet conversion
-// Spreadsheets interpret "1:111" as time and convert to decimals - the apostrophe forces text
+// For odds values (like "1:111"), wrap in formula format to prevent spreadsheet conversion
+// Spreadsheets interpret "1:111" as time and convert to decimals
+// Using ="1:111" format creates a formula that returns the text value
 function formatCsvValue(value, columnName) {
     if (!value) return '';
 
     let str = String(value);
 
-    // For odds column, prefix with apostrophe to prevent time conversion
+    // For odds column, use formula format to prevent time conversion
     // This handles values like "1:111" which spreadsheets interpret as time
+    // ="1:111" is a formula that evaluates to the string "1:111"
     if (columnName === 'odds' && str.includes(':') && /^\d+:\d+/.test(str)) {
-        str = "'" + str;
+        return `"=""${str}"""`;
     }
 
     // Standard CSV escaping: quote if contains comma, quote, or newline
-    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes("'")) {
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
         str = `"${str.replace(/"/g, '""')}"`;
     }
 
