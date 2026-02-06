@@ -389,7 +389,7 @@ export function getProductStats(productId, config) {
 export function getOddsForProduct(productId, config) {
     const filtered = ODDS_RAW.filter(row => row.product_id === productId && row.config === config);
     const baseParallels = filtered.filter(row => row.category === 'base').map(row => ({
-        name: row.parallel || row.card_type,
+        name: row.parallel || 'Standard',
         odds: row.odds ? formatOddsValue(row.odds) : null,
         numbered: row.out_of || null  // out_of = numbered to /XX
     }));
@@ -414,7 +414,7 @@ export function getOddsForProduct(productId, config) {
 export function getAllParallelsForProduct(productId) {
     const parallels = new Map();
     ODDS_RAW.filter(row => row.product_id === productId && row.category === 'base').forEach(row => {
-        const name = row.parallel || row.card_type;
+        const name = row.parallel || 'Standard';
         if (!parallels.has(name)) parallels.set(name, {});
         parallels.get(name)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
     });

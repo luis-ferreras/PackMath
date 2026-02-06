@@ -1,6 +1,16 @@
 import { PRODUCTS, ODDS_RAW, CHECKLIST, getOddsForProduct, getAvailableConfigs, getAllParallelsForProduct, getAllAutographsForProduct, formatOddsValue, getConfigInfo } from './data.js';
 import { parseOdds } from './utils.js';
 
+// Helper to get display name for a card row
+// For base parallels: use parallel name or "Standard" if empty
+// For other categories: use card_type
+function getCardDisplayName(row) {
+    if (row.category === 'base') {
+        return row.parallel || 'Standard';
+    }
+    return row.card_type || row.parallel || 'Unknown';
+}
+
 // Improved Sleeper Hit - finds undervalued cards that aren't obvious
 export function findSleeperHit(productId, config) {
     const odds = getOddsForProduct(productId, config);
@@ -150,7 +160,7 @@ export function calculateBreakeven(productId, config) {
         r.odds &&
         parseOdds(r.odds) >= 200
     ).map(r => ({
-        name: r.parallel || r.card_type,
+        name: getCardDisplayName(r),
         odds: parseOdds(r.odds),
         oddsDisplay: formatOddsValue(r.odds)
     })).sort((a, b) => a.odds - b.odds);
@@ -231,7 +241,7 @@ export function findSweetSpot(productId, config) {
     // Find the "signature" chase card (hardest auto or parallel)
     const allOdds = ODDS_RAW.filter(r => r.product_id === productId && r.config === config && r.odds);
     const targetCard = allOdds
-        .map(r => ({ name: r.parallel || r.card_type, odds: parseOdds(r.odds) }))
+        .map(r => ({ name: getCardDisplayName(r), odds: parseOdds(r.odds) }))
         .filter(r => r.odds >= 100 && r.odds <= 1000)
         .sort((a, b) => b.odds - a.odds)[0];
 
@@ -311,7 +321,7 @@ export function getWhaleCard(productId, config) {
 
     const sorted = allOdds
         .map(r => ({
-            name: r.parallel || r.card_type,
+            name: getCardDisplayName(r),
             category: r.category,
             odds: formatOddsValue(r.odds),
             oddsNum: parseOdds(r.odds)
@@ -352,7 +362,7 @@ export function rankParallels(productId, config) {
 
     return allOdds
         .map(r => ({
-            name: r.parallel || r.card_type,
+            name: getCardDisplayName(r),
             odds: formatOddsValue(r.odds),
             oddsNum: parseOdds(r.odds),
             tier: parseOdds(r.odds) >= 200 ? 'chase' :
@@ -380,7 +390,7 @@ export function findBestValueConfig(productId, parallelName) {
 export function findChaseCards(productId, config) {
     const filtered = ODDS_RAW.filter(row => row.product_id === productId && row.config === config && row.odds);
     return filtered.map(row => ({
-        name: row.parallel || row.card_type,
+        name: getCardDisplayName(row),
         category: row.category,
         odds: formatOddsValue(row.odds),
         oddsNum: parseOdds(row.odds)
@@ -398,7 +408,7 @@ export function calculateExpectedHits(productId, config) {
         if (!odds) return null;
         const expected = totalPacks / odds;
         return {
-            name: row.parallel || row.card_type,
+            name: getCardDisplayName(row),
             odds: formatOddsValue(row.odds),
             expected: expected,
             display: expected >= 1 ? expected.toFixed(1) : `${(expected * 100).toFixed(0)}%`
@@ -412,7 +422,7 @@ export function groupByRarityTier(productId, config) {
     filtered.forEach(row => {
         const odds = parseOdds(row.odds);
         if (!odds) return;
-        const item = { name: row.parallel || row.card_type, category: row.category, odds: formatOddsValue(row.odds) };
+        const item = { name: getCardDisplayName(row), category: row.category, odds: formatOddsValue(row.odds) };
         if (odds <= 10) tiers.common.push(item);
         else if (odds <= 50) tiers.uncommon.push(item);
         else if (odds <= 200) tiers.rare.push(item);
