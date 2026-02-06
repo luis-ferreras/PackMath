@@ -1371,7 +1371,12 @@ function detectCategoryFromCardName(cardName) {
 
 // Render preview for multi-config odds
 function renderMultiConfigPreview() {
-    const container = document.getElementById('previewTableContainer');
+    const container = document.getElementById('previewContainer');
+
+    if (!container) {
+        console.error('Preview container not found');
+        return;
+    }
 
     if (!state.multiConfigParsedRows || state.multiConfigParsedRows.length === 0) {
         container.innerHTML = '<p class="preview-note">No data to preview</p>';
