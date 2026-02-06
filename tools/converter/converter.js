@@ -2326,10 +2326,12 @@ function parseChecklistData(lines) {
 
 // Find the column that contains player+team combos and split it for ALL rows
 function splitPlayerTeamColumn(rows) {
+    console.log('splitPlayerTeamColumn called with', rows.length, 'rows');
     if (rows.length === 0) return rows;
 
     // Find the maximum number of columns across all rows
     const maxCols = Math.max(...rows.map(r => r.length));
+    console.log('maxCols:', maxCols);
 
     // Find which column index contains combined player+team values (long strings with team names)
     // Must exclude standalone team names - we want columns with "Player Name Team Name" not just "Team Name"
@@ -2343,6 +2345,7 @@ function splitPlayerTeamColumn(rows) {
             // 2. Value contains a team name
             // 3. Value is NOT just a standalone team name
             if (value.length > 10 && containsTeamName(value) && !isStandaloneTeam(value)) {
+                console.log('Found combined player+team at col', colIndex, ':', value);
                 teamColumnIndex = colIndex;
                 break;
             }
@@ -2350,8 +2353,13 @@ function splitPlayerTeamColumn(rows) {
         if (teamColumnIndex >= 0) break;
     }
 
+    console.log('teamColumnIndex:', teamColumnIndex);
+
     // If no column with combined player+team found, return as-is
-    if (teamColumnIndex < 0) return rows;
+    if (teamColumnIndex < 0) {
+        console.log('No combined player+team column found, returning as-is');
+        return rows;
+    }
 
     // Split that column for rows that have combined player+team
     const newRows = [];
@@ -2372,6 +2380,8 @@ function splitPlayerTeamColumn(rows) {
             return v && isStandaloneTeam(v);
         });
 
+        console.log('Row:', row[0], '| valueAtTeamCol:', valueAtTeamCol.substring(0, 30), '| hasTeam:', hasTeam, '| isJustTeam:', isJustTeam, '| needsSplit:', needsSplit, '| hasStandaloneTeamLater:', hasStandaloneTeamLater);
+
         if (!needsSplit || hasStandaloneTeamLater) {
             // Row doesn't need splitting or already has team separate - copy as-is
             newRows.push([...row]);
@@ -2381,6 +2391,7 @@ function splitPlayerTeamColumn(rows) {
             for (let i = 0; i < row.length; i++) {
                 if (i === teamColumnIndex) {
                     const [player, team] = splitPlayerFromTeam(row[i]);
+                    console.log('  SPLITTING:', row[i], '->', player, '|', team);
                     newRow.push(player);
                     newRow.push(team);
                 } else {
