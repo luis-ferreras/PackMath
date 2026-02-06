@@ -741,12 +741,34 @@ function parseMultiConfigOdds() {
         return;
     }
 
-    // Parse header row to extract config names
+    // Try to find config names in the first few lines (PDF extraction can be messy)
+    let configs = [];
+    let headerEndLine = 0;
+
+    // First, try the standard approach with first line
     const headerCells = splitMultiConfigRow(lines[0]);
-    const configs = parseMultiConfigHeaders(headerCells);
+    configs = parseMultiConfigHeaders(headerCells);
+
+    // If that didn't work, try combining multiple lines to find headers
+    if (configs.length === 0) {
+        console.log('Standard header parsing failed, trying to find configs in text...');
+
+        // Try to find configs by scanning the first few lines for keywords
+        const headerText = lines.slice(0, Math.min(10, lines.length)).join(' ');
+        configs = findConfigsInText(headerText);
+
+        // Find where the actual data starts (first line with odds patterns)
+        for (let i = 0; i < lines.length; i++) {
+            if (/\d+:\d+/.test(lines[i])) {
+                headerEndLine = i;
+                break;
+            }
+        }
+    }
 
     if (configs.length === 0) {
-        alert('Could not detect box configurations in header row');
+        alert('Could not detect box configurations. The data format may not be supported.\n\nTip: Try copying the PDF table into a spreadsheet first, then copy from there.');
+        console.log('Header parsing failed. First few lines:', lines.slice(0, 5));
         return;
     }
 
@@ -755,13 +777,24 @@ function parseMultiConfigOdds() {
     // Parse data rows and transform to output format
     const outputRows = [];
 
-    for (let i = 1; i < lines.length; i++) {
-        const cells = splitMultiConfigRow(lines[i]);
+    // Start from the correct line (after headers)
+    const startLine = headerEndLine > 0 ? headerEndLine : 1;
+
+    for (let i = startLine; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Skip lines that look like headers or noise
+        if (isHeaderOrNoiseLine(line, configs)) continue;
+
+        const cells = splitMultiConfigRow(line);
         if (cells.length === 0) continue;
 
         // First cell is the card name
         const cardName = cells[0].trim();
         if (!cardName) continue;
+
+        // Skip if the card name looks like a config name (it's a header remnant)
+        if (configs.some(c => cardName.toLowerCase().includes(c.normalized))) continue;
 
         // Split card name into card_type and parallel
         const { cardType, parallel } = splitCardNameIntoTypeAndParallel(cardName);
@@ -770,20 +803,42 @@ function parseMultiConfigOdds() {
         const category = detectCategoryFromCardName(cardName);
 
         // For each config column that has a value, create an output row
-        for (let j = 0; j < configs.length; j++) {
-            const configIndex = j + 1; // +1 because first column is card name
-            const odds = cells[configIndex]?.trim() || '';
+        // Handle both standard column extraction and extracting odds from the line
+        const oddsInLine = extractOddsFromLine(line, cardName);
 
-            if (odds && odds !== '-' && odds !== 'N/A') {
-                outputRows.push({
-                    config: configs[j].normalized,
-                    configOriginal: configs[j].original,
-                    card_type: cardType,
-                    parallel: parallel || 'Common',
-                    out_of: '-',
-                    odds: odds,
-                    category: category
-                });
+        if (oddsInLine.length > 0 && oddsInLine.length === configs.length) {
+            // We found the exact number of odds values as configs
+            for (let j = 0; j < configs.length; j++) {
+                const odds = oddsInLine[j];
+                if (odds && odds !== '-' && odds !== 'N/A') {
+                    outputRows.push({
+                        config: configs[j].normalized,
+                        configOriginal: configs[j].original,
+                        card_type: cardType,
+                        parallel: parallel || 'Common',
+                        out_of: '-',
+                        odds: odds,
+                        category: category
+                    });
+                }
+            }
+        } else {
+            // Fall back to column-based extraction
+            for (let j = 0; j < configs.length; j++) {
+                const configIndex = j + 1; // +1 because first column is card name
+                const odds = cells[configIndex]?.trim() || '';
+
+                if (odds && odds !== '-' && odds !== 'N/A' && /\d+:\d+/.test(odds)) {
+                    outputRows.push({
+                        config: configs[j].normalized,
+                        configOriginal: configs[j].original,
+                        card_type: cardType,
+                        parallel: parallel || 'Common',
+                        out_of: '-',
+                        odds: odds,
+                        category: category
+                    });
+                }
             }
         }
     }
@@ -888,6 +943,94 @@ function normalizeConfigName(header) {
 
     // If we can't identify it, use the original (cleaned up)
     return header.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || null;
+}
+
+// Check if a line is a header or noise line that should be skipped
+function isHeaderOrNoiseLine(line, configs) {
+    const lower = line.toLowerCase();
+
+    // Skip typical header keywords
+    if (lower.includes('overall odds') || lower.includes('card type') ||
+        lower.includes('insert odds') || lower.includes('pack odds')) {
+        return true;
+    }
+
+    // Skip if the line is mostly config names (header row)
+    const configMatches = configs.filter(c => lower.includes(c.normalized));
+    if (configMatches.length >= Math.floor(configs.length / 2)) {
+        return true;
+    }
+
+    // Skip very short lines
+    if (line.trim().length < 3) {
+        return true;
+    }
+
+    return false;
+}
+
+// Extract all odds values from a line
+function extractOddsFromLine(line, cardName) {
+    // Remove the card name from the line first
+    let remainder = line;
+    if (cardName) {
+        const cardNameIndex = line.indexOf(cardName);
+        if (cardNameIndex !== -1) {
+            remainder = line.substring(cardNameIndex + cardName.length);
+        }
+    }
+
+    // Find all odds patterns (1:X format)
+    const oddsPattern = /\b(\d+:\d+)\b/g;
+    const matches = [];
+    let match;
+
+    while ((match = oddsPattern.exec(remainder)) !== null) {
+        matches.push(match[1]);
+    }
+
+    return matches;
+}
+
+// Find config names in messy text (for PDF extraction that doesn't preserve columns)
+function findConfigsInText(text) {
+    const configs = [];
+    const foundConfigs = new Set();
+
+    // Common config keywords to search for (order matters for priority)
+    const configPatterns = [
+        { pattern: /\bfotl\b|\bfirst\s*off\s*the\s*line\b/gi, normalized: 'fotl' },
+        { pattern: /\bhta\s*hobby\b/gi, normalized: 'hta' },
+        { pattern: /\bhobby\b/gi, normalized: 'hobby' },
+        { pattern: /\bjumbo\b/gi, normalized: 'jumbo' },
+        { pattern: /\bbreaker\b/gi, normalized: 'breaker' },
+        { pattern: /\bsapphire\b/gi, normalized: 'sapphire' },
+        { pattern: /\bhanger\b/gi, normalized: 'hanger' },
+        { pattern: /\bmega\b/gi, normalized: 'mega' },
+        { pattern: /\bvalue\s*se\b/gi, normalized: 'value_se' },
+        { pattern: /\bvalue\b/gi, normalized: 'value' },
+        { pattern: /\bblaster\b/gi, normalized: 'blaster' },
+        { pattern: /\bcello\b/gi, normalized: 'cello' },
+        { pattern: /\bfat\s*pack\b|\bfatpack\b/gi, normalized: 'fat_pack' },
+        { pattern: /\bretail\b/gi, normalized: 'retail' },
+        { pattern: /\bfanatics\s*bulk\b/gi, normalized: 'fanatics_bulk' },
+        { pattern: /\bfanatics\s*mega\b/gi, normalized: 'fanatics_mega' },
+        { pattern: /\bfanatics\b/gi, normalized: 'fanatics' }
+    ];
+
+    for (const { pattern, normalized } of configPatterns) {
+        const match = text.match(pattern);
+        if (match && !foundConfigs.has(normalized)) {
+            foundConfigs.add(normalized);
+            configs.push({
+                original: match[0],
+                normalized: normalized,
+                index: configs.length + 1
+            });
+        }
+    }
+
+    return configs;
 }
 
 // Split card name into card_type and parallel
