@@ -3179,7 +3179,7 @@ function copyCSV(type) {
 function downloadCSV(type) {
     let csvContent, filename;
 
-    if (state.dataType === 'combined' && type) {
+    if ((state.dataType === 'combined' || state.dataType === 'combinedMultiConfig') && type) {
         csvContent = document.getElementById(type === 'checklist' ? 'checklistCsvOutput' : 'oddsCsvOutput').value;
         filename = `${type}_${state.productId.replace(/[^a-z0-9]/gi, '_')}.csv`;
     } else {
