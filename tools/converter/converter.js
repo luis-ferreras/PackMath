@@ -844,7 +844,27 @@ function parseMultiConfigOdds() {
     }
 
     if (outputRows.length === 0) {
-        alert('No valid odds data found');
+        // Count odds patterns in the raw text for debugging
+        const allOddsMatches = rawText.match(/\d+:\d+/g) || [];
+        const configsFound = configs.map(c => c.normalized).join(', ');
+
+        let errorMsg = 'No valid odds data found.\n\n';
+        errorMsg += `Configs detected: ${configsFound || 'none'}\n`;
+        errorMsg += `Odds patterns found: ${allOddsMatches.length}\n\n`;
+
+        if (allOddsMatches.length === 0) {
+            errorMsg += 'The PDF text doesn\'t contain odds ratios (1:X format).\n';
+            errorMsg += 'The table data may be on a different page or not extracting properly.';
+        } else {
+            errorMsg += 'Odds were found but couldn\'t be matched to card names.\n';
+            errorMsg += 'Try copying the table from the PDF into a spreadsheet first.';
+        }
+
+        console.log('Debug - Configs found:', configs);
+        console.log('Debug - Odds patterns found:', allOddsMatches.slice(0, 20));
+        console.log('Debug - First 10 lines:', lines.slice(0, 10));
+
+        alert(errorMsg);
         return;
     }
 
