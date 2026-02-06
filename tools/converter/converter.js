@@ -413,8 +413,14 @@ async function processPDF(file) {
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
 
-            // Process text items with position awareness
-            const pageText = extractTextWithStructure(textContent);
+            // Use different extraction based on data type
+            let pageText;
+            if (state.dataType === 'multiConfigOdds') {
+                const configCount = parseInt(document.getElementById('configCount')?.value || '1', 10);
+                pageText = extractMultiConfigText(textContent, configCount);
+            } else {
+                pageText = extractTextWithStructure(textContent);
+            }
             fullText += pageText + '\n';
         }
 
@@ -438,6 +444,162 @@ async function processPDF(file) {
         uploadArea.classList.remove('hidden');
         uploadStatus.classList.add('hidden');
     }
+}
+
+// Extract text formatted for multi-config odds (comma-separated with dashes)
+function extractMultiConfigText(textContent, configCount) {
+    // Sort items by vertical position (y), then horizontal (x)
+    const items = textContent.items.map(item => ({
+        text: item.str,
+        x: Math.round(item.transform[4]),
+        y: Math.round(item.transform[5]),
+        width: item.width,
+        height: item.height
+    }));
+
+    // Group items by approximate y position (same row)
+    const rows = [];
+    let currentRow = [];
+    let lastY = null;
+    const yTolerance = 5; // pixels
+
+    // Sort by y (descending, since PDF y is from bottom), then x
+    items.sort((a, b) => {
+        if (Math.abs(a.y - b.y) > yTolerance) {
+            return b.y - a.y;
+        }
+        return a.x - b.x;
+    });
+
+    for (const item of items) {
+        if (item.text.trim() === '') continue;
+
+        if (lastY === null || Math.abs(item.y - lastY) > yTolerance) {
+            if (currentRow.length > 0) {
+                rows.push(currentRow);
+            }
+            currentRow = [item];
+            lastY = item.y;
+        } else {
+            currentRow.push(item);
+        }
+    }
+
+    if (currentRow.length > 0) {
+        rows.push(currentRow);
+    }
+
+    // Find column positions from rows with odds data
+    const columnPositions = detectColumnPositions(rows, configCount);
+
+    // Convert rows to comma-separated lines
+    const lines = rows.map(row => {
+        row.sort((a, b) => a.x - b.x);
+
+        // Check if this row has odds data
+        const hasOdds = row.some(item => /\d+:\d+/.test(item.text));
+
+        if (!hasOdds) {
+            // Non-data row (header, etc.) - just join with spaces
+            return row.map(item => item.text).join(' ');
+        }
+
+        // Extract card name (items before first odds)
+        let cardName = '';
+        let oddsItems = [];
+        let foundFirstOdds = false;
+
+        for (const item of row) {
+            if (/\d+:\d+/.test(item.text)) {
+                foundFirstOdds = true;
+                oddsItems.push(item);
+            } else if (!foundFirstOdds) {
+                cardName += (cardName ? ' ' : '') + item.text;
+            }
+        }
+
+        // Map odds to column positions
+        const oddsValues = new Array(configCount).fill('-');
+
+        if (columnPositions.length > 0) {
+            for (const item of oddsItems) {
+                // Find which column this odds belongs to
+                const colIndex = findClosestColumn(item.x, columnPositions);
+                if (colIndex >= 0 && colIndex < configCount) {
+                    oddsValues[colIndex] = item.text;
+                }
+            }
+        } else {
+            // Fallback: just use odds in order
+            oddsItems.forEach((item, idx) => {
+                if (idx < configCount) {
+                    oddsValues[idx] = item.text;
+                }
+            });
+        }
+
+        // Format as comma-separated
+        return cardName.trim() + ', ' + oddsValues.join(', ');
+    });
+
+    return lines.filter(line => line.length > 0).join('\n');
+}
+
+// Detect column x-positions from rows with odds
+function detectColumnPositions(rows, expectedColumns) {
+    const xPositions = [];
+
+    // Collect x positions of all odds values
+    for (const row of rows) {
+        for (const item of row) {
+            if (/\d+:\d+/.test(item.text)) {
+                xPositions.push(item.x);
+            }
+        }
+    }
+
+    if (xPositions.length === 0) return [];
+
+    // Cluster x positions to find column boundaries
+    xPositions.sort((a, b) => a - b);
+
+    const clusters = [];
+    let currentCluster = [xPositions[0]];
+    const clusterTolerance = 20; // pixels
+
+    for (let i = 1; i < xPositions.length; i++) {
+        if (xPositions[i] - xPositions[i-1] < clusterTolerance) {
+            currentCluster.push(xPositions[i]);
+        } else {
+            clusters.push(currentCluster);
+            currentCluster = [xPositions[i]];
+        }
+    }
+    clusters.push(currentCluster);
+
+    // Get average x for each cluster
+    const columnXs = clusters.map(cluster =>
+        Math.round(cluster.reduce((a, b) => a + b, 0) / cluster.length)
+    );
+
+    return columnXs;
+}
+
+// Find the closest column index for an x position
+function findClosestColumn(x, columnPositions) {
+    let minDist = Infinity;
+    let closestIdx = -1;
+
+    for (let i = 0; i < columnPositions.length; i++) {
+        const dist = Math.abs(x - columnPositions[i]);
+        if (dist < minDist) {
+            minDist = dist;
+            closestIdx = i;
+        }
+    }
+
+    // Only return if reasonably close (within 50 pixels)
+    return minDist < 50 ? closestIdx : -1;
 }
 
 function extractTextWithStructure(textContent) {
@@ -827,24 +989,34 @@ function parseMultiConfigOdds() {
     for (let i = dataStartLine; i < lines.length; i++) {
         const line = lines[i];
 
-        // Skip lines without any odds patterns
-        if (!/\d+:\d+/.test(line) && !/^\w/.test(line)) continue;
-
-        // Extract card name (text before the first odds pattern or number)
-        const cardName = extractCardName(line);
-        if (!cardName) continue;
+        // Skip lines without any odds patterns or dashes
+        if (!/\d+:\d+/.test(line) && !line.includes('-')) continue;
 
         // Skip if line looks like a header
         if (isHeaderLine(line)) continue;
+
+        // Check if line is comma-separated (our formatted output)
+        let cardName, oddsValues;
+
+        if (line.includes(',')) {
+            // Comma-separated format: "Card Name, 1:3, 1:1, -, 1:7, ..."
+            const parts = line.split(',').map(p => p.trim());
+            cardName = parts[0];
+            oddsValues = parts.slice(1);
+        } else {
+            // Legacy format: extract card name and odds
+            cardName = extractCardName(line);
+            if (!cardName) continue;
+            oddsValues = extractOddsFromLine(line, cardName);
+        }
+
+        if (!cardName) continue;
 
         // Split card name into card_type and parallel
         const { cardType, parallel } = splitCardNameIntoTypeAndParallel(cardName);
 
         // Auto-detect category from card name
         const category = detectCategoryFromCardName(cardName);
-
-        // Extract all odds values from the line
-        const oddsValues = extractOddsFromLine(line, cardName);
 
         // Create a row for EACH config, using dash for empty odds
         for (let j = 0; j < configs.length; j++) {
