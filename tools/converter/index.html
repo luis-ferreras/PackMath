@@ -93,6 +93,25 @@
                                 <!-- Reference data status will be populated by JavaScript -->
                             </div>
                         </div>
+
+                        <!-- Multi-Config Setup -->
+                        <div class="form-row hidden" id="multiConfigSetupRow">
+                            <div class="form-group">
+                                <label class="form-label">Number of Box Configurations</label>
+                                <input type="number" class="form-input" id="configCount" min="1" max="20" value="1" onchange="updateConfigInputs()">
+                                <span class="form-hint">How many box types are in the PDF columns?</span>
+                            </div>
+                        </div>
+                        <div class="form-row hidden" id="multiConfigNamesRow">
+                            <div class="form-group">
+                                <label class="form-label">Config Names (in order from left to right)</label>
+                                <div id="configNamesContainer">
+                                    <!-- Dynamic config name inputs will be inserted here -->
+                                </div>
+                                <span class="form-hint">Enter the exact config names as they should appear in the output</span>
+                            </div>
+                        </div>
+
                         <!-- Checklist-specific fields (set_type is auto-detected from headers) -->
                         <div class="form-row" id="checklistSetNameRow" class="hidden">
                             <div class="form-group">
