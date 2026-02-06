@@ -2328,10 +2328,13 @@ function parseChecklistData(lines) {
 function splitPlayerTeamColumn(rows) {
     if (rows.length === 0) return rows;
 
+    // Find the maximum number of columns across all rows
+    const maxCols = Math.max(...rows.map(r => r.length));
+
     // Find which column index contains combined player+team values (long strings with team names)
     // Must exclude standalone team names - we want columns with "Player Name Team Name" not just "Team Name"
     let teamColumnIndex = -1;
-    for (let colIndex = 0; colIndex < rows[0].length; colIndex++) {
+    for (let colIndex = 0; colIndex < maxCols; colIndex++) {
         // Check if any row has a combined player+team in this column
         for (const row of rows) {
             const value = row[colIndex] || '';
