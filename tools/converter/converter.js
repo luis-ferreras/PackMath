@@ -1729,7 +1729,7 @@ function renderCombinedPreviewTable(containerId, rows, rowMetadata, columnMappin
         if (dataType === 'odds') {
             mappedRow.card_type = row[0] || '';
             mappedRow.parallel = row[1] || 'Common';
-            mappedRow.out_of = row[2] || '';
+            mappedRow.out_of = row[2] || '-';
             mappedRow.odds = row[3] || '';
             mappedRow.category = row[4] || '';
         }
@@ -1939,7 +1939,7 @@ function generateCsvForDataset(rows, rowMetadata, columnMapping, expectedCols, d
             // Map from row array directly since odds rows are already structured
             rowData.card_type = row[0] || '';
             rowData.parallel = row[1] || 'Common';
-            rowData.out_of = row[2] || '';
+            rowData.out_of = row[2] || '-';
             rowData.odds = row[3] || '';
             rowData.category = row[4] || '';
         } else {
