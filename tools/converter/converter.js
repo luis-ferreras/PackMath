@@ -2392,9 +2392,9 @@ function splitPlayerTeamColumn(rows) {
     }
 
     // Normalize all rows to have the same number of columns
-    const maxCols = Math.max(...newRows.map(r => r.length));
+    const finalMaxCols = Math.max(...newRows.map(r => r.length));
     for (const row of newRows) {
-        while (row.length < maxCols) {
+        while (row.length < finalMaxCols) {
             row.push('');
         }
     }
