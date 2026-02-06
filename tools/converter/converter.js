@@ -1634,24 +1634,31 @@ function parseCombinedData() {
 
 // Parse combined multi-config data (checklist + multi-column odds)
 function parseCombinedMultiConfigData() {
-    const checklistText = document.getElementById('mcChecklistPasteArea')?.value.trim() || '';
-    const oddsText = document.getElementById('mcOddsPasteArea')?.value.trim() || '';
+    try {
+        console.log('parseCombinedMultiConfigData called');
 
-    if (!checklistText && !oddsText) {
-        alert('Please paste data in at least one of the areas');
-        return;
-    }
+        const checklistText = document.getElementById('mcChecklistPasteArea')?.value.trim() || '';
+        const oddsText = document.getElementById('mcOddsPasteArea')?.value.trim() || '';
 
-    // Get manually entered config names
-    const configs = getManualConfigNames();
+        console.log('Checklist text length:', checklistText.length);
+        console.log('Odds text length:', oddsText.length);
 
-    if (configs.length === 0 || !configs[0].original.trim()) {
-        alert('Please enter config names in Step 2');
-        return;
-    }
+        if (!checklistText && !oddsText) {
+            alert('Please paste data in at least one of the areas');
+            return;
+        }
 
-    state.checklistRawData = checklistText;
-    state.validationWarnings = [];
+        // Get manually entered config names
+        const configs = getManualConfigNames();
+        console.log('Configs:', configs);
+
+        if (configs.length === 0 || !configs[0].original.trim()) {
+            alert('Please enter config names in Step 2');
+            return;
+        }
+
+        state.checklistRawData = checklistText;
+        state.validationWarnings = [];
 
     // Parse checklist
     if (checklistText) {
@@ -1695,10 +1702,18 @@ function parseCombinedMultiConfigData() {
 
     state.multiConfigConfigs = configs;
 
+    console.log('Checklist rows:', state.checklistParsedRows.length);
+    console.log('Multi-config odds rows:', state.multiConfigParsedRows.length);
+
     // Render preview
     renderCombinedMultiConfigPreview();
 
     showStep(4);
+
+    } catch (error) {
+        console.error('parseCombinedMultiConfigData error:', error);
+        alert('Error parsing data: ' + error.message);
+    }
 }
 
 // Parse multi-config odds text into rows
