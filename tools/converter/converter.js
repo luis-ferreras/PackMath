@@ -12,7 +12,7 @@ const REFERENCE_DATA_KEY = 'packmath_reference_cardtypes';
 
 // State
 let state = {
-    dataType: null,        // 'odds', 'checklist', or 'combined'
+    dataType: null,        // 'odds', 'checklist', 'combined', or 'multiConfigOdds'
     productId: '',
     boxConfig: '',
     cardCategory: 'base',
@@ -34,7 +34,10 @@ let state = {
     oddsColumns: [],
     checklistColumnMapping: {},
     oddsColumnMapping: {},
-    validationWarnings: []
+    validationWarnings: [],
+    // Multi-config odds state
+    multiConfigParsedRows: [],
+    multiConfigConfigs: []
 };
 
 // ========================================
@@ -137,6 +140,13 @@ const CHECKLIST_INSTRUCTIONS = `
         <li>1 LeBron James Los Angeles Lakers</li>
         <li>RC-1 Victor Wembanyama San Antonio Spurs</li>
     </ul>
+`;
+
+const MULTI_CONFIG_ODDS_INSTRUCTIONS = `
+    <p><strong>Paste multi-config odds data from your PDF:</strong></p>
+    <p>First row should be headers with box configuration names (Hobby, Jumbo, etc.)</p>
+    <p>Each row should have card name followed by odds for each config.</p>
+    <p>Empty cells are OK - not all cards appear in all configs.</p>
 `;
 
 // ========================================
@@ -537,7 +547,10 @@ function startOver() {
         oddsColumns: [],
         checklistColumnMapping: {},
         oddsColumnMapping: {},
-        validationWarnings: []
+        validationWarnings: [],
+        // Multi-config odds state
+        multiConfigParsedRows: [],
+        multiConfigConfigs: []
     };
 
     document.querySelectorAll('.data-type-btn').forEach(btn => {
@@ -602,6 +615,12 @@ function selectDataType(type) {
         categoryRow?.classList.remove('hidden');
         referenceDataRow?.classList.remove('hidden');
         setNameRow?.classList.add('hidden');
+    } else if (type === 'multiConfigOdds') {
+        // Multi-config odds - no config/category needed, they're in the data
+        configRow?.classList.add('hidden');
+        categoryRow?.classList.add('hidden');
+        referenceDataRow?.classList.add('hidden');
+        setNameRow?.classList.add('hidden');
     } else if (type === 'combined') {
         // Combined mode - only show product ID
         configRow?.classList.add('hidden');
@@ -618,8 +637,13 @@ function selectDataType(type) {
 
     // Update instructions based on type
     if (type !== 'combined') {
-        document.getElementById('pasteInstructions').innerHTML =
-            type === 'odds' ? ODDS_INSTRUCTIONS : CHECKLIST_INSTRUCTIONS;
+        let instructions = CHECKLIST_INSTRUCTIONS;
+        if (type === 'odds') {
+            instructions = ODDS_INSTRUCTIONS;
+        } else if (type === 'multiConfigOdds') {
+            instructions = MULTI_CONFIG_ODDS_INSTRUCTIONS;
+        }
+        document.getElementById('pasteInstructions').innerHTML = instructions;
     }
 
     showStep(2);
@@ -633,6 +657,12 @@ function parseData() {
     // Handle combined mode differently
     if (state.dataType === 'combined') {
         parseCombinedData();
+        return;
+    }
+
+    // Handle multi-config odds differently
+    if (state.dataType === 'multiConfigOdds') {
+        parseMultiConfigOdds();
         return;
     }
 
@@ -686,6 +716,291 @@ function parseData() {
     renderPreview();
 
     showStep(4);
+}
+
+// ========================================
+// Multi-Config Odds Parsing
+// ========================================
+
+// Parse multi-config odds data (multiple box configs as columns)
+function parseMultiConfigOdds() {
+    const rawText = document.getElementById('pasteArea').value.trim();
+
+    if (!rawText) {
+        alert('Please upload a PDF or paste some data first');
+        return;
+    }
+
+    state.rawData = rawText;
+
+    // Split into lines and parse as tab/space separated values
+    const lines = rawText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+    if (lines.length < 2) {
+        alert('Need at least a header row and one data row');
+        return;
+    }
+
+    // Parse header row to extract config names
+    const headerCells = splitMultiConfigRow(lines[0]);
+    const configs = parseMultiConfigHeaders(headerCells);
+
+    if (configs.length === 0) {
+        alert('Could not detect box configurations in header row');
+        return;
+    }
+
+    console.log('Detected configs:', configs);
+
+    // Parse data rows and transform to output format
+    const outputRows = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        const cells = splitMultiConfigRow(lines[i]);
+        if (cells.length === 0) continue;
+
+        // First cell is the card name
+        const cardName = cells[0].trim();
+        if (!cardName) continue;
+
+        // Split card name into card_type and parallel
+        const { cardType, parallel } = splitCardNameIntoTypeAndParallel(cardName);
+
+        // Auto-detect category from card name
+        const category = detectCategoryFromCardName(cardName);
+
+        // For each config column that has a value, create an output row
+        for (let j = 0; j < configs.length; j++) {
+            const configIndex = j + 1; // +1 because first column is card name
+            const odds = cells[configIndex]?.trim() || '';
+
+            if (odds && odds !== '-' && odds !== 'N/A') {
+                outputRows.push({
+                    config: configs[j].normalized,
+                    configOriginal: configs[j].original,
+                    card_type: cardType,
+                    parallel: parallel || 'Common',
+                    out_of: '-',
+                    odds: odds,
+                    category: category
+                });
+            }
+        }
+    }
+
+    if (outputRows.length === 0) {
+        alert('No valid odds data found');
+        return;
+    }
+
+    console.log('Parsed rows:', outputRows.length);
+
+    // Store parsed data in state
+    state.multiConfigParsedRows = outputRows;
+    state.multiConfigConfigs = configs;
+
+    // Render preview
+    renderMultiConfigPreview();
+
+    showStep(4);
+}
+
+// Split a row into cells (handles tabs, multiple spaces, and common delimiters)
+function splitMultiConfigRow(line) {
+    // First try tab-separated
+    if (line.includes('\t')) {
+        return line.split('\t');
+    }
+
+    // Try to detect column boundaries using multiple spaces
+    // This is common in PDF extraction where columns are space-aligned
+    const cells = line.split(/\s{2,}/);
+    if (cells.length > 1) {
+        return cells;
+    }
+
+    // Fall back to detecting odds patterns to split
+    // Look for patterns like "CardName 1:2 1:3 1:4"
+    const oddsPattern = /(\d+:\d+)/g;
+    const matches = [...line.matchAll(oddsPattern)];
+
+    if (matches.length > 0) {
+        // Find the position of the first odds value
+        const firstOddsPos = matches[0].index;
+        const cardName = line.substring(0, firstOddsPos).trim();
+
+        // Extract all odds values
+        const oddsValues = matches.map(m => m[1]);
+
+        return [cardName, ...oddsValues];
+    }
+
+    // Last resort: split by single spaces but this is unreliable
+    return line.split(/\s+/);
+}
+
+// Parse header row to extract config names
+function parseMultiConfigHeaders(headerCells) {
+    const configs = [];
+
+    // Skip first cell (usually "Card" or empty)
+    for (let i = 1; i < headerCells.length; i++) {
+        const header = headerCells[i].trim();
+        if (!header) continue;
+
+        const normalized = normalizeConfigName(header);
+        if (normalized) {
+            configs.push({
+                original: header,
+                normalized: normalized,
+                index: i
+            });
+        }
+    }
+
+    return configs;
+}
+
+// Normalize config header to standard config names
+function normalizeConfigName(header) {
+    const h = header.toLowerCase();
+
+    // Match common box config patterns
+    if (h.includes('hobby') && !h.includes('fotl')) return 'hobby';
+    if (h.includes('jumbo')) return 'jumbo';
+    if (h.includes('breaker')) return 'breaker';
+    if (h.includes('sapphire')) return 'sapphire';
+    if (h.includes('hanger')) return 'hanger';
+    if (h.includes('mega')) return 'mega';
+    if (h.includes('value') && h.includes('se')) return 'value_se';
+    if (h.includes('value')) return 'value';
+    if (h.includes('blaster')) return 'blaster';
+    if (h.includes('cello')) return 'cello';
+    if (h.includes('fat pack') || h.includes('fatpack')) return 'fat_pack';
+    if (h.includes('retail')) return 'retail';
+    if (h.includes('fotl') || h.includes('first off')) return 'fotl';
+    if (h.includes('fanatics') && h.includes('bulk')) return 'fanatics_bulk';
+    if (h.includes('fanatics') && h.includes('mega')) return 'fanatics_mega';
+    if (h.includes('fanatics')) return 'fanatics';
+    if (h.includes('refractor') && h.includes('set')) return 'refractor_set';
+    if (h.includes('box set')) return 'box_set';
+    if (h.includes('hta')) return 'hta';
+
+    // If we can't identify it, use the original (cleaned up)
+    return header.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || null;
+}
+
+// Split card name into card_type and parallel
+function splitCardNameIntoTypeAndParallel(cardName) {
+    // Common patterns:
+    // "Base" -> cardType: "Base", parallel: ""
+    // "Base Refractors" -> cardType: "Base", parallel: "Refractors"
+    // "Base Refractors Prism" -> cardType: "Base", parallel: "Refractors Prism"
+    // "Rookie Autographs Gold" -> cardType: "Rookie Autographs", parallel: "Gold"
+
+    const name = cardName.trim();
+
+    // Check if it starts with "Base"
+    if (name.toLowerCase().startsWith('base')) {
+        if (name.toLowerCase() === 'base') {
+            return { cardType: 'Base', parallel: '' };
+        }
+        // Everything after "Base " is the parallel
+        const parallel = name.substring(5).trim();
+        return { cardType: 'Base', parallel: parallel };
+    }
+
+    // Check for common card type prefixes
+    const cardTypePatterns = [
+        { pattern: /^(Rookie\s+Autographs?)\s+(.+)$/i, type: 1, parallel: 2 },
+        { pattern: /^(Autographs?)\s+(.+)$/i, type: 1, parallel: 2 },
+        { pattern: /^(Inserts?)\s+(.+)$/i, type: 1, parallel: 2 },
+        { pattern: /^(Rookies?)\s+(.+)$/i, type: 1, parallel: 2 },
+    ];
+
+    for (const { pattern, type, parallel } of cardTypePatterns) {
+        const match = name.match(pattern);
+        if (match) {
+            return { cardType: match[type], parallel: match[parallel] };
+        }
+    }
+
+    // Default: treat entire name as card_type, no parallel
+    return { cardType: name, parallel: '' };
+}
+
+// Detect category from card name
+function detectCategoryFromCardName(cardName) {
+    const name = cardName.toLowerCase();
+
+    if (name.includes('autograph') || name.includes('auto ') || name.includes('signature')) {
+        if (name.includes('relic') || name.includes('jersey') || name.includes('patch')) {
+            return 'autograph_relic';
+        }
+        return 'autograph';
+    }
+    if (name.includes('relic') || name.includes('jersey') || name.includes('patch') || name.includes('memorabilia')) {
+        return 'relic';
+    }
+    if (name.includes('insert') || name.includes('mosaic') || name.includes('prizm')) {
+        return 'insert';
+    }
+    if (name.startsWith('base') || name.includes('refractor') || name.includes('parallel')) {
+        return 'base';
+    }
+
+    // Default to base for unknown
+    return 'base';
+}
+
+// Render preview for multi-config odds
+function renderMultiConfigPreview() {
+    const container = document.getElementById('previewTableContainer');
+
+    if (!state.multiConfigParsedRows || state.multiConfigParsedRows.length === 0) {
+        container.innerHTML = '<p class="preview-note">No data to preview</p>';
+        return;
+    }
+
+    // Show the rows in a table format
+    const expectedCols = ODDS_COLUMNS;
+
+    let html = '<table class="preview-table"><thead><tr>';
+    for (const col of expectedCols) {
+        html += `<th>${formatColumnName(col)}</th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+    for (const row of state.multiConfigParsedRows.slice(0, 100)) { // Limit preview to 100 rows
+        html += '<tr>';
+        html += `<td>${escapeHtml(state.productId)}</td>`;
+        html += `<td>${escapeHtml(row.config)}</td>`;
+        html += `<td>${escapeHtml(row.category)}</td>`;
+        html += `<td>${escapeHtml(row.card_type)}</td>`;
+        html += `<td>${escapeHtml(row.parallel)}</td>`;
+        html += `<td>${escapeHtml(row.out_of)}</td>`;
+        html += `<td>${escapeHtml(row.odds)}</td>`;
+        html += '</tr>';
+    }
+
+    html += '</tbody></table>';
+
+    if (state.multiConfigParsedRows.length > 100) {
+        html += `<p class="preview-note">Showing first 100 of ${state.multiConfigParsedRows.length} rows</p>`;
+    }
+
+    // Add summary
+    const configCounts = {};
+    state.multiConfigParsedRows.forEach(row => {
+        configCounts[row.config] = (configCounts[row.config] || 0) + 1;
+    });
+
+    html = `<div class="preview-summary">
+        <p><strong>${state.multiConfigParsedRows.length}</strong> total rows across <strong>${Object.keys(configCounts).length}</strong> configurations</p>
+        <p>Configs: ${Object.entries(configCounts).map(([k, v]) => `${k} (${v})`).join(', ')}</p>
+    </div>` + html;
+
+    container.innerHTML = html;
 }
 
 // Parse combined checklist + odds data
@@ -1842,6 +2157,11 @@ function generateCSV() {
         return;
     }
 
+    if (state.dataType === 'multiConfigOdds') {
+        generateMultiConfigCSV();
+        return;
+    }
+
     const expectedCols = state.dataType === 'odds' ? ODDS_COLUMNS : CHECKLIST_COLUMNS;
     const csvRows = [];
 
@@ -1884,6 +2204,44 @@ function generateCSV() {
     document.getElementById('csvOutput').value = csvRows.join('\n');
 
     // Show single mode UI, hide combined mode UI
+    document.getElementById('singleCsvOutput')?.classList.remove('hidden');
+    document.getElementById('singleDownloadButtons')?.classList.remove('hidden');
+    document.getElementById('combinedCsvOutput')?.classList.add('hidden');
+    document.getElementById('combinedBackButton')?.classList.add('hidden');
+
+    showStep(5);
+}
+
+// Generate CSV for multi-config odds
+function generateMultiConfigCSV() {
+    const expectedCols = ODDS_COLUMNS;
+    const csvRows = [];
+
+    csvRows.push(expectedCols.join(','));
+
+    state.multiConfigParsedRows.forEach(row => {
+        const rowData = {
+            product_id: state.productId,
+            config: row.config,
+            category: row.category,
+            card_type: row.card_type,
+            parallel: row.parallel,
+            out_of: row.out_of,
+            odds: row.odds
+        };
+
+        // Build CSV row
+        const mappedRow = [];
+        for (const col of expectedCols) {
+            mappedRow.push(formatCsvValue(rowData[col], col));
+        }
+
+        csvRows.push(mappedRow.join(','));
+    });
+
+    document.getElementById('csvOutput').value = csvRows.join('\n');
+
+    // Show single mode UI
     document.getElementById('singleCsvOutput')?.classList.remove('hidden');
     document.getElementById('singleDownloadButtons')?.classList.remove('hidden');
     document.getElementById('combinedCsvOutput')?.classList.add('hidden');
