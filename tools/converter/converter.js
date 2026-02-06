@@ -1875,11 +1875,7 @@ function generateCSV() {
         // Build CSV row
         const mappedRow = [];
         for (const col of expectedCols) {
-            let value = rowData[col] || '';
-            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-                value = `"${value.replace(/"/g, '""')}"`;
-            }
-            mappedRow.push(value);
+            mappedRow.push(formatCsvValue(rowData[col], col));
         }
 
         csvRows.push(mappedRow.join(','));
@@ -1963,11 +1959,7 @@ function generateCsvForDataset(rows, rowMetadata, columnMapping, expectedCols, d
         // Build CSV row
         const mappedRow = [];
         for (const col of expectedCols) {
-            let value = rowData[col] || '';
-            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-                value = `"${value.replace(/"/g, '""')}"`;
-            }
-            mappedRow.push(value);
+            mappedRow.push(formatCsvValue(rowData[col], col));
         }
 
         csvRows.push(mappedRow.join(','));
@@ -2021,4 +2013,26 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Format a value for CSV export
+// For odds values (like "1:111"), prefix with apostrophe to prevent spreadsheet conversion
+// Spreadsheets interpret "1:111" as time and convert to decimals - the apostrophe forces text
+function formatCsvValue(value, columnName) {
+    if (!value) return '';
+
+    let str = String(value);
+
+    // For odds column, prefix with apostrophe to prevent time conversion
+    // This handles values like "1:111" which spreadsheets interpret as time
+    if (columnName === 'odds' && str.includes(':') && /^\d+:\d+/.test(str)) {
+        str = "'" + str;
+    }
+
+    // Standard CSV escaping: quote if contains comma, quote, or newline
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes("'")) {
+        str = `"${str.replace(/"/g, '""')}"`;
+    }
+
+    return str;
 }
