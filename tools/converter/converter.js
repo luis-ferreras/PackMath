@@ -1998,7 +1998,9 @@ function downloadCSV(type) {
         filename = `${state.dataType}_${state.productId.replace(/[^a-z0-9]/gi, '_')}.csv`;
     }
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Add UTF-8 BOM to help spreadsheets recognize encoding for special characters
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = filename;
