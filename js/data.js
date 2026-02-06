@@ -287,9 +287,42 @@ export function getAvailableConfigs(productId) {
 // Odds Formatting
 // ========================================
 
+// Fix corrupted odds values that Google Sheets converted from "1:111" to decimals
+// Google interprets "1:111" as time (1 hour 111 minutes) and converts to decimal (fraction of day)
+// This function detects and converts them back to the original "1:X" format
+function fixCorruptedOdds(value) {
+    if (!value) return value;
+
+    const str = String(value).trim();
+
+    // If it already has a colon, it's probably fine
+    if (str.includes(':')) return str;
+
+    // Check if it's a decimal that looks like a corrupted time value
+    const num = parseFloat(str);
+    if (isNaN(num)) return str;
+
+    // Decimals between 0 and 1 are likely corrupted "1:X" values where X > 59
+    // Google converts "1:111" to 171 minutes / 1440 minutes per day = 0.11875
+    if (num > 0 && num < 1) {
+        const totalMinutes = Math.round(num * 1440); // Convert back to minutes
+        // Original format was "1:X" where X = totalMinutes - 60
+        const oddsValue = totalMinutes - 60;
+        if (oddsValue > 59) { // Only fix if it was actually an invalid time (minutes > 59)
+            return `1:${oddsValue}`;
+        }
+    }
+
+    return str;
+}
+
 export function formatOddsValue(odds) {
     if (!odds) return null;
-    const str = String(odds).trim();
+
+    // First, fix any corrupted decimal values
+    const fixedOdds = fixCorruptedOdds(odds);
+
+    const str = String(fixedOdds).trim();
     // Filter out spreadsheet errors
     if (str.startsWith('#') || str === '' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') {
         return null;
