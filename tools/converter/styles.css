@@ -2,11 +2,27 @@
    PackMath Data Converter - Styles
    ======================================== */
 
-/* Geist Font */
+/* Geist Fonts */
 @font-face {
     font-family: 'Geist';
     src: url('../../fonts/Geist-Medium.woff2') format('woff2');
     font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Geist';
+    src: url('../../fonts/Geist-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Geist Mono';
+    src: url('../../fonts/GeistMono-Regular.woff2') format('woff2');
+    font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
@@ -149,7 +165,7 @@ body {
 
 .step-title {
     font-size: 1.25rem;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .step-content {
@@ -406,6 +422,7 @@ body {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.6875rem;
+    font-family: 'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 }
 
 .preview-table th {
