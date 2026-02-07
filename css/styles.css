@@ -2,11 +2,27 @@
    Pack Math - StatMuse-Inspired Styles
    ======================================== */
 
-/* Geist Font */
+/* Geist Fonts */
 @font-face {
     font-family: 'Geist';
     src: url('../fonts/Geist-Medium.woff2') format('woff2');
     font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Geist';
+    src: url('../fonts/Geist-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Geist Mono';
+    src: url('../fonts/GeistMono-Regular.woff2') format('woff2');
+    font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
@@ -913,7 +929,7 @@ body {
 /* Section Title */
 .section-title {
     font-size: 1.25rem;
-    font-weight: 600;
+    font-weight: 700;
     margin-bottom: 20px;
     color: var(--text-primary);
 }
