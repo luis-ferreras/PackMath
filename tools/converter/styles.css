@@ -742,6 +742,7 @@ body {
 
 .preview-tab-content {
     min-height: 300px;
+    font-family: 'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 }
 
 /* Validation Warnings */
