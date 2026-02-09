@@ -418,66 +418,59 @@ function renderOddsTab() {
         return `<div class="empty-state"><p class="empty-state-text">No odds data available</p></div>`;
     }
 
-    // Get all available configs from the data
-    const allConfigs = new Set();
-    [parallels, inserts, autographs, relics, autoRelics].forEach(map => {
-        map.forEach(configData => {
-            Object.keys(configData).forEach(key => {
-                if (key !== 'isSSP') allConfigs.add(key);
-            });
-        });
-    });
-    const configs = [...allConfigs].sort();
+    // Use the currently selected config from the Box Type dropdown
+    const selectedConfig = state.config;
 
     let html = '';
 
     // Base Parallels Section
     if (parallels.size > 0) {
-        html += renderOddsSection('Base Parallels', parallels, configs);
+        html += renderOddsSection('Base Parallels', parallels, selectedConfig);
     }
 
     // Inserts Section
     if (inserts.size > 0) {
-        html += renderOddsSection('Inserts', inserts, configs);
+        html += renderOddsSection('Inserts', inserts, selectedConfig);
     }
 
     // Autographs Section
     if (autographs.size > 0) {
-        html += renderOddsSection('Autographs', autographs, configs);
+        html += renderOddsSection('Autographs', autographs, selectedConfig);
     }
 
     // Relics Section
     if (relics.size > 0) {
-        html += renderOddsSection('Memorabilia', relics, configs);
+        html += renderOddsSection('Memorabilia', relics, selectedConfig);
     }
 
     // Auto Relics Section
     if (autoRelics.size > 0) {
-        html += renderOddsSection('Auto Relics', autoRelics, configs);
+        html += renderOddsSection('Auto Relics', autoRelics, selectedConfig);
     }
 
     return html;
 }
 
-function renderOddsSection(title, dataMap, configs) {
-    const rows = [...dataMap.entries()].map(([name, configData]) => {
-        const cells = configs.map(config => {
-            const odds = configData[config];
-            return `<td class="odds-cell">${odds || '-'}</td>`;
-        }).join('');
+function renderOddsSection(title, dataMap, selectedConfig) {
+    // Filter to only show items that have odds for the selected config
+    const filteredEntries = [...dataMap.entries()].filter(([name, configData]) => {
+        return configData[selectedConfig] !== undefined && configData[selectedConfig] !== null;
+    });
 
+    if (filteredEntries.length === 0) {
+        return ''; // Don't show section if no odds for this config
+    }
+
+    const rows = filteredEntries.map(([name, configData]) => {
+        const odds = configData[selectedConfig];
         const isSSP = configData.isSSP;
         return `
             <tr>
                 <td class="odds-name">${name}${isSSP ? '<span class="odds-ssp">SSP</span>' : ''}</td>
-                ${cells}
+                <td class="odds-cell">${odds || '-'}</td>
             </tr>
         `;
     }).join('');
-
-    const headerCells = configs.map(config =>
-        `<th class="odds-config-header">${config.charAt(0).toUpperCase() + config.slice(1)}</th>`
-    ).join('');
 
     return `
         <div class="odds-section">
@@ -487,7 +480,7 @@ function renderOddsSection(title, dataMap, configs) {
                     <thead>
                         <tr>
                             <th class="odds-name-header">Card Type</th>
-                            ${headerCells}
+                            <th class="odds-config-header">Odds</th>
                         </tr>
                     </thead>
                     <tbody>
