@@ -247,6 +247,12 @@ export async function loadOddsForProduct(productSlug) {
         row.product_id = productSlug;
     });
 
+    // Debug: log normalized odds data
+    console.log('Loaded odds for', productSlug, ':', odds.length, 'rows');
+    if (odds.length > 0) {
+        console.log('Sample row:', { config: odds[0].config, category: odds[0].category, card_type: odds[0].card_type });
+    }
+
     ODDS_CACHE[productSlug] = odds;
 
     // Also update legacy ODDS_RAW array for compatibility
