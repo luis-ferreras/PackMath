@@ -174,11 +174,16 @@ export async function loadChecklistForProduct(productSlug) {
     }
 
     const checklist = await fetchProductChecklist(entry.sheet, entry.checklist_gid || 0);
+
+    // Set product_id on each row for filtering
+    checklist.forEach(row => {
+        row.product_id = productSlug;
+    });
+
     CHECKLIST_CACHE[productSlug] = checklist;
 
     // Also update legacy CHECKLIST array for compatibility
     checklist.forEach(row => {
-        row.product_id = productSlug;
         if (!CHECKLIST.find(c => c === row)) {
             CHECKLIST.push(row);
         }
@@ -201,11 +206,25 @@ export async function loadOddsForProduct(productSlug) {
     }
 
     const odds = await fetchProductOdds(entry.sheet, entry.odds_gid);
+
+    // Normalize column names (support both old and new Google Sheets column names)
+    odds.forEach(row => {
+        // Map set_type -> config (box type: hobby, retail, etc.)
+        if (!row.config && row.set_type) {
+            row.config = row.set_type;
+        }
+        // Map box_config -> category (card category: base, insert, autograph, relic)
+        if (!row.category && row.box_config) {
+            row.category = row.box_config;
+        }
+        // Set product_id for filtering
+        row.product_id = productSlug;
+    });
+
     ODDS_CACHE[productSlug] = odds;
 
     // Also update legacy ODDS_RAW array for compatibility
     odds.forEach(row => {
-        row.product_id = productSlug;
         if (!ODDS_RAW.find(o => o === row)) {
             ODDS_RAW.push(row);
         }
