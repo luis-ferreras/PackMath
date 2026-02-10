@@ -9,6 +9,7 @@ export let CONFIGURATIONS = [];
 // Per-product data caches (lazy loaded from Master List)
 const CHECKLIST_CACHE = {}; // product_id -> checklist array
 const ODDS_CACHE = {}; // product_id -> odds array
+const CONFIG_CACHE = {}; // product_id -> config array
 
 // Legacy support - these will be populated from per-product data as needed
 export let ODDS_RAW = [];
@@ -160,6 +161,23 @@ async function fetchProductOdds(sheetId, gid) {
     }
 }
 
+// Fetch config data for a specific product from its sheet
+async function fetchProductConfig(sheetId, gid) {
+    const url = getProductSheetURL(sheetId, gid);
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.warn(`Failed to fetch config: ${response.status}`);
+            return [];
+        }
+        const csvText = await response.text();
+        return parseCSV(csvText);
+    } catch (error) {
+        console.warn('Error fetching config:', error.message);
+        return [];
+    }
+}
+
 // Load checklist for a product (with caching)
 export async function loadChecklistForProduct(productSlug) {
     // Return cached data if available
@@ -265,6 +283,55 @@ export async function loadOddsForProduct(productSlug) {
     return odds;
 }
 
+// Load config for a product (with caching)
+export async function loadConfigForProduct(productSlug) {
+    // Return cached data if available
+    if (CONFIG_CACHE[productSlug]) {
+        return CONFIG_CACHE[productSlug];
+    }
+
+    const entry = getMasterListEntry(productSlug);
+    if (!entry || !entry.sheet || !entry.config_gid) {
+        console.warn(`No Master List entry or config_gid found for: ${productSlug}`);
+        return [];
+    }
+
+    const config = await fetchProductConfig(entry.sheet, entry.config_gid);
+
+    // Normalize column names (support various naming conventions)
+    config.forEach(row => {
+        // Normalize box_config / box / config -> box_config
+        if (!row.box_config) {
+            row.box_config = row.box || row.config || '';
+        }
+        // Normalize to lowercase for consistency
+        if (row.box_config) {
+            row.box_config = row.box_config.toLowerCase().trim();
+        }
+        // Set product_id for filtering
+        row.product_id = productSlug;
+    });
+
+    console.log('Loaded config for', productSlug, ':', config.length, 'rows');
+    if (config.length > 0) {
+        console.log('Sample config row:', { box_config: config[0].box_config, packs_per_box: config[0].packs_per_box });
+    }
+
+    CONFIG_CACHE[productSlug] = config;
+
+    return config;
+}
+
+// Check if config data is loaded for a product
+export function isConfigLoaded(productId) {
+    return !!CONFIG_CACHE[productId];
+}
+
+// Get cached config for a product (after loading)
+export function getConfigRawForProduct(productId) {
+    return CONFIG_CACHE[productId] || [];
+}
+
 function processProducts(rows) {
     const products = {};
     const slugs = {};
@@ -346,7 +413,25 @@ export function getConfigInfo(productId, config) {
     const product = PRODUCTS[productId];
     if (!product) return null;
 
-    // Check product's configs first
+    // Normalize config name to lowercase for matching
+    const normalizedConfig = (config || '').toLowerCase().trim();
+
+    // First, check per-product config cache (from product's Config tab)
+    if (CONFIG_CACHE[productId]) {
+        const cachedConfig = CONFIG_CACHE[productId].find(
+            c => c.box_config === normalizedConfig
+        );
+        if (cachedConfig) {
+            return {
+                name: cachedConfig.box_config,
+                packs: parseInt(cachedConfig.packs_per_box) || 0,
+                cardsPerPack: parseInt(cachedConfig.cards_per_pack) || 0,
+                boxesPerCase: parseInt(cachedConfig.boxes_per_case) || 0
+            };
+        }
+    }
+
+    // Check product's configs (from legacy Configuration sheet)
     if (product.configs[config]) {
         return product.configs[config];
     }

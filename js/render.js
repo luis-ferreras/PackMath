@@ -4,7 +4,8 @@ import {
     getConfigInfo, getChecklistForProduct, getOddsForProduct,
     getAllParallelsForProduct, getAllInsertsForProduct, getAllAutographsForProduct,
     getAllRelicsForProduct, getAllAutoRelicsForProduct,
-    loadChecklistForProduct, loadOddsForProduct, isChecklistLoaded, isOddsLoaded
+    loadChecklistForProduct, loadOddsForProduct, isChecklistLoaded, isOddsLoaded,
+    loadConfigForProduct, isConfigLoaded
 } from './data.js';
 
 // ========================================
@@ -284,9 +285,16 @@ function renderProductGrid(products) {
 export async function renderProductPage() {
     const productSlug = state.product;
 
-    // Load odds data first (needed for configs in hero)
+    // Load odds and config data (needed for configs in hero)
+    const loadPromises = [];
     if (!isOddsLoaded(productSlug)) {
-        await loadOddsForProduct(productSlug);
+        loadPromises.push(loadOddsForProduct(productSlug));
+    }
+    if (!isConfigLoaded(productSlug)) {
+        loadPromises.push(loadConfigForProduct(productSlug));
+    }
+    if (loadPromises.length > 0) {
+        await Promise.all(loadPromises);
     }
 
     renderProductHero();
