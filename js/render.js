@@ -423,9 +423,9 @@ function renderOddsTab() {
 
     let html = '';
 
-    // Base Parallels Section
+    // Base Section
     if (parallels.size > 0) {
-        html += renderOddsSection('Base Parallels', parallels, selectedConfig);
+        html += renderOddsSection('Base', parallels, selectedConfig);
     }
 
     // Inserts Section
@@ -555,11 +555,18 @@ function renderChecklistTab() {
     }).length;
     const autographs = checklist.filter(c => {
         const setType = (c.set_type || c.set_name || '').toLowerCase();
-        return setType.includes('auto');
+        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
+        return setType.includes('auto') && !isRelic;
     }).length;
     const memorabilia = checklist.filter(c => {
         const setType = (c.set_type || c.set_name || '').toLowerCase();
-        return setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
+        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
+        return isRelic && !setType.includes('auto');
+    }).length;
+    const autoRelics = checklist.filter(c => {
+        const setType = (c.set_type || c.set_name || '').toLowerCase();
+        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
+        return setType.includes('auto') && isRelic;
     }).length;
 
     // Stats bar
@@ -567,7 +574,7 @@ function renderChecklistTab() {
         <div class="checklist-stats">
             <div class="checklist-stat">
                 <span class="checklist-stat-value">${baseSet}</span>
-                <span class="checklist-stat-label">Base Set</span>
+                <span class="checklist-stat-label">Base</span>
             </div>
             <div class="checklist-stat">
                 <span class="checklist-stat-value">${inserts}</span>
@@ -580,6 +587,10 @@ function renderChecklistTab() {
             <div class="checklist-stat">
                 <span class="checklist-stat-value">${memorabilia}</span>
                 <span class="checklist-stat-label">Memorabilia</span>
+            </div>
+            <div class="checklist-stat">
+                <span class="checklist-stat-value">${autoRelics}</span>
+                <span class="checklist-stat-label">Auto Relics</span>
             </div>
         </div>
     `;
