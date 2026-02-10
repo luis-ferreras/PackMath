@@ -177,9 +177,9 @@ export async function loadChecklistForProduct(productSlug) {
 
     // Normalize column names and set product_id on each row for filtering
     checklist.forEach(row => {
-        // Map set -> set_type (category like BASE, INSERT)
-        if (!row.set_type && row.set) {
-            row.set_type = row.set;
+        // Map type -> set_type (category like BASE, INSERT)
+        if (!row.set_type && row.type) {
+            row.set_type = row.type;
         }
         // Map number -> card_num
         if (!row.card_num && row.number) {
@@ -233,9 +233,9 @@ export async function loadOddsForProduct(productSlug) {
         if (!row.category && row.box_config) {
             row.category = row.box_config;
         }
-        // Map set -> card_type (the card type name: Base, Rookie Autographs, etc.)
-        if (!row.card_type && row.set) {
-            row.card_type = row.set;
+        // Map set_name -> card_type (the card type name: Base, Rookie Autographs, etc.)
+        if (!row.card_type && row.set_name) {
+            row.card_type = row.set_name;
         }
         // Map numbered -> out_of (the /XX numbering)
         if (!row.out_of && row.numbered) {
