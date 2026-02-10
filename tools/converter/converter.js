@@ -1167,7 +1167,7 @@ function parseMultiConfigOdds() {
                 config: configs[j].original,
                 configOriginal: configs[j].original,
                 card_type: cardType,
-                parallel: parallel || 'Common',
+                parallel: parallel || 'Base',
                 out_of: '-',
                 odds: odds,
                 category: category
@@ -1758,7 +1758,7 @@ function parseMultiConfigOddsText(rawText, configs) {
             outputRows.push({
                 config: configs[j].original,
                 card_type: cardType,
-                parallel: parallel || 'Common',
+                parallel: parallel || 'Base',
                 out_of: '-',
                 odds: odds,
                 category: category
@@ -2810,7 +2810,7 @@ function renderCombinedPreviewTable(containerId, rows, rowMetadata, columnMappin
         // For odds, map from row array directly since it's already structured
         if (dataType === 'odds') {
             mappedRow.card_type = row[0] || '';
-            mappedRow.parallel = row[1] || 'Common';
+            mappedRow.parallel = row[1] || 'Base';
             mappedRow.out_of = row[2] || '-';
             mappedRow.odds = row[3] || '';
             mappedRow.category = row[4] || '';
@@ -3124,7 +3124,7 @@ function generateCsvForDataset(rows, rowMetadata, columnMapping, expectedCols, d
             rowData.config = 'hobby';  // Default to hobby in combined mode
             // Map from row array directly since odds rows are already structured
             rowData.card_type = row[0] || '';
-            rowData.parallel = row[1] || 'Common';
+            rowData.parallel = row[1] || 'Base';
             rowData.out_of = row[2] || '-';
             rowData.odds = row[3] || '';
             rowData.category = row[4] || '';
