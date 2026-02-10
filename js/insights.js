@@ -2,11 +2,11 @@ import { PRODUCTS, ODDS_RAW, CHECKLIST, getOddsForProduct, getAvailableConfigs, 
 import { parseOdds } from './utils.js';
 
 // Helper to get display name for a card row
-// For base parallels: use parallel name or "Base" if empty
+// For base parallels: use card_type (e.g., "Base", "Refractor")
 // For other categories: use card_type
 function getCardDisplayName(row) {
     if (row.category === 'base') {
-        return row.parallel || 'Base';
+        return row.card_type || 'Base';
     }
     return row.card_type || row.parallel || 'Unknown';
 }
