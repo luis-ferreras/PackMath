@@ -98,9 +98,9 @@ function viewReferenceData() {
     alert('Saved Card Types:\n\n' + cardTypes.join('\n'));
 }
 
-// Expected columns for each data type
-const ODDS_COLUMNS = ['product_id', 'config', 'category', 'card_type', 'parallel', 'out_of', 'odds'];
-const CHECKLIST_COLUMNS = ['product_id', 'set_type', 'set_name', 'card_num', 'player', 'team', 'rookie'];
+// Expected columns for each data type (matching Google Sheets column names)
+const ODDS_COLUMNS = ['product_id', 'box', 'type', 'set_name', 'parallel', 'numbered', 'odds'];
+const CHECKLIST_COLUMNS = ['product_id', 'type', 'set_name', 'number', 'player', 'team', 'rookie'];
 
 // Known parallel names for fallback detection when reference data isn't available
 // These are matched at the END of card names (case-insensitive)
@@ -1154,23 +1154,23 @@ function parseMultiConfigOdds() {
 
         if (!cardName) continue;
 
-        // Split card name into card_type and parallel
+        // Split card name into set_name and parallel
         const { cardType, parallel } = splitCardNameIntoTypeAndParallel(cardName);
 
-        // Auto-detect category from card name
-        const category = detectCategoryFromCardName(cardName);
+        // Auto-detect type from card name
+        const cardCategory = detectCategoryFromCardName(cardName);
 
-        // Create a row for EACH config, using dash for empty odds
+        // Create a row for EACH box config, using dash for empty odds
         for (let j = 0; j < configs.length; j++) {
             const odds = oddsValues[j] || '-';
             outputRows.push({
-                config: configs[j].original,
-                configOriginal: configs[j].original,
-                card_type: cardType,
+                box: configs[j].original,
+                boxOriginal: configs[j].original,
+                set_name: cardType,
                 parallel: parallel || 'Base',
-                out_of: '-',
+                numbered: '-',
                 odds: odds,
-                category: category
+                type: cardCategory
             });
         }
     }
@@ -1536,11 +1536,11 @@ function renderMultiConfigPreview() {
     for (const row of state.multiConfigParsedRows.slice(0, 100)) { // Limit preview to 100 rows
         html += '<tr>';
         html += `<td>${escapeHtml(state.productId)}</td>`;
-        html += `<td>${escapeHtml(row.config)}</td>`;
-        html += `<td>${escapeHtml(row.category)}</td>`;
-        html += `<td>${escapeHtml(row.card_type)}</td>`;
+        html += `<td>${escapeHtml(row.box)}</td>`;
+        html += `<td>${escapeHtml(row.type)}</td>`;
+        html += `<td>${escapeHtml(row.set_name)}</td>`;
         html += `<td>${escapeHtml(row.parallel)}</td>`;
-        html += `<td>${escapeHtml(row.out_of)}</td>`;
+        html += `<td>${escapeHtml(row.numbered)}</td>`;
         html += `<td>${escapeHtml(row.odds)}</td>`;
         html += '</tr>';
     }
@@ -1552,14 +1552,14 @@ function renderMultiConfigPreview() {
     }
 
     // Add summary
-    const configCounts = {};
+    const boxCounts = {};
     state.multiConfigParsedRows.forEach(row => {
-        configCounts[row.config] = (configCounts[row.config] || 0) + 1;
+        boxCounts[row.box] = (boxCounts[row.box] || 0) + 1;
     });
 
     html = `<div class="preview-summary">
-        <p><strong>${state.multiConfigParsedRows.length}</strong> total rows across <strong>${Object.keys(configCounts).length}</strong> configurations</p>
-        <p>Configs: ${Object.entries(configCounts).map(([k, v]) => `${k} (${v})`).join(', ')}</p>
+        <p><strong>${state.multiConfigParsedRows.length}</strong> total rows across <strong>${Object.keys(boxCounts).length}</strong> box configurations</p>
+        <p>Box configs: ${Object.entries(boxCounts).map(([k, v]) => `${k} (${v})`).join(', ')}</p>
     </div>` + html;
 
     container.innerHTML = html;
@@ -1751,17 +1751,17 @@ function parseMultiConfigOddsText(rawText, configs) {
         if (!cardName) continue;
 
         const { cardType, parallel } = splitCardNameIntoTypeAndParallel(cardName);
-        const category = detectCategoryFromCardName(cardName);
+        const cardCategory = detectCategoryFromCardName(cardName);
 
         for (let j = 0; j < configs.length; j++) {
             const odds = oddsValues[j] || '-';
             outputRows.push({
-                config: configs[j].original,
-                card_type: cardType,
+                box: configs[j].original,
+                set_name: cardType,
                 parallel: parallel || 'Base',
-                out_of: '-',
+                numbered: '-',
                 odds: odds,
-                category: category
+                type: cardCategory
             });
         }
     }
@@ -1812,11 +1812,11 @@ function renderMultiConfigOddsPreviewTable(container) {
     for (const row of state.multiConfigParsedRows.slice(0, 100)) {
         html += '<tr>';
         html += `<td>${escapeHtml(state.productId)}</td>`;
-        html += `<td>${escapeHtml(row.config)}</td>`;
-        html += `<td>${escapeHtml(row.category)}</td>`;
-        html += `<td>${escapeHtml(row.card_type)}</td>`;
+        html += `<td>${escapeHtml(row.box)}</td>`;
+        html += `<td>${escapeHtml(row.type)}</td>`;
+        html += `<td>${escapeHtml(row.set_name)}</td>`;
         html += `<td>${escapeHtml(row.parallel)}</td>`;
-        html += `<td>${escapeHtml(row.out_of)}</td>`;
+        html += `<td>${escapeHtml(row.numbered)}</td>`;
         html += `<td>${escapeHtml(row.odds)}</td>`;
         html += '</tr>';
     }
@@ -1828,13 +1828,13 @@ function renderMultiConfigOddsPreviewTable(container) {
     }
 
     // Add summary
-    const configCounts = {};
+    const boxCounts = {};
     state.multiConfigParsedRows.forEach(row => {
-        configCounts[row.config] = (configCounts[row.config] || 0) + 1;
+        boxCounts[row.box] = (boxCounts[row.box] || 0) + 1;
     });
 
     html = `<div class="preview-summary">
-        <p><strong>${state.multiConfigParsedRows.length}</strong> total rows across <strong>${Object.keys(configCounts).length}</strong> configurations</p>
+        <p><strong>${state.multiConfigParsedRows.length}</strong> total rows across <strong>${Object.keys(boxCounts).length}</strong> box configurations</p>
     </div>` + html;
 
     container.innerHTML = html;
@@ -1984,21 +1984,21 @@ function detectColumnMappingForRows(rows, dataType) {
                 continue;
             }
             if (sampleValues.length > 0 && sampleValues.every(v => /^\d+$/.test(v))) {
-                mapping[i] = 'out_of';
+                mapping[i] = 'numbered';
                 continue;
             }
-            if (!Object.values(mapping).includes('card_type') && i === 0) {
-                mapping[i] = 'card_type';
+            if (!Object.values(mapping).includes('set_name') && i === 0) {
+                mapping[i] = 'set_name';
                 continue;
             }
             if (!Object.values(mapping).includes('parallel') && i === 1) {
                 mapping[i] = 'parallel';
                 continue;
             }
-            if (!Object.values(mapping).includes('category')) {
+            if (!Object.values(mapping).includes('type')) {
                 const categories = ['base', 'insert', 'autograph', 'relic', 'autograph_relic'];
                 if (sampleValues.some(v => categories.includes(v.toLowerCase()))) {
-                    mapping[i] = 'category';
+                    mapping[i] = 'type';
                     continue;
                 }
             }
@@ -2009,13 +2009,13 @@ function detectColumnMappingForRows(rows, dataType) {
                 continue;
             }
             if (sampleValues.length > 0 && sampleValues.every(v => /^\d+$/.test(v))) {
-                if (!Object.values(mapping).includes('card_num')) {
-                    mapping[i] = 'card_num';
+                if (!Object.values(mapping).includes('number')) {
+                    mapping[i] = 'number';
                 }
                 continue;
             }
             if (sampleValues.some(v => /^[A-Z]+-?\d+$/i.test(v) || /^RC-?\d+$/i.test(v))) {
-                mapping[i] = 'card_num';
+                mapping[i] = 'number';
                 continue;
             }
             const teamPatterns = /celtics|lakers|bulls|heat|warriors|nets|knicks|mavericks|suns|bucks|76ers|spurs|rockets|jazz|nuggets|clippers|grizzlies|pelicans|hawks|hornets|pacers|pistons|magic|wizards|raptors|cavaliers|timberwolves|thunder|blazers|kings/i;
@@ -2627,19 +2627,19 @@ function detectColumns() {
             continue;
         }
 
-        // Pure numbers (could be card_num or out_of)
+        // Pure numbers (could be number or numbered)
         if (sampleValues.length > 0 && sampleValues.every(v => /^\d+$/.test(v))) {
             if (state.dataType === 'odds') {
-                state.columnMapping[i] = 'out_of';
-            } else if (!Object.values(state.columnMapping).includes('card_num')) {
-                state.columnMapping[i] = 'card_num';
+                state.columnMapping[i] = 'numbered';
+            } else if (!Object.values(state.columnMapping).includes('number')) {
+                state.columnMapping[i] = 'number';
             }
             continue;
         }
 
         // Card numbers with letters
         if (sampleValues.some(v => /^[A-Z]+-?\d+$/i.test(v) || /^RC-?\d+$/i.test(v))) {
-            state.columnMapping[i] = 'card_num';
+            state.columnMapping[i] = 'number';
             continue;
         }
 
@@ -2691,12 +2691,12 @@ function renderPreview() {
 
         mappedRow.product_id = state.productId;
         if (state.dataType === 'odds') {
-            mappedRow.config = state.boxConfig;
-            mappedRow.category = state.cardCategory;
+            mappedRow.box = state.boxConfig;
+            mappedRow.type = state.cardCategory;
         } else {
-            // Checklist: add set_type and set_name (use per-row metadata if available)
+            // Checklist: add type and set_name (use per-row metadata if available)
             const rowMeta = state.rowMetadata[rowIndex] || {};
-            mappedRow.set_type = rowMeta.set_type || state.setType;
+            mappedRow.type = rowMeta.set_type || state.setType;
             mappedRow.set_name = rowMeta.set_name || state.setName;
         }
 
@@ -2795,11 +2795,11 @@ function renderCombinedPreviewTable(containerId, rows, rowMetadata, columnMappin
 
         mappedRow.product_id = state.productId;
         if (dataType === 'odds') {
-            mappedRow.config = 'hobby';  // Default to hobby in combined mode
-            // category is auto-detected and should be in the row
+            mappedRow.box = 'hobby';  // Default to hobby in combined mode
+            // type is auto-detected and should be in the row
         } else {
             const rowMeta = rowMetadata[rowIndex] || {};
-            mappedRow.set_type = rowMeta.set_type || '';
+            mappedRow.type = rowMeta.set_type || '';
             mappedRow.set_name = rowMeta.set_name || '';
         }
 
@@ -2809,11 +2809,11 @@ function renderCombinedPreviewTable(containerId, rows, rowMetadata, columnMappin
 
         // For odds, map from row array directly since it's already structured
         if (dataType === 'odds') {
-            mappedRow.card_type = row[0] || '';
+            mappedRow.set_name = row[0] || '';
             mappedRow.parallel = row[1] || 'Base';
-            mappedRow.out_of = row[2] || '-';
+            mappedRow.numbered = row[2] || '-';
             mappedRow.odds = row[3] || '';
-            mappedRow.category = row[4] || '';
+            mappedRow.type = row[4] || '';
         }
 
         // Auto-detect rookie status for checklists
@@ -2871,8 +2871,8 @@ function detectRookieStatus(row, rawRow) {
         }
     }
 
-    // Check card_num for RC prefix
-    if (row.card_num && /^RC/i.test(row.card_num)) {
+    // Check number for RC prefix
+    if (row.number && /^RC/i.test(row.number)) {
         return 'TRUE';
     }
 
@@ -2890,8 +2890,8 @@ function detectRookieStatus(row, rawRow) {
         }
     }
 
-    // Check set_type
-    if (row.set_type && /rookie/i.test(row.set_type)) {
+    // Check type
+    if (row.type && /rookie/i.test(row.type)) {
         return 'TRUE';
     }
 
@@ -2945,12 +2945,12 @@ function generateCSV() {
         rowData.product_id = state.productId;
 
         if (state.dataType === 'odds') {
-            rowData.config = state.boxConfig;
-            rowData.category = state.cardCategory;
+            rowData.box = state.boxConfig;
+            rowData.type = state.cardCategory;
         } else {
             // Use per-row metadata if available, fallback to global state
             const rowMeta = state.rowMetadata[rowIndex] || {};
-            rowData.set_type = rowMeta.set_type || state.setType;
+            rowData.type = rowMeta.set_type || state.setType;
             rowData.set_name = rowMeta.set_name || state.setName;
         }
 
@@ -2994,11 +2994,11 @@ function generateMultiConfigCSV() {
     state.multiConfigParsedRows.forEach(row => {
         const rowData = {
             product_id: state.productId,
-            config: row.config,
-            category: row.category,
-            card_type: row.card_type,
+            box: row.box,
+            type: row.type,
+            set_name: row.set_name,
             parallel: row.parallel,
-            out_of: row.out_of,
+            numbered: row.numbered,
             odds: row.odds
         };
 
@@ -3092,11 +3092,11 @@ function generateMultiConfigOddsCsv() {
     state.multiConfigParsedRows.forEach(row => {
         const rowData = {
             product_id: state.productId,
-            config: row.config,
-            category: row.category,
-            card_type: row.card_type,
+            box: row.box,
+            type: row.type,
+            set_name: row.set_name,
             parallel: row.parallel,
-            out_of: row.out_of,
+            numbered: row.numbered,
             odds: row.odds
         };
 
@@ -3121,16 +3121,16 @@ function generateCsvForDataset(rows, rowMetadata, columnMapping, expectedCols, d
         rowData.product_id = state.productId;
 
         if (dataType === 'odds') {
-            rowData.config = 'hobby';  // Default to hobby in combined mode
+            rowData.box = 'hobby';  // Default to hobby in combined mode
             // Map from row array directly since odds rows are already structured
-            rowData.card_type = row[0] || '';
+            rowData.set_name = row[0] || '';
             rowData.parallel = row[1] || 'Base';
-            rowData.out_of = row[2] || '-';
+            rowData.numbered = row[2] || '-';
             rowData.odds = row[3] || '';
-            rowData.category = row[4] || '';
+            rowData.type = row[4] || '';
         } else {
             const rowMeta = rowMetadata[rowIndex] || {};
-            rowData.set_type = rowMeta.set_type || '';
+            rowData.type = rowMeta.set_type || '';
             rowData.set_name = rowMeta.set_name || '';
 
             // Map columns from parsed data
