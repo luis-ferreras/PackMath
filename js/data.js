@@ -175,8 +175,16 @@ export async function loadChecklistForProduct(productSlug) {
 
     const checklist = await fetchProductChecklist(entry.sheet, entry.checklist_gid || 0);
 
-    // Set product_id on each row for filtering
+    // Normalize column names and set product_id on each row for filtering
     checklist.forEach(row => {
+        // Map set -> set_type (category like BASE, INSERT)
+        if (!row.set_type && row.set) {
+            row.set_type = row.set;
+        }
+        // Map number -> card_num
+        if (!row.card_num && row.number) {
+            row.card_num = row.number;
+        }
         row.product_id = productSlug;
     });
 
@@ -209,13 +217,29 @@ export async function loadOddsForProduct(productSlug) {
 
     // Normalize column names (support both old and new Google Sheets column names)
     odds.forEach(row => {
-        // Map set_type -> config (box type: hobby, retail, etc.)
+        // Map box -> config (box type: hobby, retail, etc.)
+        if (!row.config && row.box) {
+            row.config = row.box;
+        }
+        // Legacy: Map set_type -> config
         if (!row.config && row.set_type) {
             row.config = row.set_type;
         }
-        // Map box_config -> category (card category: base, insert, autograph, relic)
+        // Map type -> category (card category: base, insert, autograph, relic)
+        if (!row.category && row.type) {
+            row.category = row.type;
+        }
+        // Legacy: Map box_config -> category
         if (!row.category && row.box_config) {
             row.category = row.box_config;
+        }
+        // Map set -> card_type (the card type name: Base, Rookie Autographs, etc.)
+        if (!row.card_type && row.set) {
+            row.card_type = row.set;
+        }
+        // Map numbered -> out_of (the /XX numbering)
+        if (!row.out_of && row.numbered) {
+            row.out_of = row.numbered;
         }
         // Set product_id for filtering
         row.product_id = productSlug;
