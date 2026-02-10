@@ -1,4 +1,4 @@
-import { loadData, getAvailableSports, getAllProducts, searchProducts, getProduct, getAvailableConfigs, PRODUCTS, loadOddsForProduct, isOddsLoaded } from './data.js';
+import { loadData, getAvailableSports, getAllProducts, searchProducts, getProduct, getAvailableConfigs, PRODUCTS, loadOddsForProduct, isOddsLoaded, loadConfigForProduct, isConfigLoaded } from './data.js';
 import { state, updateURL, loadStateFromURL } from './state.js';
 import { renderLanding, renderSearchResults, renderProductPage, renderTabContent, renderProductTabs, renderSportsSidebar, renderSportFilterView } from './render.js';
 
@@ -58,9 +58,16 @@ async function navigateToProduct(productId) {
     state.product = productId;
     state.tab = 'odds';
 
-    // Load odds data first (needed for available configs)
+    // Load odds and config data (needed for available configs and box info)
+    const loadPromises = [];
     if (!isOddsLoaded(productId)) {
-        await loadOddsForProduct(productId);
+        loadPromises.push(loadOddsForProduct(productId));
+    }
+    if (!isConfigLoaded(productId)) {
+        loadPromises.push(loadConfigForProduct(productId));
+    }
+    if (loadPromises.length > 0) {
+        await Promise.all(loadPromises);
     }
 
     // Validate and set config - use first available if current is invalid
