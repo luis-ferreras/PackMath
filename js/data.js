@@ -219,8 +219,8 @@ function processProducts(rows) {
     const slugs = {};
 
     rows.forEach(row => {
-        // Use product_url as the canonical ID (if available), otherwise fall back to product_id
-        const productId = row.product_url || row.product_id;
+        // Support both old column names (product_url, product_id) and new ones (slug, name)
+        const productId = row.slug || row.product_url || row.product_id;
 
         if (productId) {
             // Build configs from Configuration sheet for this product
@@ -241,28 +241,40 @@ function processProducts(rows) {
                 ? productConfigs
                 : { ...DEFAULT_CONFIGS };
 
-            // Year comes from the tab name (e.g., "2025-26")
-            const year = row._yearTab || '';
-            const brand = row.product_brand || '';
-            const releaseDate = row.release_date || '';
+            // Year comes from the tab name (e.g., "2025-26"), or extract from product name
+            let year = row._yearTab || '';
+            // If no year tab, try to extract year from the product name (e.g., "2025-26 Topps...")
+            if (!year) {
+                const yearMatch = (row.name || row.product_id || '').match(/^(\d{4}(-\d{2})?)/);
+                if (yearMatch) {
+                    year = yearMatch[1];
+                }
+            }
+            // Support both old (product_brand) and new (brand) column names
+            const brand = row.brand || row.product_brand || '';
+            // Support both old (release_date) and new (release) column names
+            const releaseDate = row.release || row.release_date || '';
 
-            // Display name from product_id column (the friendly name)
-            const displayProductName = row.product_id || productId;
+            // Display name: use 'name' column (new) or 'product_id' (old) for the friendly name
+            const displayProductName = row.name || row.product_id || productId;
 
             // Build display name: [year] [brand] [product_id]
             const displayName = [year, brand, displayProductName].filter(Boolean).join(' ');
 
-            // Generate URL slug from product_url or generate one
-            const slug = row.product_url || generateSlug(year, brand, displayProductName);
+            // Generate URL slug from slug column (new), product_url (old), or generate one
+            const slug = row.slug || row.product_url || generateSlug(year, brand, displayProductName);
+
+            // Support both old (product_sport) and new (sport) column names
+            const sport = row.sport || row.product_sport || '';
 
             products[productId] = {
                 id: productId,
                 slug: slug,
                 name: displayName,
-                sport: row.product_sport || '',
+                sport: sport,
                 brand: brand,
                 year: year,
-                url: row.product_url || '',
+                url: row.slug || row.product_url || '',
                 releaseDate: releaseDate,
                 configs
             };
