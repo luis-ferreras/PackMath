@@ -1,6 +1,10 @@
 // Google Sheets Configuration
-// Each data type has its own spreadsheet, with tabs for each year
 
+// Master List - index of all products with their sheet IDs
+// Published CSV URL for the master list
+export const MASTER_LIST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6kdOB0F4zknv__ahr_Iks6PtD0-RztgqNJYVcMwrmMzKcycMD7cUCrLPmDXM7VpNlhvz0TbfW1KDh/pub?gid=0&single=true&output=csv';
+
+// Legacy sheets (products and configuration still use the old system)
 export const SHEETS = {
     products: {
         id: '1K4mhDFB1X3l-NDINas885FM0s50voB9nlQI2rssUbJ4',
@@ -9,16 +13,13 @@ export const SHEETS = {
     configuration: {
         id: '1JtECxSnhnyTLAAH_NnZSbJdU6x2wWHvlgWOvm9NMYJY',
         name: 'Box Configuration'
-    },
-    odds: {
-        id: '1kISedg6ukK8gL_0BUURKKScCTOkNcGYsYNEZTQU5c8s',
-        name: 'Odds'
-    },
-    checklist: {
-        id: '1Fg2HOJfQXo7p8J24YiilX2VTWhcs2uEao7x3NXZAE4Y',
-        name: 'Checklist'
     }
 };
+
+// Build URL to fetch a specific tab from a product's sheet (using sheet ID and gid)
+export function getProductSheetURL(sheetId, gid) {
+    return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+}
 
 // Year tabs to fetch from each sheet
 // Each entry maps tab name to its gid (sheet ID within the spreadsheet)
