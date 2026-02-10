@@ -3,7 +3,8 @@ import {
     getAvailableSports, getAllProducts, searchProducts, getProduct, getAvailableConfigs,
     getConfigInfo, getChecklistForProduct, getOddsForProduct,
     getAllParallelsForProduct, getAllInsertsForProduct, getAllAutographsForProduct,
-    getAllRelicsForProduct, getAllAutoRelicsForProduct
+    getAllRelicsForProduct, getAllAutoRelicsForProduct,
+    loadChecklistForProduct, loadOddsForProduct, isChecklistLoaded, isOddsLoaded
 } from './data.js';
 
 // ========================================
@@ -280,7 +281,14 @@ function renderProductGrid(products) {
 // Product Page
 // ========================================
 
-export function renderProductPage() {
+export async function renderProductPage() {
+    const productSlug = state.product;
+
+    // Load odds data first (needed for configs in hero)
+    if (!isOddsLoaded(productSlug)) {
+        await loadOddsForProduct(productSlug);
+    }
+
     renderProductHero();
     renderProductTabs();
     renderTabContent();
@@ -381,17 +389,37 @@ export function renderProductTabs() {
     document.getElementById('productTabs').innerHTML = tabsHtml;
 }
 
-export function renderTabContent() {
+export async function renderTabContent() {
     const container = document.getElementById('tabContent');
+    const productSlug = state.product;
+
+    // Show loading state while fetching data
+    const showLoading = () => {
+        container.innerHTML = `<div class="empty-state"><p class="empty-state-text">Loading...</p></div>`;
+    };
 
     switch (state.tab) {
         case 'odds':
+            // Load odds data if not already cached
+            if (!isOddsLoaded(productSlug)) {
+                showLoading();
+                await loadOddsForProduct(productSlug);
+            }
             container.innerHTML = renderOddsTab();
             break;
         case 'checklist':
+            // Load checklist data if not already cached
+            if (!isChecklistLoaded(productSlug)) {
+                showLoading();
+                await loadChecklistForProduct(productSlug);
+            }
             container.innerHTML = renderChecklistTab();
             break;
         default:
+            if (!isOddsLoaded(productSlug)) {
+                showLoading();
+                await loadOddsForProduct(productSlug);
+            }
             container.innerHTML = renderOddsTab();
     }
 }

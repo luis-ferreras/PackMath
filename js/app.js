@@ -1,4 +1,4 @@
-import { loadData, getAvailableSports, getAllProducts, searchProducts, getProduct, getAvailableConfigs, PRODUCTS } from './data.js';
+import { loadData, getAvailableSports, getAllProducts, searchProducts, getProduct, getAvailableConfigs, PRODUCTS, loadOddsForProduct, isOddsLoaded } from './data.js';
 import { state, updateURL, loadStateFromURL } from './state.js';
 import { renderLanding, renderSearchResults, renderProductPage, renderTabContent, renderProductTabs, renderSportsSidebar, renderSportFilterView } from './render.js';
 
@@ -48,7 +48,7 @@ function navigateToSearch(query, sportFilter = null) {
     document.getElementById('headerSearchInput').value = query;
 }
 
-function navigateToProduct(productId) {
+async function navigateToProduct(productId) {
     const product = getProduct(productId);
     if (!product) {
         navigateToLanding();
@@ -57,6 +57,11 @@ function navigateToProduct(productId) {
 
     state.product = productId;
     state.tab = 'odds';
+
+    // Load odds data first (needed for available configs)
+    if (!isOddsLoaded(productId)) {
+        await loadOddsForProduct(productId);
+    }
 
     // Validate and set config - use first available if current is invalid
     const availableConfigs = getAvailableConfigs(productId);
@@ -549,13 +554,13 @@ function initEventListeners() {
 // Initialization
 // ========================================
 
-function initFromState() {
+async function initFromState() {
     // Always render the sidebar
     renderSportsSidebar();
 
     if (state.view === 'product' && state.product && PRODUCTS[state.product]) {
         showView('product');
-        renderProductPage();
+        await renderProductPage();
         updateTabActiveState();
     } else if (state.view === 'search' && state.searchQuery) {
         showView('search');
@@ -592,7 +597,7 @@ async function init() {
     initEventListeners();
 
     // Render initial view based on state
-    initFromState();
+    await initFromState();
 }
 
 document.addEventListener('DOMContentLoaded', init);

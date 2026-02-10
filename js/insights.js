@@ -1,4 +1,4 @@
-import { PRODUCTS, ODDS_RAW, CHECKLIST, getOddsForProduct, getAvailableConfigs, getAllParallelsForProduct, getAllAutographsForProduct, formatOddsValue, getConfigInfo } from './data.js';
+import { PRODUCTS, getChecklistForProduct, getOddsRawForProduct, getOddsForProduct, getAvailableConfigs, getAllParallelsForProduct, getAllAutographsForProduct, formatOddsValue, getConfigInfo } from './data.js';
 import { parseOdds } from './utils.js';
 
 // Helper to get display name for a card row
@@ -72,7 +72,8 @@ export function calculateProductScore(productId, config) {
 
     const configInfo = getConfigInfo(productId, config);
     const packsPerBox = configInfo.packs || 0;
-    const allCards = ODDS_RAW.filter(r => r.product_id === productId && r.config === config && r.odds);
+    const oddsRaw = getOddsRawForProduct(productId);
+    const allCards = oddsRaw.filter(r => r.config === config && r.odds);
 
     if (allCards.length === 0) return null;
 
@@ -114,7 +115,8 @@ export function calculateProductScore(productId, config) {
 
 // Variance/Risk Rating
 export function calculateVariance(productId, config) {
-    const allCards = ODDS_RAW.filter(r => r.product_id === productId && r.config === config && r.odds);
+    const oddsRaw = getOddsRawForProduct(productId);
+    const allCards = oddsRaw.filter(r => r.config === config && r.odds);
     if (allCards.length === 0) return null;
 
     const odds = allCards.map(r => parseOdds(r.odds)).filter(Boolean);
@@ -154,8 +156,8 @@ export function calculateBreakeven(productId, config) {
 
     const configInfo = getConfigInfo(productId, config);
     const packsPerBox = configInfo.packs || 0;
-    const chaseCards = ODDS_RAW.filter(r =>
-        r.product_id === productId &&
+    const oddsRaw = getOddsRawForProduct(productId);
+    const chaseCards = oddsRaw.filter(r =>
         r.config === config &&
         r.odds &&
         parseOdds(r.odds) >= 200
@@ -194,11 +196,12 @@ export function compareConfigs(productId) {
     const configs = getAvailableConfigs(productId);
     if (configs.length < 2) return null;
 
+    const oddsRaw = getOddsRawForProduct(productId);
     const comparison = configs.map(config => {
         const configInfo = getConfigInfo(productId, config);
         const packs = configInfo.packs || 0;
 
-        const allOdds = ODDS_RAW.filter(r => r.product_id === productId && r.config === config && r.odds);
+        const allOdds = oddsRaw.filter(r => r.config === config && r.odds);
         const autoRow = allOdds.find(r => r.category === 'autograph');
         const chaseCount = allOdds.filter(r => parseOdds(r.odds) >= 100).length;
 
@@ -239,7 +242,8 @@ export function findSweetSpot(productId, config) {
     const packsPerBox = configInfo.packs || 0;
 
     // Find the "signature" chase card (hardest auto or parallel)
-    const allOdds = ODDS_RAW.filter(r => r.product_id === productId && r.config === config && r.odds);
+    const oddsRaw = getOddsRawForProduct(productId);
+    const allOdds = oddsRaw.filter(r => r.config === config && r.odds);
     const targetCard = allOdds
         .map(r => ({ name: getCardDisplayName(r), odds: parseOdds(r.odds) }))
         .filter(r => r.odds >= 100 && r.odds <= 1000)
@@ -275,7 +279,7 @@ export function estimateSetCompletion(productId, config) {
     if (!product) return null;
 
     const configInfo = getConfigInfo(productId, config);
-    const checklist = CHECKLIST.filter(r => r.product_id === productId);
+    const checklist = getChecklistForProduct(productId);
     const baseCards = checklist.filter(r => !r.set_type || r.set_type === 'Base' || r.set_name === 'Base');
 
     if (baseCards.length === 0) return null;
@@ -298,7 +302,7 @@ export function estimateSetCompletion(productId, config) {
 
 // Rookie Focus
 export function getRookieInsights(productId, config) {
-    const checklist = CHECKLIST.filter(r => r.product_id === productId);
+    const checklist = getChecklistForProduct(productId);
     const rookies = checklist.filter(c => ['TRUE', 'true', '1', 'Yes', 'yes'].includes(c.rookie));
 
     if (rookies.length === 0) return null;
@@ -316,7 +320,8 @@ export function getRookieInsights(productId, config) {
 
 // Rarest Card Spotlight
 export function getWhaleCard(productId, config) {
-    const allOdds = ODDS_RAW.filter(r => r.product_id === productId && r.config === config && r.odds);
+    const oddsRaw = getOddsRawForProduct(productId);
+    const allOdds = oddsRaw.filter(r => r.config === config && r.odds);
     if (allOdds.length === 0) return null;
 
     const sorted = allOdds
@@ -353,8 +358,8 @@ export function getWhaleCard(productId, config) {
 
 // Parallel Ranking by value
 export function rankParallels(productId, config) {
-    const allOdds = ODDS_RAW.filter(r =>
-        r.product_id === productId &&
+    const oddsRaw = getOddsRawForProduct(productId);
+    const allOdds = oddsRaw.filter(r =>
         r.config === config &&
         r.category === 'base' &&
         r.odds
@@ -375,10 +380,11 @@ export function rankParallels(productId, config) {
 // Legacy exports (keep for backward compatibility)
 export function findBestValueConfig(productId, parallelName) {
     const configs = getAvailableConfigs(productId);
+    const oddsRaw = getOddsRawForProduct(productId);
     let bestConfig = null;
     let bestOdds = Infinity;
     configs.forEach(config => {
-        const row = ODDS_RAW.find(r => r.product_id === productId && r.config === config && (r.parallel === parallelName || r.card_type === parallelName));
+        const row = oddsRaw.find(r => r.config === config && (r.parallel === parallelName || r.card_type === parallelName));
         if (row && row.odds) {
             const odds = parseOdds(row.odds);
             if (odds && odds < bestOdds) { bestOdds = odds; bestConfig = config; }
@@ -388,7 +394,8 @@ export function findBestValueConfig(productId, parallelName) {
 }
 
 export function findChaseCards(productId, config) {
-    const filtered = ODDS_RAW.filter(row => row.product_id === productId && row.config === config && row.odds);
+    const oddsRaw = getOddsRawForProduct(productId);
+    const filtered = oddsRaw.filter(row => row.config === config && row.odds);
     return filtered.map(row => ({
         name: getCardDisplayName(row),
         category: row.category,
@@ -402,7 +409,8 @@ export function calculateExpectedHits(productId, config) {
     if (!product) return [];
     const configInfo = getConfigInfo(productId, config);
     const totalPacks = configInfo.packs || 0;
-    const filtered = ODDS_RAW.filter(row => row.product_id === productId && row.config === config && row.category === 'base' && row.odds);
+    const oddsRaw = getOddsRawForProduct(productId);
+    const filtered = oddsRaw.filter(row => row.config === config && row.category === 'base' && row.odds);
     return filtered.map(row => {
         const odds = parseOdds(row.odds);
         if (!odds) return null;
@@ -417,7 +425,8 @@ export function calculateExpectedHits(productId, config) {
 }
 
 export function groupByRarityTier(productId, config) {
-    const filtered = ODDS_RAW.filter(row => row.product_id === productId && row.config === config && row.odds);
+    const oddsRaw = getOddsRawForProduct(productId);
+    const filtered = oddsRaw.filter(row => row.config === config && row.odds);
     const tiers = { common: [], uncommon: [], rare: [], chase: [] };
     filtered.forEach(row => {
         const odds = parseOdds(row.odds);
