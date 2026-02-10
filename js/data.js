@@ -218,20 +218,22 @@ export async function loadOddsForProduct(productSlug) {
     // Normalize column names (support both old and new Google Sheets column names)
     odds.forEach(row => {
         // Map box -> config (box type: hobby, retail, etc.)
-        if (!row.config && row.box) {
-            row.config = row.box;
+        // Normalize to lowercase and trim whitespace
+        if (row.box && (!row.config || !row.config.trim())) {
+            row.config = row.box.toLowerCase().trim();
         }
         // Legacy: Map set_type -> config
-        if (!row.config && row.set_type) {
-            row.config = row.set_type;
+        if (row.set_type && (!row.config || !row.config.trim())) {
+            row.config = row.set_type.toLowerCase().trim();
         }
         // Map type -> category (card category: base, insert, autograph, relic)
-        if (!row.category && row.type) {
-            row.category = row.type;
+        // Normalize to lowercase and trim whitespace
+        if (row.type && (!row.category || !row.category.trim())) {
+            row.category = row.type.toLowerCase().trim();
         }
         // Legacy: Map box_config -> category
-        if (!row.category && row.box_config) {
-            row.category = row.box_config;
+        if (row.box_config && (!row.category || !row.category.trim())) {
+            row.category = row.box_config.toLowerCase().trim();
         }
         // Map set_name -> card_type (the card type name: Base, Rookie Autographs, etc.)
         if (!row.card_type && row.set_name) {
@@ -244,6 +246,12 @@ export async function loadOddsForProduct(productSlug) {
         // Set product_id for filtering
         row.product_id = productSlug;
     });
+
+    // Debug: log normalized odds data
+    console.log('Loaded odds for', productSlug, ':', odds.length, 'rows');
+    if (odds.length > 0) {
+        console.log('Sample row:', { config: odds[0].config, category: odds[0].category, card_type: odds[0].card_type });
+    }
 
     ODDS_CACHE[productSlug] = odds;
 
