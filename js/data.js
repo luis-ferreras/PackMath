@@ -783,7 +783,7 @@ export function getAllAutoRelicsForProduct(productId) {
         const cat = (row.category || '').toLowerCase().trim();
         return cat === 'autograph_relic' || cat === 'autograph relic' || cat === 'auto relic' || cat === 'auto_relic';
     }).forEach(row => {
-        const setName = row.card_type || 'Auto Relic';
+        const setName = row.card_type || 'Autograph Relic';
         const parallelName = row.parallel || 'Base';
 
         if (!setMap.has(setName)) setMap.set(setName, new Map());

@@ -375,7 +375,7 @@ function renderChecklistStats() {
         ${autoRelics > 0 ? `
             <div class="checklist-stat">
                 <span class="checklist-stat-value">${autoRelics}</span>
-                <span class="checklist-stat-label">Auto Relics</span>
+                <span class="checklist-stat-label">Autograph Relics</span>
             </div>
         ` : ''}
     `;
@@ -582,7 +582,7 @@ function renderOddsTab() {
     html += renderTypeGroup('Relics', relics, selectedConfig);
 
     // Auto Relics Section - grouped by type, then by set
-    html += renderTypeGroup('Auto Relics', autoRelics, selectedConfig);
+    html += renderTypeGroup('Autograph Relics', autoRelics, selectedConfig);
 
     return html;
 }
