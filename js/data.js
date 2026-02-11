@@ -681,6 +681,23 @@ export function getAllParallelsForProduct(productId) {
     return parallels;
 }
 
+// Returns parallels grouped by set (card_type), then by parallel name
+// Structure: Map<setName, Map<parallelName, {config: odds}>>
+export function getAllParallelsBySetForProduct(productId) {
+    const setMap = new Map();
+    ODDS_RAW.filter(row => row.product_id === productId && row.category === 'base').forEach(row => {
+        const setName = row.card_type || 'Base';
+        const parallelName = row.parallel || 'Base';
+
+        if (!setMap.has(setName)) setMap.set(setName, new Map());
+        const parallels = setMap.get(setName);
+
+        if (!parallels.has(parallelName)) parallels.set(parallelName, {});
+        parallels.get(parallelName)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
+    });
+    return setMap;
+}
+
 export function getAllInsertsForProduct(productId) {
     const inserts = new Map();
     ODDS_RAW.filter(row => row.product_id === productId && row.category === 'insert').forEach(row => {
