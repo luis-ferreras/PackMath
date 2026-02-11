@@ -1127,6 +1127,8 @@ function parseMultiConfigOdds() {
 
     // Parse data rows and transform to output format
     const outputRows = [];
+    // Load reference data once for case-insensitive set name/parallel matching
+    const referenceCardTypes = loadReferenceCardTypes();
 
     for (let i = dataStartLine; i < lines.length; i++) {
         const line = lines[i];
@@ -1154,11 +1156,20 @@ function parseMultiConfigOdds() {
 
         if (!cardName) continue;
 
-        // Split card name into set_name and parallel
-        const { cardType, parallel } = splitCardNameIntoTypeAndParallel(cardName);
-
-        // Auto-detect type from card name
-        const cardCategory = detectCategoryFromCardName(cardName);
+        // Split card name into set_name and parallel using reference data if available
+        let cardType, parallel, cardCategory;
+        if (referenceCardTypes && referenceCardTypes.length > 0) {
+            const split = splitCardTypeAndParallel(cardName, referenceCardTypes);
+            cardType = split.cardType;
+            parallel = split.parallel;
+            // Detect type from the card type only (not full name with parallel)
+            cardCategory = detectCategory(cardType);
+        } else {
+            const split = splitCardNameIntoTypeAndParallel(cardName);
+            cardType = split.cardType;
+            parallel = split.parallel;
+            cardCategory = detectCategory(cardType);
+        }
 
         // Create a row for EACH box config, using dash for empty odds
         for (let j = 0; j < configs.length; j++) {
@@ -1660,7 +1671,8 @@ function parseCombinedMultiConfigData() {
         state.checklistRawData = checklistText;
         state.validationWarnings = [];
 
-    // Parse checklist
+    // Parse checklist first (to get set_names for odds parsing)
+    let checklistSetNames = [];
     if (checklistText) {
         const checklistLines = checklistText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
@@ -1673,16 +1685,25 @@ function parseCombinedMultiConfigData() {
         const result = parseChecklistData(dataLines);
         state.checklistParsedRows = result.rows;
         state.checklistRowMetadata = result.metadata;
+
+        // Extract set_names for odds parsing (enables case-insensitive matching)
+        checklistSetNames = [...new Set(result.metadata.map(m => m.set_name).filter(n => n))];
     } else {
         state.checklistParsedRows = [];
         state.checklistRowMetadata = [];
     }
 
-    // Parse multi-config odds
+    // Parse multi-config odds using checklist set_names as reference
     if (oddsText) {
-        state.multiConfigParsedRows = parseMultiConfigOddsText(oddsText, configs);
+        state.multiConfigParsedRows = parseMultiConfigOddsText(oddsText, configs, checklistSetNames);
     } else {
         state.multiConfigParsedRows = [];
+    }
+
+    // Validate: check for card types in odds not found in checklist
+    if (checklistSetNames.length > 0 && state.multiConfigParsedRows.length > 0) {
+        const oddsRowsForValidation = state.multiConfigParsedRows.map(r => [r.set_name]);
+        validateOddsAgainstChecklist(oddsRowsForValidation, checklistSetNames);
     }
 
     if (state.checklistParsedRows.length === 0 && state.multiConfigParsedRows.length === 0) {
@@ -1717,7 +1738,7 @@ function parseCombinedMultiConfigData() {
 }
 
 // Parse multi-config odds text into rows
-function parseMultiConfigOddsText(rawText, configs) {
+function parseMultiConfigOddsText(rawText, configs, referenceCardTypes) {
     const lines = rawText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     const outputRows = [];
 
@@ -1750,8 +1771,21 @@ function parseMultiConfigOddsText(rawText, configs) {
 
         if (!cardName) continue;
 
-        const { cardType, parallel } = splitCardNameIntoTypeAndParallel(cardName);
-        const cardCategory = detectCategoryFromCardName(cardName);
+        // Use reference data from checklist for case-insensitive set name/parallel matching
+        let cardType, parallel, cardCategory;
+        if (referenceCardTypes && referenceCardTypes.length > 0) {
+            const split = splitCardTypeAndParallel(cardName, referenceCardTypes);
+            cardType = split.cardType;
+            parallel = split.parallel;
+            // Detect type from the card type only (not full name with parallel)
+            cardCategory = detectCategory(cardType);
+        } else {
+            const split = splitCardNameIntoTypeAndParallel(cardName);
+            cardType = split.cardType;
+            parallel = split.parallel;
+            // Fallback: detect type from card type only for consistency
+            cardCategory = detectCategory(cardType);
+        }
 
         for (let j = 0; j < configs.length; j++) {
             const odds = oddsValues[j] || '-';
