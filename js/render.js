@@ -568,7 +568,7 @@ function renderOddsTab() {
                 <path d="M12 16v-4"></path>
                 <path d="M12 8h.01"></path>
             </svg>
-            <span>Odds data sourced from official product odds sheets (Topps, Panini, etc.)</span>
+            <span>View the official odds for each card type in this product. All data is sourced directly from the manufacturer's odds sheets included with the product. If you spot any errors, please let us know and we'll correct them as soon as possible.</span>
         </div>
     `;
 
@@ -825,7 +825,7 @@ function renderChecklistTab() {
                 <path d="M12 16v-4"></path>
                 <path d="M12 8h.01"></path>
             </svg>
-            <span>Checklist data sourced from official product checklists (Topps, Panini, etc.)</span>
+            <span>Browse all cards available in this product. Filter by set, team, or search for specific players. All data is sourced directly from the manufacturer's official checklists. If you spot any errors, please let us know and we'll correct them as soon as possible.</span>
         </div>
     `;
 
@@ -841,6 +841,18 @@ function renderInsightsTab() {
     const config = state.config;
 
     let html = '<div class="insights-container">';
+
+    // Data source info banner
+    html += `
+        <div class="data-source-info">
+            <svg class="data-source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
+            </svg>
+            <span>Explore detailed analytics and statistics for this product. All calculations are based on official odds and checklist data from the manufacturer. If you spot any errors, please let us know and we'll correct them as soon as possible.</span>
+        </div>
+    `;
 
     // 1. Product Score Card (Violet theme)
     html += renderProductScoreCard(productSlug, config);
