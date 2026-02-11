@@ -1130,8 +1130,8 @@ function renderWhaleCardSpotlight(productSlug, config) {
                     <div class="whale-stat">
                         <span class="whale-stat-icon">🍀</span>
                         <div class="whale-stat-info">
-                            <span class="whale-stat-value">${whale.boxesFor10Percent} boxes</span>
-                            <span class="whale-stat-label">for 10% chance</span>
+                            <span class="whale-stat-value">${whale.boxesFor90Percent} boxes</span>
+                            <span class="whale-stat-label">for 90% chance</span>
                         </div>
                     </div>
                 </div>

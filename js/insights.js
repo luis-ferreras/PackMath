@@ -280,7 +280,11 @@ export function estimateSetCompletion(productId, config) {
 
     const configInfo = getConfigInfo(productId, config);
     const checklist = getChecklistForProduct(productId);
-    const baseCards = checklist.filter(r => !r.set_type || r.set_type === 'Base' || r.set_name === 'Base');
+    // Match the base set detection logic used in render.js for consistency
+    const baseCards = checklist.filter(c => {
+        const setType = (c.set_type || c.set_name || '').toLowerCase();
+        return setType === 'base' || setType === 'base set' || setType.includes('base');
+    });
 
     if (baseCards.length === 0) return null;
 
@@ -340,7 +344,7 @@ export function getWhaleCard(productId, config) {
     const packsPerBox = configInfo.packs || 24;
 
     const boxesFor50 = Math.ceil((Math.log(0.5) / Math.log(1 - 1/whale.oddsNum)) / packsPerBox);
-    const boxesFor10 = Math.ceil((Math.log(0.9) / Math.log(1 - 1/whale.oddsNum)) / packsPerBox);
+    const boxesFor90 = Math.ceil((Math.log(0.1) / Math.log(1 - 1/whale.oddsNum)) / packsPerBox);
 
     return {
         name: whale.name,
@@ -348,7 +352,7 @@ export function getWhaleCard(productId, config) {
         odds: whale.odds,
         oddsNum: whale.oddsNum,
         boxesFor50Percent: boxesFor50,
-        boxesFor10Percent: boxesFor10,
+        boxesFor90Percent: boxesFor90,
         context: whale.oddsNum >= 1000 ? 'True grail - case hit or rarer' :
                  whale.oddsNum >= 500 ? 'Case hit territory' :
                  whale.oddsNum >= 200 ? 'Box hit - expect 1 per few boxes' :
