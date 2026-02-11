@@ -614,6 +614,31 @@ export function formatOddsValue(odds) {
     return str;
 }
 
+// Parse odds string to numeric value for sorting (e.g., "1:6" -> 6, "1:144K" -> 144000)
+export function parseOddsToNumber(oddsStr) {
+    if (!oddsStr || typeof oddsStr !== 'string') return 0;
+
+    const str = oddsStr.trim();
+    if (!str.includes(':')) return 0;
+
+    const parts = str.split(':');
+    if (parts.length !== 2) return 0;
+
+    let numStr = parts[1].trim().toUpperCase();
+    let multiplier = 1;
+
+    if (numStr.endsWith('M')) {
+        multiplier = 1000000;
+        numStr = numStr.slice(0, -1);
+    } else if (numStr.endsWith('K')) {
+        multiplier = 1000;
+        numStr = numStr.slice(0, -1);
+    }
+
+    const num = parseFloat(numStr);
+    return isNaN(num) ? 0 : num * multiplier;
+}
+
 // ========================================
 // Product Stats (for hero card)
 // ========================================
