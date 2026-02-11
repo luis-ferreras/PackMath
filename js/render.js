@@ -511,6 +511,9 @@ export async function renderTabContent() {
 // ========================================
 
 function renderOddsTab() {
+    // Reset section ID counter for fresh IDs
+    oddsSectionIdCounter = 0;
+
     const product = getProduct(state.product);
     if (!product) {
         return `<div class="empty-state"><p class="empty-state-text">Product not found</p></div>`;
@@ -571,6 +574,9 @@ function renderOddsTab() {
     return html;
 }
 
+// Counter for generating unique section IDs
+let oddsSectionIdCounter = 0;
+
 function renderOddsSection(title, dataMap, selectedConfig, nameHeader = 'Card Type') {
     // Filter to only show items that have odds for the selected config
     const filteredEntries = [...dataMap.entries()].filter(([name, configData]) => {
@@ -599,21 +605,32 @@ function renderOddsSection(title, dataMap, selectedConfig, nameHeader = 'Card Ty
         `;
     }).join('');
 
+    const sectionId = `odds-section-${oddsSectionIdCounter++}`;
+    const itemCount = filteredEntries.length;
+
     return `
-        <div class="odds-section">
-            <h3 class="odds-section-title">${title}</h3>
-            <div class="odds-table-container">
-                <table class="odds-table">
-                    <thead>
-                        <tr>
-                            <th class="odds-name-header">${nameHeader}</th>
-                            <th class="odds-config-header">Odds</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rows}
-                    </tbody>
-                </table>
+        <div class="odds-section" id="${sectionId}">
+            <button class="odds-section-header" onclick="toggleOddsSection('${sectionId}')" aria-expanded="true">
+                <h3 class="odds-section-title">${title}</h3>
+                <span class="odds-section-count">${itemCount}</span>
+                <svg class="odds-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m6 9 6 6 6-6"/>
+                </svg>
+            </button>
+            <div class="odds-section-content">
+                <div class="odds-table-container">
+                    <table class="odds-table">
+                        <thead>
+                            <tr>
+                                <th class="odds-name-header">${nameHeader}</th>
+                                <th class="odds-config-header">Odds</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     `;
