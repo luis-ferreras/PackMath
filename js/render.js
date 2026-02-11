@@ -605,12 +605,14 @@ function renderOddsSection(title, dataMap, selectedConfig, nameHeader = 'Card Ty
         `;
     }).join('');
 
-    const sectionId = `odds-section-${oddsSectionIdCounter++}`;
+    const sectionId = `odds-section-${oddsSectionIdCounter}`;
+    const isFirstSection = oddsSectionIdCounter === 0;
+    oddsSectionIdCounter++;
     const itemCount = filteredEntries.length;
 
     return `
-        <div class="odds-section" id="${sectionId}">
-            <button class="odds-section-header" onclick="toggleOddsSection('${sectionId}')" aria-expanded="true">
+        <div class="odds-section${isFirstSection ? '' : ' collapsed'}" id="${sectionId}">
+            <button class="odds-section-header" onclick="toggleOddsSection('${sectionId}')" aria-expanded="${isFirstSection}">
                 <h3 class="odds-section-title">${title}</h3>
                 <span class="odds-section-count">${itemCount}</span>
                 <svg class="odds-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
