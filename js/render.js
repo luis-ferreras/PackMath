@@ -536,42 +536,61 @@ function renderOddsTab() {
 
     let html = '';
 
-    // Base Parallels - grouped by set
-    if (parallelsBySet.size > 0) {
-        for (const [setName, parallels] of parallelsBySet) {
-            html += renderOddsSection(setName, parallels, selectedConfig, 'Parallel');
-        }
-    }
+    // Base Parallels - grouped by type, then by set
+    html += renderTypeGroup('Base', parallelsBySet, selectedConfig);
 
-    // Inserts Section - grouped by set
-    if (inserts.size > 0) {
-        for (const [setName, parallels] of inserts) {
-            html += renderOddsSection(setName, parallels, selectedConfig, 'Parallel');
-        }
-    }
+    // Inserts Section - grouped by type, then by set
+    html += renderTypeGroup('Inserts', inserts, selectedConfig);
 
-    // Autographs Section - grouped by set
-    if (autographs.size > 0) {
-        for (const [setName, parallels] of autographs) {
-            html += renderOddsSection(setName, parallels, selectedConfig, 'Parallel');
-        }
-    }
+    // Autographs Section - grouped by type, then by set
+    html += renderTypeGroup('Autographs', autographs, selectedConfig);
 
-    // Relics Section - grouped by set
-    if (relics.size > 0) {
-        for (const [setName, parallels] of relics) {
-            html += renderOddsSection(setName, parallels, selectedConfig, 'Parallel');
-        }
-    }
+    // Relics Section - grouped by type, then by set
+    html += renderTypeGroup('Memorabilia', relics, selectedConfig);
 
-    // Auto Relics Section - grouped by set
-    if (autoRelics.size > 0) {
-        for (const [setName, parallels] of autoRelics) {
-            html += renderOddsSection(setName, parallels, selectedConfig, 'Parallel');
-        }
-    }
+    // Auto Relics Section - grouped by type, then by set
+    html += renderTypeGroup('Auto Relics', autoRelics, selectedConfig);
 
     return html;
+}
+
+function renderTypeGroup(typeName, setMap, selectedConfig) {
+    if (setMap.size === 0) {
+        return '';
+    }
+
+    // Build sections HTML and count total items with odds for this config
+    let sectionsHtml = '';
+    let totalItems = 0;
+
+    for (const [setName, parallels] of setMap) {
+        // Count items with odds for this config
+        const filteredEntries = [...parallels.entries()].filter(([name, configData]) => {
+            return configData[selectedConfig] !== undefined && configData[selectedConfig] !== null;
+        });
+
+        if (filteredEntries.length > 0) {
+            totalItems += filteredEntries.length;
+            sectionsHtml += renderOddsSection(setName, parallels, selectedConfig, 'Parallel');
+        }
+    }
+
+    // Don't show type group if no items have odds for this config
+    if (totalItems === 0) {
+        return '';
+    }
+
+    return `
+        <div class="odds-type-group">
+            <div class="odds-type-header">
+                <h2 class="odds-type-title">${typeName}</h2>
+                <span class="odds-type-count">${totalItems}</span>
+            </div>
+            <div class="odds-type-content">
+                ${sectionsHtml}
+            </div>
+        </div>
+    `;
 }
 
 // Counter for generating unique section IDs
