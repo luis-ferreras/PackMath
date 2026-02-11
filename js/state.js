@@ -29,7 +29,11 @@ export const state = {
     checklistRookieOnly: false,
     checklistSearch: '',
     checklistSortBy: 'card_num',
-    checklistSortDir: 'asc'
+    checklistSortDir: 'asc',
+
+    // Comparison tab
+    compareBoxA: null,
+    compareBoxB: null
 };
 
 // URL Management
