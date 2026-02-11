@@ -313,13 +313,7 @@ export async function renderProductPage() {
 
 function renderChecklistStats() {
     const checklist = getChecklistForProduct(state.product);
-    const configInfo = getConfigInfo(state.product, state.config);
     const container = document.getElementById('checklistStats');
-
-    // Get box info from config
-    const packs = configInfo?.packs || 0;
-    const cardsPerPack = configInfo?.cardsPerPack || 0;
-    const boxesPerCase = configInfo?.boxesPerCase || 0;
 
     if (checklist.length === 0) {
         container.innerHTML = '';
@@ -351,18 +345,7 @@ function renderChecklistStats() {
         return setType.includes('auto') && isRelic;
     }).length;
 
-    // Build box info list items
-    const boxInfoItems = [];
-    if (packs) boxInfoItems.push(`<li><span class="box-info-label">Packs:</span> <span class="box-info-value">${packs}</span></li>`);
-    if (cardsPerPack) boxInfoItems.push(`<li><span class="box-info-label">Cards/Pack:</span> <span class="box-info-value">${cardsPerPack}</span></li>`);
-    if (boxesPerCase) boxInfoItems.push(`<li><span class="box-info-label">Boxes/Case:</span> <span class="box-info-value">${boxesPerCase}</span></li>`);
-
     container.innerHTML = `
-        ${boxInfoItems.length > 0 ? `
-            <div class="box-info-stat">
-                <ul class="box-info-list">${boxInfoItems.join('')}</ul>
-            </div>
-        ` : ''}
         ${baseSet > 0 ? `
             <div class="checklist-stat">
                 <span class="checklist-stat-value">${baseSet}</span>
@@ -436,6 +419,13 @@ function renderProductHero() {
         metaParts.push(`<strong>Release Date:</strong> ${product.releaseDate}`);
     }
 
+    // Build box info line: # Pack(s) • # Cards/Pack • # Boxes/Case
+    const boxInfoParts = [];
+    if (packs) boxInfoParts.push(`<strong>${packs}</strong> Pack${packs !== 1 ? 's' : ''}`);
+    if (cardsPerPack) boxInfoParts.push(`<strong>${cardsPerPack}</strong> Cards/Pack`);
+    if (boxesPerCase) boxInfoParts.push(`<strong>${boxesPerCase}</strong> Boxes/Case`);
+    const boxInfoLine = boxInfoParts.length > 0 ? boxInfoParts.join(' &bull; ') : '';
+
     document.getElementById('productHero').innerHTML = `
         <div class="hero-toolbar">
             <button class="back-btn" id="productBackBtn" onclick="navigateBack()">
@@ -456,6 +446,7 @@ function renderProductHero() {
         <div class="hero-info">
             <h1 class="hero-name">${displayName}</h1>
             <p class="hero-meta">${metaParts.join(' &bull; ')}</p>
+            ${boxInfoLine ? `<p class="hero-meta hero-box-info">${boxInfoLine}</p>` : ''}
         </div>
     `;
 }
