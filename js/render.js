@@ -722,7 +722,7 @@ function renderChecklistTab() {
                     <circle cx="11" cy="11" r="8"></circle>
                     <path d="M21 21l-4.35-4.35"></path>
                 </svg>
-                <input type="text" class="checklist-search-input" placeholder="Search players..." value="${searchQuery}" oninput="setChecklistSearch(this.value)">
+                <input type="text" id="checklistSearchInput" class="checklist-search-input" placeholder="Search players..." value="${searchQuery}" oninput="setChecklistSearch(this.value)">
             </div>
             <select class="checklist-select" onchange="setChecklistSet(this.value)">
                 <option value="all" ${setFilter === 'all' ? 'selected' : ''}>All Sets</option>
