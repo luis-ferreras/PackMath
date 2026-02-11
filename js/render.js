@@ -375,7 +375,7 @@ function renderChecklistStats() {
         ${autoRelics > 0 ? `
             <div class="checklist-stat">
                 <span class="checklist-stat-value">${autoRelics}</span>
-                <span class="checklist-stat-label">Autograph Relics</span>
+                <span class="checklist-stat-label">Auto Relics</span>
             </div>
         ` : ''}
     `;
