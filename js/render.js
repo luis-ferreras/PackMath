@@ -10,7 +10,8 @@ import {
 } from './data.js';
 import {
     calculateProductScore, calculateVariance, calculateBreakeven,
-    getRookieInsights, getWhaleCard, groupByRarityTier, estimateSetCompletion
+    getRookieInsights, getWhaleCard, groupByRarityTier, estimateSetCompletion,
+    calculateBoxScore
 } from './insights.js';
 
 // ========================================
@@ -1482,7 +1483,12 @@ function renderComparisonTab() {
     });
     html += renderCompareOddsCard('Best Odds by Category', bestOddsRows, boxA, boxB);
 
-    html += renderCompareVerdict(productSlug, boxA, boxB, statsA, statsB, totalCardsA, totalCardsB);
+    // Box Score comparison
+    const scoreA = calculateBoxScore(productSlug, boxA);
+    const scoreB = calculateBoxScore(productSlug, boxB);
+    html += renderCompareBoxScore(scoreA, scoreB, boxA, boxB);
+
+    html += renderCompareVerdict(productSlug, boxA, boxB, statsA, statsB, totalCardsA, totalCardsB, scoreA, scoreB);
 
     html += '</div>';
     return html;
@@ -1572,44 +1578,127 @@ function renderCompareOddsCard(title, rows, boxA, boxB) {
     `;
 }
 
-function renderCompareVerdict(productSlug, boxA, boxB, statsA, statsB, totalCardsA, totalCardsB) {
+function renderCompareBoxScore(scoreA, scoreB, boxA, boxB) {
     const labelA = boxA.charAt(0).toUpperCase() + boxA.slice(1);
     const labelB = boxB.charAt(0).toUpperCase() + boxB.slice(1);
 
-    let scoreA = 0, scoreB = 0;
-    const advantages = { a: [], b: [] };
-
-    if (statsA.total > statsB.total) { scoreA++; advantages.a.push('More variety'); }
-    else if (statsB.total > statsA.total) { scoreB++; advantages.b.push('More variety'); }
-
-    if (totalCardsA > totalCardsB) { scoreA++; advantages.a.push('More cards per box'); }
-    else if (totalCardsB > totalCardsA) { scoreB++; advantages.b.push('More cards per box'); }
-
-    if (statsA.autographs > statsB.autographs) { scoreA++; advantages.a.push('More autograph options'); }
-    else if (statsB.autographs > statsA.autographs) { scoreB++; advantages.b.push('More autograph options'); }
-
-    if (statsA.inserts > statsB.inserts) { scoreA++; advantages.a.push('More insert options'); }
-    else if (statsB.inserts > statsA.inserts) { scoreB++; advantages.b.push('More insert options'); }
-
-    const bestAutoA = getBestOdds(productSlug, boxA, 'autograph');
-    const bestAutoB = getBestOdds(productSlug, boxB, 'autograph');
-    const autoOddsA = bestAutoA?.odds ? parseOddsToNumber(bestAutoA.odds) : 0;
-    const autoOddsB = bestAutoB?.odds ? parseOddsToNumber(bestAutoB.odds) : 0;
-    if (autoOddsA > 0 && autoOddsB > 0) {
-        if (autoOddsA < autoOddsB) { scoreA++; advantages.a.push('Better autograph odds'); }
-        else if (autoOddsB < autoOddsA) { scoreB++; advantages.b.push('Better autograph odds'); }
+    if (!scoreA && !scoreB) {
+        return `
+            <div class="insight-card">
+                <div class="insight-header">
+                    <h3 class="insight-title">Box Score</h3>
+                </div>
+                <div class="insight-body">
+                    <p class="insight-empty">Not enough data to calculate scores</p>
+                </div>
+            </div>
+        `;
     }
 
+    const verdictA = scoreA?.verdict || '-';
+    const verdictB = scoreB?.verdict || '-';
+    const compA = scoreA?.composite || 0;
+    const compB = scoreB?.composite || 0;
+    const winA = compA > compB ? ' compare-win' : '';
+    const winB = compB > compA ? ' compare-win' : '';
+
+    const dimensions = ['hitRate', 'variety', 'chase', 'auto', 'consistency'];
+
+    const barsHtml = dimensions.map(dim => {
+        const valA = scoreA?.breakdown?.[dim] || 0;
+        const valB = scoreB?.breakdown?.[dim] || 0;
+        const label = scoreA?.labels?.[dim] || scoreB?.labels?.[dim] || dim;
+        const desc = scoreA?.descriptions?.[dim] || scoreB?.descriptions?.[dim] || '';
+        const dimWinA = valA > valB ? ' compare-bar-win' : '';
+        const dimWinB = valB > valA ? ' compare-bar-win' : '';
+
+        return `
+            <div class="compare-score-dim">
+                <div class="compare-score-dim-label" title="${desc}">${label}</div>
+                <div class="compare-score-bars">
+                    <div class="compare-score-bar-group compare-score-bar-left">
+                        <span class="compare-score-bar-val${dimWinA}">${valA}</span>
+                        <div class="compare-score-bar-track">
+                            <div class="compare-score-bar-fill compare-score-bar-fill-a${dimWinA}" style="width: ${valA * 10}%"></div>
+                        </div>
+                    </div>
+                    <div class="compare-score-bar-group compare-score-bar-right">
+                        <div class="compare-score-bar-track">
+                            <div class="compare-score-bar-fill compare-score-bar-fill-b${dimWinB}" style="width: ${valB * 10}%"></div>
+                        </div>
+                        <span class="compare-score-bar-val${dimWinB}">${valB}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="insight-card compare-score-card">
+            <div class="insight-header">
+                <h3 class="insight-title">Box Score</h3>
+                <span class="insight-subtitle">Price-agnostic rating</span>
+            </div>
+            <div class="insight-body compare-body">
+                <div class="compare-score-summary">
+                    <div class="compare-score-total${winA}">
+                        <span class="compare-score-number">${compA}</span>
+                        <span class="compare-score-label">${labelA}</span>
+                        <span class="compare-score-verdict">${verdictA}</span>
+                    </div>
+                    <div class="compare-score-vs">vs</div>
+                    <div class="compare-score-total${winB}">
+                        <span class="compare-score-number">${compB}</span>
+                        <span class="compare-score-label">${labelB}</span>
+                        <span class="compare-score-verdict">${verdictB}</span>
+                    </div>
+                </div>
+                <div class="compare-score-dims">
+                    ${barsHtml}
+                </div>
+                <div class="insight-explanation">
+                    <strong>How it's calculated:</strong> Each dimension scores 0-10 independently of price. Hit Rate measures expected notable pulls per box. Variety counts distinct card types and categories. Chase Factor reflects high-end pull excitement. Auto Access rates autograph availability. Consistency measures pull predictability. Weighted composite: Hit Rate 25%, Variety 20%, Chase 20%, Auto 20%, Consistency 15%.
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderCompareVerdict(productSlug, boxA, boxB, statsA, statsB, totalCardsA, totalCardsB, scoreA, scoreB) {
+    const labelA = boxA.charAt(0).toUpperCase() + boxA.slice(1);
+    const labelB = boxB.charAt(0).toUpperCase() + boxB.slice(1);
+
+    const advantages = { a: [], b: [] };
+
+    // Use box score dimensions for advantages
+    if (scoreA && scoreB) {
+        const dims = ['hitRate', 'variety', 'chase', 'auto', 'consistency'];
+        const dimLabels = { hitRate: 'Better hit rate', variety: 'More variety', chase: 'Stronger chase factor', auto: 'Better auto access', consistency: 'More consistent' };
+        dims.forEach(dim => {
+            const a = scoreA.breakdown[dim];
+            const b = scoreB.breakdown[dim];
+            if (a > b) advantages.a.push(dimLabels[dim]);
+            else if (b > a) advantages.b.push(dimLabels[dim]);
+        });
+    }
+
+    // Also consider raw structural advantages
+    if (totalCardsA > totalCardsB) advantages.a.push('More cards per box');
+    else if (totalCardsB > totalCardsA) advantages.b.push('More cards per box');
+
+    const compA = scoreA?.composite || 0;
+    const compB = scoreB?.composite || 0;
+
     let verdictClass, verdictText;
-    if (scoreA > scoreB) {
+    if (compA > compB) {
         verdictClass = 'compare-verdict-a';
-        verdictText = `${labelA} wins ${scoreA}-${scoreB}`;
-    } else if (scoreB > scoreA) {
+        verdictText = `${labelA} wins (${compA} vs ${compB})`;
+    } else if (compB > compA) {
         verdictClass = 'compare-verdict-b';
-        verdictText = `${labelB} wins ${scoreB}-${scoreA}`;
+        verdictText = `${labelB} wins (${compB} vs ${compA})`;
     } else {
         verdictClass = 'compare-verdict-tie';
-        verdictText = `Tie ${scoreA}-${scoreB}`;
+        verdictText = `Tie (${compA} vs ${compB})`;
     }
 
     const advHtml = (advList) => advList.length > 0
@@ -1624,17 +1713,17 @@ function renderCompareVerdict(productSlug, boxA, boxB, statsA, statsB, totalCard
             </div>
             <div class="insight-body compare-body">
                 <div class="compare-verdict-cols">
-                    <div class="compare-verdict-col ${scoreA >= scoreB && scoreA > 0 ? 'compare-verdict-winner' : ''}">
+                    <div class="compare-verdict-col ${compA >= compB && compA > 0 ? 'compare-verdict-winner' : ''}">
                         <h4 class="compare-verdict-box-name">${labelA}</h4>
                         <ul class="compare-adv-list">${advHtml(advantages.a)}</ul>
                     </div>
-                    <div class="compare-verdict-col ${scoreB >= scoreA && scoreB > 0 ? 'compare-verdict-winner' : ''}">
+                    <div class="compare-verdict-col ${compB >= compA && compB > 0 ? 'compare-verdict-winner' : ''}">
                         <h4 class="compare-verdict-box-name">${labelB}</h4>
                         <ul class="compare-adv-list">${advHtml(advantages.b)}</ul>
                     </div>
                 </div>
                 <div class="insight-explanation">
-                    <strong>How it's calculated:</strong> Each box earns a point per category it leads in: variety, total cards, autograph options, insert options, and best autograph odds. The box with the most points wins.
+                    <strong>How it's calculated:</strong> The verdict is based on the Box Score composite rating. Each box's advantages are determined by which individual dimensions it leads in.
                 </div>
             </div>
         </div>

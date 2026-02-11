@@ -381,6 +381,105 @@ export function rankParallels(productId, config) {
         .sort((a, b) => b.oddsNum - a.oddsNum);
 }
 
+// Box Configuration Score - price-agnostic scoring for fair comparison
+// Scores each config on 5 normalized dimensions (0-10 each)
+export function calculateBoxScore(productId, config) {
+    const product = PRODUCTS[productId];
+    if (!product) return null;
+
+    const configInfo = getConfigInfo(productId, config);
+    const packsPerBox = configInfo.packs || 0;
+    const oddsRaw = getOddsRawForProduct(productId);
+    const allCards = oddsRaw.filter(r => r.config === config && r.odds);
+
+    if (allCards.length === 0) return null;
+
+    // 1. Hit Rate Score - how easy is it to pull something notable?
+    // Measures the expected number of "hits" (cards 1:10+) per box
+    let expectedHits = 0;
+    allCards.forEach(r => {
+        const odds = parseOdds(r.odds);
+        if (odds && odds >= 10 && packsPerBox > 0) {
+            expectedHits += packsPerBox / odds;
+        }
+    });
+    // Scale: 0 hits=0, 1 hit=4, 3 hits=7, 5+ hits=10
+    const hitRateScore = Math.min(10, expectedHits * 2);
+
+    // 2. Variety Score - how many distinct card types are available?
+    // Normalized by category breadth, not raw count
+    const categories = new Set(allCards.map(r => r.category));
+    const uniqueTypes = allCards.length;
+    // Having multiple categories is more valuable than lots of one type
+    const categoryBonus = Math.min(categories.size, 5) * 1.5;
+    const varietyScore = Math.min(10, (uniqueTypes / 8) + categoryBonus);
+
+    // 3. Chase Card Score - how exciting are the top-end pulls?
+    const chaseCards = allCards.filter(r => parseOdds(r.odds) >= 200);
+    const ultraChase = allCards.filter(r => parseOdds(r.odds) >= 1000);
+    // Having chase cards adds excitement; ultra-chase even more
+    const chaseScore = Math.min(10, chaseCards.length * 1.5 + ultraChase.length * 1);
+
+    // 4. Autograph Access Score - how available are autographs?
+    const autoCards = allCards.filter(r => r.category === 'autograph');
+    let autoScore = 0;
+    if (autoCards.length > 0) {
+        const bestAutoOdds = Math.min(...autoCards.map(r => parseOdds(r.odds) || Infinity));
+        // Scale: 1:4=10, 1:16=8, 1:64=6, 1:256=4, 1:1024=2, 1:4096+=0
+        autoScore = Math.max(0, Math.min(10, 12 - Math.log2(bestAutoOdds)));
+        // Bonus for variety of autos
+        autoScore = Math.min(10, autoScore + Math.min(autoCards.length * 0.3, 2));
+    }
+
+    // 5. Consistency Score - how predictable are the pulls?
+    // Low variance = high consistency, useful for set builders
+    const oddsValues = allCards.map(r => parseOdds(r.odds)).filter(Boolean);
+    const maxOdds = Math.max(...oddsValues);
+    const minOdds = Math.min(...oddsValues);
+    const spread = maxOdds / (minOdds || 1);
+    // Lower spread = more consistent. Spread of 10=10, 100=7, 1000=4, 10000=1
+    const consistencyScore = Math.max(0, Math.min(10, 13 - Math.log10(spread) * 3));
+
+    // Weighted composite
+    const weights = { hitRate: 0.25, variety: 0.20, chase: 0.20, auto: 0.20, consistency: 0.15 };
+    const composite = (
+        hitRateScore * weights.hitRate +
+        varietyScore * weights.variety +
+        chaseScore * weights.chase +
+        autoScore * weights.auto +
+        consistencyScore * weights.consistency
+    );
+
+    const verdict = composite >= 7 ? 'Excellent' : composite >= 5 ? 'Good' : composite >= 3 ? 'Average' : 'Below Average';
+
+    return {
+        composite: Math.round(composite * 10) / 10,
+        maxScore: 10,
+        verdict,
+        breakdown: {
+            hitRate: Math.round(hitRateScore * 10) / 10,
+            variety: Math.round(varietyScore * 10) / 10,
+            chase: Math.round(chaseScore * 10) / 10,
+            auto: Math.round(autoScore * 10) / 10,
+            consistency: Math.round(consistencyScore * 10) / 10,
+        },
+        labels: {
+            hitRate: 'Hit Rate',
+            variety: 'Variety',
+            chase: 'Chase Factor',
+            auto: 'Auto Access',
+            consistency: 'Consistency',
+        },
+        descriptions: {
+            hitRate: 'Expected notable pulls per box',
+            variety: 'Breadth of card types and categories',
+            chase: 'Top-end pull excitement',
+            auto: 'How accessible autographs are',
+            consistency: 'Predictability of box contents',
+        }
+    };
+}
+
 // Legacy exports (keep for backward compatibility)
 export function findBestValueConfig(productId, parallelName) {
     const configs = getAvailableConfigs(productId);
