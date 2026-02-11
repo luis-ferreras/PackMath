@@ -1733,14 +1733,15 @@ body {
 /* Filters Bar */
 .checklist-filters {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
     margin-bottom: 12px;
+    align-items: center;
 }
 
 .checklist-search {
     flex: 1;
-    min-width: 200px;
+    min-width: 150px;
     position: relative;
 }
 
