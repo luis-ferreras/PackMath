@@ -363,10 +363,6 @@ function renderProductHero() {
                     <div class="hero-detail-value">${cardsPerPack}</div>
                     <div class="hero-detail-label">Cards/Pack</div>
                 </div>
-                <div class="hero-detail">
-                    <div class="hero-detail-value">${totalCards}</div>
-                    <div class="hero-detail-label">Total Cards</div>
-                </div>
                 ${boxesPerCase ? `
                     <div class="hero-detail">
                         <div class="hero-detail-value">${boxesPerCase}</div>
@@ -605,29 +601,39 @@ function renderChecklistTab() {
         return setType.includes('auto') && isRelic;
     }).length;
 
-    // Stats bar
+    // Stats bar - only show stats with non-zero values
     const statsHtml = `
         <div class="checklist-stats">
-            <div class="checklist-stat">
-                <span class="checklist-stat-value">${baseSet}</span>
-                <span class="checklist-stat-label">Base</span>
-            </div>
-            <div class="checklist-stat">
-                <span class="checklist-stat-value">${inserts}</span>
-                <span class="checklist-stat-label">Inserts</span>
-            </div>
-            <div class="checklist-stat">
-                <span class="checklist-stat-value">${autographs}</span>
-                <span class="checklist-stat-label">Autographs</span>
-            </div>
-            <div class="checklist-stat">
-                <span class="checklist-stat-value">${memorabilia}</span>
-                <span class="checklist-stat-label">Memorabilia</span>
-            </div>
-            <div class="checklist-stat">
-                <span class="checklist-stat-value">${autoRelics}</span>
-                <span class="checklist-stat-label">Auto Relics</span>
-            </div>
+            ${baseSet > 0 ? `
+                <div class="checklist-stat">
+                    <span class="checklist-stat-value">${baseSet}</span>
+                    <span class="checklist-stat-label">Base Set</span>
+                </div>
+            ` : ''}
+            ${inserts > 0 ? `
+                <div class="checklist-stat">
+                    <span class="checklist-stat-value">${inserts}</span>
+                    <span class="checklist-stat-label">Inserts</span>
+                </div>
+            ` : ''}
+            ${autographs > 0 ? `
+                <div class="checklist-stat">
+                    <span class="checklist-stat-value">${autographs}</span>
+                    <span class="checklist-stat-label">Autographs</span>
+                </div>
+            ` : ''}
+            ${memorabilia > 0 ? `
+                <div class="checklist-stat">
+                    <span class="checklist-stat-value">${memorabilia}</span>
+                    <span class="checklist-stat-label">Memorabilia</span>
+                </div>
+            ` : ''}
+            ${autoRelics > 0 ? `
+                <div class="checklist-stat">
+                    <span class="checklist-stat-value">${autoRelics}</span>
+                    <span class="checklist-stat-label">Auto Relics</span>
+                </div>
+            ` : ''}
         </div>
     `;
 
