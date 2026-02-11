@@ -8,6 +8,10 @@ import {
     loadConfigForProduct, isConfigLoaded,
     parseOddsToNumber
 } from './data.js';
+import {
+    calculateProductScore, calculateVariance, calculateBreakeven,
+    getRookieInsights, getWhaleCard, groupByRarityTier, estimateSetCompletion
+} from './insights.js';
 
 // ========================================
 // Sports Sidebar Navigation
@@ -459,7 +463,8 @@ function renderProductHero() {
 export function renderProductTabs() {
     const tabs = [
         { id: 'odds', label: 'Odds' },
-        { id: 'checklist', label: 'Checklist' }
+        { id: 'checklist', label: 'Checklist' },
+        { id: 'insights', label: 'Insights' }
     ];
 
     const tabsHtml = tabs.map(tab => `
@@ -496,6 +501,21 @@ export async function renderTabContent() {
                 await loadChecklistForProduct(productSlug);
             }
             container.innerHTML = renderChecklistTab();
+            break;
+        case 'insights':
+            // Load both odds and checklist data for insights
+            const loadPromises = [];
+            if (!isOddsLoaded(productSlug)) {
+                loadPromises.push(loadOddsForProduct(productSlug));
+            }
+            if (!isChecklistLoaded(productSlug)) {
+                loadPromises.push(loadChecklistForProduct(productSlug));
+            }
+            if (loadPromises.length > 0) {
+                showLoading();
+                await Promise.all(loadPromises);
+            }
+            container.innerHTML = renderInsightsTab();
             break;
         default:
             if (!isOddsLoaded(productSlug)) {
@@ -786,4 +806,482 @@ function renderChecklistTab() {
     ` : '<div class="empty-state"><p class="empty-state-text">No cards match your filters</p></div>';
 
     return filtersHtml + sortHtml + listHtml;
+}
+
+// ========================================
+// Insights Tab
+// ========================================
+
+function renderInsightsTab() {
+    const productSlug = state.product;
+    const config = state.config;
+
+    let html = '<div class="insights-container">';
+
+    // 1. Product Score Card (Violet theme)
+    html += renderProductScoreCard(productSlug, config);
+
+    // 2. Risk Meter (Red/Amber/Green gradient)
+    html += renderRiskMeter(productSlug, config);
+
+    // 3. Chase Card Break-Even Chart (Blue theme)
+    html += renderBreakevenChart(productSlug, config);
+
+    // 4. Rookie Report (Orange theme)
+    html += renderRookieReport(productSlug, config);
+
+    // 5. Whale Card Spotlight (Gold/Amber theme)
+    html += renderWhaleCardSpotlight(productSlug, config);
+
+    // 6. Odds Distribution (Multi-color)
+    html += renderOddsDistribution(productSlug, config);
+
+    // 7. Set Completion Estimate (Emerald theme)
+    html += renderSetCompletionEstimate(productSlug, config);
+
+    html += '</div>';
+    return html;
+}
+
+// 1. Product Score Card - Violet theme
+function renderProductScoreCard(productSlug, config) {
+    const score = calculateProductScore(productSlug, config);
+    if (!score) {
+        return `
+            <div class="insight-card insight-score">
+                <div class="insight-header">
+                    <span class="insight-icon">⭐</span>
+                    <h3 class="insight-title">Product Score</h3>
+                </div>
+                <div class="insight-body">
+                    <p class="insight-empty">Not enough data to calculate score</p>
+                </div>
+            </div>
+        `;
+    }
+
+    const scorePercent = (score.score / score.maxScore) * 100;
+    const verdictClass = score.verdict.toLowerCase().replace(' ', '-');
+
+    return `
+        <div class="insight-card insight-score">
+            <div class="insight-header">
+                <span class="insight-icon">⭐</span>
+                <h3 class="insight-title">Product Score</h3>
+                <span class="insight-badge insight-badge-${verdictClass}">${score.verdict}</span>
+            </div>
+            <div class="insight-body">
+                <div class="score-display">
+                    <div class="score-circle">
+                        <svg viewBox="0 0 100 100" class="score-ring">
+                            <circle cx="50" cy="50" r="45" class="score-ring-bg"/>
+                            <circle cx="50" cy="50" r="45" class="score-ring-fill" style="stroke-dasharray: ${scorePercent * 2.83}, 283"/>
+                        </svg>
+                        <span class="score-value">${score.score}</span>
+                        <span class="score-max">/ ${score.maxScore}</span>
+                    </div>
+                </div>
+                <div class="score-breakdown">
+                    <div class="score-metric">
+                        <span class="metric-label">Variety</span>
+                        <div class="metric-bar-container">
+                            <div class="metric-bar metric-bar-variety" style="width: ${score.breakdown.variety * 10}%"></div>
+                        </div>
+                        <span class="metric-value">${score.breakdown.variety}</span>
+                    </div>
+                    <div class="score-metric">
+                        <span class="metric-label">Chase Cards</span>
+                        <div class="metric-bar-container">
+                            <div class="metric-bar metric-bar-chase" style="width: ${score.breakdown.chase * 10}%"></div>
+                        </div>
+                        <span class="metric-value">${score.breakdown.chase}</span>
+                    </div>
+                    <div class="score-metric">
+                        <span class="metric-label">Hit Rate</span>
+                        <div class="metric-bar-container">
+                            <div class="metric-bar metric-bar-hits" style="width: ${score.breakdown.hits * 10}%"></div>
+                        </div>
+                        <span class="metric-value">${score.breakdown.hits}</span>
+                    </div>
+                    <div class="score-metric">
+                        <span class="metric-label">Value</span>
+                        <div class="metric-bar-container">
+                            <div class="metric-bar metric-bar-value" style="width: ${score.breakdown.value * 10}%"></div>
+                        </div>
+                        <span class="metric-value">${score.breakdown.value}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 2. Risk Meter - Red/Amber/Green gradient
+function renderRiskMeter(productSlug, config) {
+    const variance = calculateVariance(productSlug, config);
+    if (!variance) {
+        return `
+            <div class="insight-card insight-risk">
+                <div class="insight-header">
+                    <span class="insight-icon">🎲</span>
+                    <h3 class="insight-title">Risk Analysis</h3>
+                </div>
+                <div class="insight-body">
+                    <p class="insight-empty">Not enough data for risk analysis</p>
+                </div>
+            </div>
+        `;
+    }
+
+    const riskClass = variance.riskLevel.toLowerCase();
+    const riskPosition = variance.riskLevel === 'High' ? 85 : variance.riskLevel === 'Medium' ? 50 : 15;
+
+    return `
+        <div class="insight-card insight-risk insight-risk-${riskClass}">
+            <div class="insight-header">
+                <span class="insight-icon">🎲</span>
+                <h3 class="insight-title">Risk Analysis</h3>
+                <span class="insight-badge insight-badge-risk-${riskClass}">${variance.riskLevel} Risk</span>
+            </div>
+            <div class="insight-body">
+                <div class="risk-meter">
+                    <div class="risk-gauge">
+                        <div class="risk-gauge-fill"></div>
+                        <div class="risk-needle" style="left: ${riskPosition}%"></div>
+                    </div>
+                    <div class="risk-labels">
+                        <span>Safe</span>
+                        <span>Moderate</span>
+                        <span>Gamble</span>
+                    </div>
+                </div>
+                <p class="risk-description">${variance.description}</p>
+                <div class="risk-stats">
+                    <div class="risk-stat">
+                        <span class="risk-stat-value">${variance.chaseCards}</span>
+                        <span class="risk-stat-label">Chase Cards</span>
+                    </div>
+                    <div class="risk-stat">
+                        <span class="risk-stat-value">${variance.guaranteedHits}</span>
+                        <span class="risk-stat-label">Easy Pulls</span>
+                    </div>
+                    <div class="risk-stat">
+                        <span class="risk-stat-value">${variance.spread}x</span>
+                        <span class="risk-stat-label">Odds Spread</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 3. Chase Card Break-Even Chart - Blue theme
+function renderBreakevenChart(productSlug, config) {
+    const breakeven = calculateBreakeven(productSlug, config);
+    if (!breakeven || breakeven.length === 0) {
+        return `
+            <div class="insight-card insight-breakeven">
+                <div class="insight-header">
+                    <span class="insight-icon">📊</span>
+                    <h3 class="insight-title">Break-Even Analysis</h3>
+                </div>
+                <div class="insight-body">
+                    <p class="insight-empty">No chase cards found for break-even analysis</p>
+                </div>
+            </div>
+        `;
+    }
+
+    const maxBoxes = Math.max(...breakeven.map(b => b.boxesFor75));
+
+    return `
+        <div class="insight-card insight-breakeven">
+            <div class="insight-header">
+                <span class="insight-icon">📊</span>
+                <h3 class="insight-title">Break-Even Analysis</h3>
+                <span class="insight-subtitle">Boxes needed to hit chase cards</span>
+            </div>
+            <div class="insight-body">
+                <div class="breakeven-chart">
+                    ${breakeven.map(card => `
+                        <div class="breakeven-row">
+                            <div class="breakeven-label">
+                                <span class="breakeven-name">${card.name}</span>
+                                <span class="breakeven-odds">${card.odds}</span>
+                            </div>
+                            <div class="breakeven-bars">
+                                <div class="breakeven-bar-container">
+                                    <div class="breakeven-bar breakeven-bar-50" style="width: ${(card.boxesFor50 / maxBoxes) * 100}%">
+                                        <span class="breakeven-bar-label">${card.boxesFor50}</span>
+                                    </div>
+                                </div>
+                                <div class="breakeven-bar-container">
+                                    <div class="breakeven-bar breakeven-bar-75" style="width: ${(card.boxesFor75 / maxBoxes) * 100}%">
+                                        <span class="breakeven-bar-label">${card.boxesFor75}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="breakeven-legend">
+                    <span class="legend-item legend-50"><span class="legend-dot"></span> 50% Chance</span>
+                    <span class="legend-item legend-75"><span class="legend-dot"></span> 75% Chance</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 4. Rookie Report - Orange theme
+function renderRookieReport(productSlug, config) {
+    const rookies = getRookieInsights(productSlug, config);
+    if (!rookies) {
+        return `
+            <div class="insight-card insight-rookies">
+                <div class="insight-header">
+                    <span class="insight-icon">🌟</span>
+                    <h3 class="insight-title">Rookie Report</h3>
+                </div>
+                <div class="insight-body">
+                    <p class="insight-empty">No rookie data available</p>
+                </div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="insight-card insight-rookies">
+            <div class="insight-header">
+                <span class="insight-icon">🌟</span>
+                <h3 class="insight-title">Rookie Report</h3>
+                <span class="insight-badge insight-badge-rookie">${rookies.highlight}</span>
+            </div>
+            <div class="insight-body">
+                <div class="rookie-stats">
+                    <div class="rookie-stat-main">
+                        <span class="rookie-stat-value">${rookies.totalRookies}</span>
+                        <span class="rookie-stat-label">Total Rookies</span>
+                    </div>
+                    <div class="rookie-stat-secondary">
+                        <div class="rookie-percentage">
+                            <div class="rookie-percentage-ring">
+                                <svg viewBox="0 0 36 36" class="circular-chart">
+                                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                    <path class="circle" stroke-dasharray="${rookies.rookiePercentage}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                </svg>
+                                <span class="percentage-value">${rookies.rookiePercentage}%</span>
+                            </div>
+                            <span class="rookie-stat-label">of Checklist</span>
+                        </div>
+                    </div>
+                </div>
+                ${rookies.topTeams.length > 0 ? `
+                    <div class="rookie-teams">
+                        <span class="rookie-teams-label">Top Teams:</span>
+                        <div class="rookie-teams-list">
+                            ${rookies.topTeams.map(team => `<span class="rookie-team-tag">${team}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// 5. Whale Card Spotlight - Gold/Amber theme
+function renderWhaleCardSpotlight(productSlug, config) {
+    const whale = getWhaleCard(productSlug, config);
+    if (!whale) {
+        return `
+            <div class="insight-card insight-whale">
+                <div class="insight-header">
+                    <span class="insight-icon">🐋</span>
+                    <h3 class="insight-title">Whale Card Spotlight</h3>
+                </div>
+                <div class="insight-body">
+                    <p class="insight-empty">No ultra-rare cards found</p>
+                </div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="insight-card insight-whale">
+            <div class="insight-header">
+                <span class="insight-icon">🐋</span>
+                <h3 class="insight-title">Whale Card Spotlight</h3>
+                <span class="insight-badge insight-badge-whale">${whale.context}</span>
+            </div>
+            <div class="insight-body">
+                <div class="whale-card-display">
+                    <div class="whale-card-name">${whale.name}</div>
+                    <div class="whale-card-category">${whale.category}</div>
+                    <div class="whale-card-odds">${whale.odds}</div>
+                </div>
+                <div class="whale-stats">
+                    <div class="whale-stat">
+                        <span class="whale-stat-icon">🎯</span>
+                        <div class="whale-stat-info">
+                            <span class="whale-stat-value">${whale.boxesFor50Percent} boxes</span>
+                            <span class="whale-stat-label">for 50% chance</span>
+                        </div>
+                    </div>
+                    <div class="whale-stat">
+                        <span class="whale-stat-icon">🍀</span>
+                        <div class="whale-stat-info">
+                            <span class="whale-stat-value">${whale.boxesFor10Percent} boxes</span>
+                            <span class="whale-stat-label">for 10% chance</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 6. Odds Distribution - Multi-color
+function renderOddsDistribution(productSlug, config) {
+    const tiers = groupByRarityTier(productSlug, config);
+    if (!tiers) {
+        return `
+            <div class="insight-card insight-distribution">
+                <div class="insight-header">
+                    <span class="insight-icon">📈</span>
+                    <h3 class="insight-title">Odds Distribution</h3>
+                </div>
+                <div class="insight-body">
+                    <p class="insight-empty">No odds data available</p>
+                </div>
+            </div>
+        `;
+    }
+
+    const total = tiers.common.length + tiers.uncommon.length + tiers.rare.length + tiers.chase.length;
+    if (total === 0) {
+        return `
+            <div class="insight-card insight-distribution">
+                <div class="insight-header">
+                    <span class="insight-icon">📈</span>
+                    <h3 class="insight-title">Odds Distribution</h3>
+                </div>
+                <div class="insight-body">
+                    <p class="insight-empty">No odds data available</p>
+                </div>
+            </div>
+        `;
+    }
+
+    const commonPct = Math.round((tiers.common.length / total) * 100);
+    const uncommonPct = Math.round((tiers.uncommon.length / total) * 100);
+    const rarePct = Math.round((tiers.rare.length / total) * 100);
+    const chasePct = Math.round((tiers.chase.length / total) * 100);
+
+    return `
+        <div class="insight-card insight-distribution">
+            <div class="insight-header">
+                <span class="insight-icon">📈</span>
+                <h3 class="insight-title">Odds Distribution</h3>
+                <span class="insight-subtitle">${total} card types</span>
+            </div>
+            <div class="insight-body">
+                <div class="distribution-donut">
+                    <svg viewBox="0 0 100 100" class="donut-chart">
+                        <circle cx="50" cy="50" r="40" class="donut-segment donut-common"
+                            stroke-dasharray="${commonPct * 2.51} 251" stroke-dashoffset="0"/>
+                        <circle cx="50" cy="50" r="40" class="donut-segment donut-uncommon"
+                            stroke-dasharray="${uncommonPct * 2.51} 251" stroke-dashoffset="${-commonPct * 2.51}"/>
+                        <circle cx="50" cy="50" r="40" class="donut-segment donut-rare"
+                            stroke-dasharray="${rarePct * 2.51} 251" stroke-dashoffset="${-(commonPct + uncommonPct) * 2.51}"/>
+                        <circle cx="50" cy="50" r="40" class="donut-segment donut-chase"
+                            stroke-dasharray="${chasePct * 2.51} 251" stroke-dashoffset="${-(commonPct + uncommonPct + rarePct) * 2.51}"/>
+                    </svg>
+                    <div class="donut-center">
+                        <span class="donut-total">${total}</span>
+                        <span class="donut-label">Types</span>
+                    </div>
+                </div>
+                <div class="distribution-legend">
+                    <div class="distribution-tier tier-common">
+                        <span class="tier-dot"></span>
+                        <span class="tier-name">Common</span>
+                        <span class="tier-count">${tiers.common.length}</span>
+                        <span class="tier-odds">1:1 - 1:10</span>
+                    </div>
+                    <div class="distribution-tier tier-uncommon">
+                        <span class="tier-dot"></span>
+                        <span class="tier-name">Uncommon</span>
+                        <span class="tier-count">${tiers.uncommon.length}</span>
+                        <span class="tier-odds">1:11 - 1:50</span>
+                    </div>
+                    <div class="distribution-tier tier-rare">
+                        <span class="tier-dot"></span>
+                        <span class="tier-name">Rare</span>
+                        <span class="tier-count">${tiers.rare.length}</span>
+                        <span class="tier-odds">1:51 - 1:200</span>
+                    </div>
+                    <div class="distribution-tier tier-chase">
+                        <span class="tier-dot"></span>
+                        <span class="tier-name">Chase</span>
+                        <span class="tier-count">${tiers.chase.length}</span>
+                        <span class="tier-odds">1:200+</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 7. Set Completion Estimate - Emerald theme
+function renderSetCompletionEstimate(productSlug, config) {
+    const estimate = estimateSetCompletion(productSlug, config);
+    if (!estimate) {
+        return `
+            <div class="insight-card insight-completion">
+                <div class="insight-header">
+                    <span class="insight-icon">✅</span>
+                    <h3 class="insight-title">Set Completion Estimate</h3>
+                </div>
+                <div class="insight-body">
+                    <p class="insight-empty">No base set data available</p>
+                </div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="insight-card insight-completion">
+            <div class="insight-header">
+                <span class="insight-icon">✅</span>
+                <h3 class="insight-title">Set Completion Estimate</h3>
+            </div>
+            <div class="insight-body">
+                <div class="completion-display">
+                    <div class="completion-boxes">
+                        <span class="completion-boxes-value">${estimate.estimatedBoxes}</span>
+                        <span class="completion-boxes-label">Boxes to Complete</span>
+                    </div>
+                    <div class="completion-visual">
+                        <div class="completion-boxes-grid">
+                            ${Array(Math.min(estimate.estimatedBoxes, 20)).fill('').map((_, i) =>
+                                `<div class="completion-box-icon ${i < Math.min(5, estimate.estimatedBoxes) ? 'filled' : ''}"></div>`
+                            ).join('')}
+                            ${estimate.estimatedBoxes > 20 ? '<span class="completion-more">+' + (estimate.estimatedBoxes - 20) + '</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="completion-details">
+                    <div class="completion-detail">
+                        <span class="completion-detail-label">Base Set Size</span>
+                        <span class="completion-detail-value">${estimate.baseSetSize} cards</span>
+                    </div>
+                    <div class="completion-detail">
+                        <span class="completion-detail-label">Cards per Box</span>
+                        <span class="completion-detail-value">${estimate.cardsPerBox}</span>
+                    </div>
+                </div>
+                <p class="completion-note">${estimate.note}</p>
+            </div>
+        </div>
+    `;
 }
