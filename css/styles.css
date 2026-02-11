@@ -1852,6 +1852,14 @@ body {
     opacity: 0;
 }
 
+.odds-empty-config {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 20px 16px;
+    margin: 0;
+}
+
 .odds-type-group.collapsed .odds-type-header {
     margin-bottom: 0;
 }

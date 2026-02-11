@@ -608,14 +608,13 @@ function renderTypeGroup(typeName, setMap, selectedConfig) {
         }
     }
 
-    // Don't show type group if no items have odds for this config
-    if (totalItems === 0) {
-        return '';
-    }
-
     const groupId = `odds-type-group-${oddsTypeGroupIdCounter}`;
     const isFirstGroup = oddsTypeGroupIdCounter === 0;
     oddsTypeGroupIdCounter++;
+
+    const contentHtml = totalItems > 0
+        ? sectionsHtml
+        : `<p class="odds-empty-config">No odds available for this box type.</p>`;
 
     return `
         <div class="odds-type-group${isFirstGroup ? '' : ' collapsed'}" id="${groupId}">
@@ -627,7 +626,7 @@ function renderTypeGroup(typeName, setMap, selectedConfig) {
                 </svg>
             </button>
             <div class="odds-type-content">
-                ${sectionsHtml}
+                ${contentHtml}
             </div>
         </div>
     `;
