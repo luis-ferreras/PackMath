@@ -293,13 +293,107 @@ export async function renderProductPage() {
     if (!isConfigLoaded(productSlug)) {
         loadPromises.push(loadConfigForProduct(productSlug));
     }
+    // Also load checklist for stats above tabs
+    if (!isChecklistLoaded(productSlug)) {
+        loadPromises.push(loadChecklistForProduct(productSlug));
+    }
     if (loadPromises.length > 0) {
         await Promise.all(loadPromises);
     }
 
     renderProductHero();
+    renderChecklistStats();
     renderProductTabs();
     renderTabContent();
+}
+
+// ========================================
+// Checklist Stats (above tabs)
+// ========================================
+
+function renderChecklistStats() {
+    const checklist = getChecklistForProduct(state.product);
+    const configInfo = getConfigInfo(state.product, state.config);
+    const container = document.getElementById('checklistStats');
+
+    // Get box info from config
+    const packs = configInfo?.packs || 0;
+    const cardsPerPack = configInfo?.cardsPerPack || 0;
+    const boxesPerCase = configInfo?.boxesPerCase || 0;
+
+    if (checklist.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    // Count card categories
+    const baseSet = checklist.filter(c => {
+        const setType = (c.set_type || c.set_name || '').toLowerCase();
+        return setType === 'base' || setType === 'base set' || setType.includes('base');
+    }).length;
+    const inserts = checklist.filter(c => {
+        const setType = (c.set_type || c.set_name || '').toLowerCase();
+        return setType.includes('insert') || (!setType.includes('base') && !setType.includes('auto') && !setType.includes('relic') && !setType.includes('mem') && setType !== '');
+    }).length;
+    const autographs = checklist.filter(c => {
+        const setType = (c.set_type || c.set_name || '').toLowerCase();
+        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
+        return setType.includes('auto') && !isRelic;
+    }).length;
+    const memorabilia = checklist.filter(c => {
+        const setType = (c.set_type || c.set_name || '').toLowerCase();
+        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
+        return isRelic && !setType.includes('auto');
+    }).length;
+    const autoRelics = checklist.filter(c => {
+        const setType = (c.set_type || c.set_name || '').toLowerCase();
+        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
+        return setType.includes('auto') && isRelic;
+    }).length;
+
+    // Build box info list items
+    const boxInfoItems = [];
+    if (packs) boxInfoItems.push(`<li><span class="box-info-label">Packs:</span> <span class="box-info-value">${packs}</span></li>`);
+    if (cardsPerPack) boxInfoItems.push(`<li><span class="box-info-label">Cards/Pack:</span> <span class="box-info-value">${cardsPerPack}</span></li>`);
+    if (boxesPerCase) boxInfoItems.push(`<li><span class="box-info-label">Boxes/Case:</span> <span class="box-info-value">${boxesPerCase}</span></li>`);
+
+    container.innerHTML = `
+        ${boxInfoItems.length > 0 ? `
+            <div class="box-info-stat">
+                <ul class="box-info-list">${boxInfoItems.join('')}</ul>
+            </div>
+        ` : ''}
+        ${baseSet > 0 ? `
+            <div class="checklist-stat">
+                <span class="checklist-stat-value">${baseSet}</span>
+                <span class="checklist-stat-label">Base Set</span>
+            </div>
+        ` : ''}
+        ${inserts > 0 ? `
+            <div class="checklist-stat">
+                <span class="checklist-stat-value">${inserts}</span>
+                <span class="checklist-stat-label">Inserts</span>
+            </div>
+        ` : ''}
+        ${autographs > 0 ? `
+            <div class="checklist-stat">
+                <span class="checklist-stat-value">${autographs}</span>
+                <span class="checklist-stat-label">Autographs</span>
+            </div>
+        ` : ''}
+        ${memorabilia > 0 ? `
+            <div class="checklist-stat">
+                <span class="checklist-stat-value">${memorabilia}</span>
+                <span class="checklist-stat-label">Memorabilia</span>
+            </div>
+        ` : ''}
+        ${autoRelics > 0 ? `
+            <div class="checklist-stat">
+                <span class="checklist-stat-value">${autoRelics}</span>
+                <span class="checklist-stat-label">Auto Relics</span>
+            </div>
+        ` : ''}
+    `;
 }
 
 function renderProductHero() {
@@ -522,20 +616,11 @@ function renderOddsSection(title, dataMap, selectedConfig) {
 
 function renderChecklistTab() {
     const checklist = getChecklistForProduct(state.product);
-    const product = getProduct(state.product);
-    const configInfo = getConfigInfo(state.product, state.config);
-
-    // Get box info from config
-    const packs = configInfo?.packs || 0;
-    const cardsPerPack = configInfo?.cardsPerPack || 0;
-    const boxesPerCase = configInfo?.boxesPerCase || 0;
 
     if (checklist.length === 0) {
         return `<div class="empty-state"><p class="empty-state-text">No checklist data available</p></div>`;
     }
 
-    const totalCards = checklist.length;
-    const rookies = checklist.filter(c => ['TRUE', 'true', '1', 'Yes', 'yes'].includes(c.rookie));
     const sets = [...new Set(checklist.map(c => c.set_name || c.set_type).filter(Boolean))];
     const teams = [...new Set(checklist.map(c => c.team).filter(Boolean))].sort();
 
@@ -570,81 +655,6 @@ function renderChecklistTab() {
         if (valA > valB) return sortDir === 'asc' ? 1 : -1;
         return 0;
     });
-
-    // Get sport logo for watermark
-    const sportLogo = product ? getSportLogo(product.sport) : null;
-
-    // Count card categories
-    const baseSet = checklist.filter(c => {
-        const setType = (c.set_type || c.set_name || '').toLowerCase();
-        return setType === 'base' || setType === 'base set' || setType.includes('base');
-    }).length;
-    const inserts = checklist.filter(c => {
-        const setType = (c.set_type || c.set_name || '').toLowerCase();
-        return setType.includes('insert') || (!setType.includes('base') && !setType.includes('auto') && !setType.includes('relic') && !setType.includes('mem') && setType !== '');
-    }).length;
-    const autographs = checklist.filter(c => {
-        const setType = (c.set_type || c.set_name || '').toLowerCase();
-        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
-        return setType.includes('auto') && !isRelic;
-    }).length;
-    const memorabilia = checklist.filter(c => {
-        const setType = (c.set_type || c.set_name || '').toLowerCase();
-        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
-        return isRelic && !setType.includes('auto');
-    }).length;
-    const autoRelics = checklist.filter(c => {
-        const setType = (c.set_type || c.set_name || '').toLowerCase();
-        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
-        return setType.includes('auto') && isRelic;
-    }).length;
-
-    // Build box info list items
-    const boxInfoItems = [];
-    if (packs) boxInfoItems.push(`<li><span class="box-info-label">Packs:</span> <span class="box-info-value">${packs}</span></li>`);
-    if (cardsPerPack) boxInfoItems.push(`<li><span class="box-info-label">Cards/Pack:</span> <span class="box-info-value">${cardsPerPack}</span></li>`);
-    if (boxesPerCase) boxInfoItems.push(`<li><span class="box-info-label">Boxes/Case:</span> <span class="box-info-value">${boxesPerCase}</span></li>`);
-
-    // Combined stats bar - box info list + card category stats
-    const statsHtml = `
-        <div class="checklist-stats">
-            ${boxInfoItems.length > 0 ? `
-                <div class="box-info-stat">
-                    <ul class="box-info-list">${boxInfoItems.join('')}</ul>
-                </div>
-            ` : ''}
-            ${baseSet > 0 ? `
-                <div class="checklist-stat">
-                    <span class="checklist-stat-value">${baseSet}</span>
-                    <span class="checklist-stat-label">Base Set</span>
-                </div>
-            ` : ''}
-            ${inserts > 0 ? `
-                <div class="checklist-stat">
-                    <span class="checklist-stat-value">${inserts}</span>
-                    <span class="checklist-stat-label">Inserts</span>
-                </div>
-            ` : ''}
-            ${autographs > 0 ? `
-                <div class="checklist-stat">
-                    <span class="checklist-stat-value">${autographs}</span>
-                    <span class="checklist-stat-label">Autographs</span>
-                </div>
-            ` : ''}
-            ${memorabilia > 0 ? `
-                <div class="checklist-stat">
-                    <span class="checklist-stat-value">${memorabilia}</span>
-                    <span class="checklist-stat-label">Memorabilia</span>
-                </div>
-            ` : ''}
-            ${autoRelics > 0 ? `
-                <div class="checklist-stat">
-                    <span class="checklist-stat-value">${autoRelics}</span>
-                    <span class="checklist-stat-label">Auto Relics</span>
-                </div>
-            ` : ''}
-        </div>
-    `;
 
     // Compact filters bar
     const filtersHtml = `
@@ -717,5 +727,5 @@ function renderChecklistTab() {
         </div>
     ` : '<div class="empty-state"><p class="empty-state-text">No cards match your filters</p></div>';
 
-    return statsHtml + filtersHtml + sortHtml + listHtml;
+    return filtersHtml + sortHtml + listHtml;
 }
