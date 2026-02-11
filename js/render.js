@@ -2,7 +2,7 @@ import { state } from './state.js';
 import {
     getAvailableSports, getAllProducts, searchProducts, getProduct, getAvailableConfigs,
     getConfigInfo, getChecklistForProduct, getOddsForProduct,
-    getAllParallelsForProduct, getAllInsertsForProduct, getAllAutographsForProduct,
+    getAllParallelsForProduct, getAllParallelsBySetForProduct, getAllInsertsForProduct, getAllAutographsForProduct,
     getAllRelicsForProduct, getAllAutoRelicsForProduct,
     loadChecklistForProduct, loadOddsForProduct, isChecklistLoaded, isOddsLoaded,
     loadConfigForProduct, isConfigLoaded
@@ -515,13 +515,13 @@ function renderOddsTab() {
         return `<div class="empty-state"><p class="empty-state-text">Product not found</p></div>`;
     }
 
-    const parallels = getAllParallelsForProduct(state.product);
+    const parallelsBySet = getAllParallelsBySetForProduct(state.product);
     const inserts = getAllInsertsForProduct(state.product);
     const autographs = getAllAutographsForProduct(state.product);
     const relics = getAllRelicsForProduct(state.product);
     const autoRelics = getAllAutoRelicsForProduct(state.product);
 
-    const hasData = parallels.size > 0 || inserts.size > 0 || autographs.size > 0 || relics.size > 0 || autoRelics.size > 0;
+    const hasData = parallelsBySet.size > 0 || inserts.size > 0 || autographs.size > 0 || relics.size > 0 || autoRelics.size > 0;
 
     if (!hasData) {
         return `<div class="empty-state"><p class="empty-state-text">No odds data available</p></div>`;
@@ -532,9 +532,11 @@ function renderOddsTab() {
 
     let html = '';
 
-    // Base Section
-    if (parallels.size > 0) {
-        html += renderOddsSection('Base', parallels, selectedConfig);
+    // Base Parallels - grouped by set
+    if (parallelsBySet.size > 0) {
+        for (const [setName, parallels] of parallelsBySet) {
+            html += renderOddsSection(setName, parallels, selectedConfig, 'Parallel');
+        }
     }
 
     // Inserts Section
@@ -560,7 +562,7 @@ function renderOddsTab() {
     return html;
 }
 
-function renderOddsSection(title, dataMap, selectedConfig) {
+function renderOddsSection(title, dataMap, selectedConfig, nameHeader = 'Card Type') {
     // Filter to only show items that have odds for the selected config
     const filteredEntries = [...dataMap.entries()].filter(([name, configData]) => {
         return configData[selectedConfig] !== undefined && configData[selectedConfig] !== null;
@@ -588,7 +590,7 @@ function renderOddsSection(title, dataMap, selectedConfig) {
                 <table class="odds-table">
                     <thead>
                         <tr>
-                            <th class="odds-name-header">Card Type</th>
+                            <th class="odds-name-header">${nameHeader}</th>
                             <th class="odds-config-header">Odds</th>
                         </tr>
                     </thead>
