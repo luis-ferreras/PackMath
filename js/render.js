@@ -343,11 +343,13 @@ function renderProductHero() {
     }
 
     document.getElementById('productHero').innerHTML = `
-        <div class="hero-top">
-            <div class="hero-info">
-                <h1 class="hero-name">${displayName}</h1>
-                <p class="hero-meta">${metaParts.join(' &bull; ')}</p>
-            </div>
+        <div class="hero-toolbar">
+            <button class="back-btn" id="productBackBtn" onclick="navigateBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m15 18-6-6 6-6"/>
+                </svg>
+                Back
+            </button>
             ${configs.length > 0 ? `
                 <div class="hero-config-select">
                     <span class="config-label">Box Type</span>
@@ -356,6 +358,10 @@ function renderProductHero() {
                     </select>
                 </div>
             ` : ''}
+        </div>
+        <div class="hero-info">
+            <h1 class="hero-name">${displayName}</h1>
+            <p class="hero-meta">${metaParts.join(' &bull; ')}</p>
         </div>
     `;
 }

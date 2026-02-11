@@ -81,6 +81,16 @@ async function navigateToProduct(productId) {
     updateURL(true); // pushState for navigation
 }
 
+function navigateBack() {
+    if (state.searchQuery) {
+        navigateToSearch(state.searchQuery, state.sportFilter);
+    } else if (state.sportFilter) {
+        setSportFilter(state.sportFilter);
+    } else {
+        navigateToLanding();
+    }
+}
+
 // ========================================
 // State Setters (for render.js to use)
 // ========================================
@@ -186,6 +196,7 @@ window.setSportFilter = setSportFilter;
 window.navigateToProduct = navigateToProduct;
 window.navigateToSearch = navigateToSearch;
 window.navigateToLanding = navigateToLanding;
+window.navigateBack = navigateBack;
 
 // ========================================
 // Tab UI Updates
@@ -530,17 +541,8 @@ function initEventListeners() {
     initAutocomplete();
     initLandingAutocomplete();
 
-    // Back buttons
+    // Back button for search view (product back button is now in the hero)
     document.getElementById('searchBackBtn').addEventListener('click', navigateToLanding);
-    document.getElementById('productBackBtn').addEventListener('click', () => {
-        if (state.searchQuery) {
-            navigateToSearch(state.searchQuery, state.sportFilter);
-        } else if (state.sportFilter) {
-            setSportFilter(state.sportFilter);
-        } else {
-            navigateToLanding();
-        }
-    });
 
     // Tab buttons
     document.querySelectorAll('.tab').forEach(tab => {
