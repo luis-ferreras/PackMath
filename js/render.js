@@ -5,7 +5,8 @@ import {
     getAllParallelsForProduct, getAllParallelsBySetForProduct, getAllInsertsForProduct, getAllAutographsForProduct,
     getAllRelicsForProduct, getAllAutoRelicsForProduct,
     loadChecklistForProduct, loadOddsForProduct, isChecklistLoaded, isOddsLoaded,
-    loadConfigForProduct, isConfigLoaded
+    loadConfigForProduct, isConfigLoaded,
+    parseOddsToNumber
 } from './data.js';
 
 // ========================================
@@ -579,6 +580,13 @@ function renderOddsSection(title, dataMap, selectedConfig, nameHeader = 'Card Ty
     if (filteredEntries.length === 0) {
         return ''; // Don't show section if no odds for this config
     }
+
+    // Sort by odds value (highest to lowest - rarest cards first)
+    filteredEntries.sort((a, b) => {
+        const oddsA = parseOddsToNumber(a[1][selectedConfig]);
+        const oddsB = parseOddsToNumber(b[1][selectedConfig]);
+        return oddsB - oddsA; // Descending order (highest odds first)
+    });
 
     const rows = filteredEntries.map(([name, configData]) => {
         const odds = configData[selectedConfig];
