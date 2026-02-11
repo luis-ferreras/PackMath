@@ -3697,4 +3697,179 @@ body {
         grid-template-columns: 1fr;
         gap: 12px;
     }
+
+    .compare-score-summary {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .compare-score-bars {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .compare-score-bar-left {
+        flex-direction: row;
+    }
+
+    .compare-score-bar-right {
+        flex-direction: row;
+    }
+}
+
+/* ========================================
+   Box Score Visualization
+   ======================================== */
+
+.compare-score-card .insight-body {
+    padding-top: 20px;
+}
+
+.compare-score-summary {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 32px;
+    margin-bottom: 28px;
+}
+
+.compare-score-total {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 16px 24px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    min-width: 120px;
+}
+
+.compare-score-total.compare-win {
+    border-color: var(--emerald);
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.compare-score-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'Geist Mono', monospace;
+    line-height: 1;
+}
+
+.compare-score-total.compare-win .compare-score-number {
+    color: var(--emerald);
+}
+
+.compare-score-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.compare-score-verdict {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.compare-score-vs {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Dimension breakdown bars */
+.compare-score-dims {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.compare-score-dim {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.compare-score-dim-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.compare-score-bars {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.compare-score-bar-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.compare-score-bar-left {
+    flex-direction: row-reverse;
+}
+
+.compare-score-bar-right {
+    flex-direction: row;
+}
+
+.compare-score-bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.compare-score-bar-left .compare-score-bar-track {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.compare-score-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width var(--transition-normal);
+}
+
+.compare-score-bar-fill-a {
+    background: var(--text-muted);
+}
+
+.compare-score-bar-fill-b {
+    background: var(--text-muted);
+}
+
+.compare-score-bar-fill-a.compare-bar-win {
+    background: var(--emerald);
+}
+
+.compare-score-bar-fill-b.compare-bar-win {
+    background: var(--emerald);
+}
+
+.compare-score-bar-val {
+    font-size: 0.75rem;
+    font-family: 'Geist Mono', monospace;
+    color: var(--text-muted);
+    min-width: 24px;
+    text-align: center;
+}
+
+.compare-score-bar-val.compare-bar-win {
+    color: var(--emerald);
+    font-weight: 600;
 }
