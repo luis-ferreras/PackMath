@@ -560,6 +560,18 @@ function renderOddsTab() {
 
     let html = '';
 
+    // Data source info banner
+    html += `
+        <div class="data-source-info">
+            <svg class="data-source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
+            </svg>
+            <span>Odds data sourced from official product odds sheets (Topps, Panini, etc.)</span>
+        </div>
+    `;
+
     // Base Parallels - grouped by type, then by set
     html += renderTypeGroup('Base', parallelsBySet, selectedConfig);
 
@@ -805,7 +817,19 @@ function renderChecklistTab() {
         </div>
     ` : '<div class="empty-state"><p class="empty-state-text">No cards match your filters</p></div>';
 
-    return filtersHtml + sortHtml + listHtml;
+    // Data source info banner
+    const dataSourceHtml = `
+        <div class="data-source-info">
+            <svg class="data-source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
+            </svg>
+            <span>Checklist data sourced from official product checklists (Topps, Panini, etc.)</span>
+        </div>
+    `;
+
+    return dataSourceHtml + filtersHtml + sortHtml + listHtml;
 }
 
 // ========================================
