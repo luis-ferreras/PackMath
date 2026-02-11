@@ -579,7 +579,7 @@ function renderOddsTab() {
     html += renderTypeGroup('Autographs', autographs, selectedConfig);
 
     // Relics Section - grouped by type, then by set
-    html += renderTypeGroup('Memorabilia', relics, selectedConfig);
+    html += renderTypeGroup('Relics', relics, selectedConfig);
 
     // Auto Relics Section - grouped by type, then by set
     html += renderTypeGroup('Auto Relics', autoRelics, selectedConfig);

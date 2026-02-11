@@ -762,7 +762,7 @@ export function getAllAutographsForProduct(productId) {
 export function getAllRelicsForProduct(productId) {
     const setMap = new Map();
     ODDS_RAW.filter(row => row.product_id === productId && row.category === 'relic').forEach(row => {
-        const setName = row.card_type || 'Memorabilia';
+        const setName = row.card_type || 'Relics';
         const parallelName = row.parallel || 'Base';
 
         if (!setMap.has(setName)) setMap.set(setName, new Map());
