@@ -357,25 +357,6 @@ function renderProductHero() {
                 </div>
             ` : ''}
         </div>
-
-        ${packs && cardsPerPack ? `
-            <div class="hero-details">
-                <div class="hero-detail">
-                    <div class="hero-detail-value">${packs}</div>
-                    <div class="hero-detail-label">Packs</div>
-                </div>
-                <div class="hero-detail">
-                    <div class="hero-detail-value">${cardsPerPack}</div>
-                    <div class="hero-detail-label">Cards/Pack</div>
-                </div>
-                ${boxesPerCase ? `
-                    <div class="hero-detail">
-                        <div class="hero-detail-value">${boxesPerCase}</div>
-                        <div class="hero-detail-label">Boxes/Case</div>
-                    </div>
-                ` : ''}
-            </div>
-        ` : ''}
     `;
 }
 
@@ -536,6 +517,12 @@ function renderOddsSection(title, dataMap, selectedConfig) {
 function renderChecklistTab() {
     const checklist = getChecklistForProduct(state.product);
     const product = getProduct(state.product);
+    const configInfo = getConfigInfo(state.product, state.config);
+
+    // Get box info from config
+    const packs = configInfo?.packs || 0;
+    const cardsPerPack = configInfo?.cardsPerPack || 0;
+    const boxesPerCase = configInfo?.boxesPerCase || 0;
 
     if (checklist.length === 0) {
         return `<div class="empty-state"><p class="empty-state-text">No checklist data available</p></div>`;
@@ -606,9 +593,20 @@ function renderChecklistTab() {
         return setType.includes('auto') && isRelic;
     }).length;
 
-    // Stats bar - only show stats with non-zero values
+    // Build box info list items
+    const boxInfoItems = [];
+    if (packs) boxInfoItems.push(`<li><span class="box-info-label">Packs:</span> <span class="box-info-value">${packs}</span></li>`);
+    if (cardsPerPack) boxInfoItems.push(`<li><span class="box-info-label">Cards/Pack:</span> <span class="box-info-value">${cardsPerPack}</span></li>`);
+    if (boxesPerCase) boxInfoItems.push(`<li><span class="box-info-label">Boxes/Case:</span> <span class="box-info-value">${boxesPerCase}</span></li>`);
+
+    // Combined stats bar - box info list + card category stats
     const statsHtml = `
         <div class="checklist-stats">
+            ${boxInfoItems.length > 0 ? `
+                <div class="box-info-stat">
+                    <ul class="box-info-list">${boxInfoItems.join('')}</ul>
+                </div>
+            ` : ''}
             ${baseSet > 0 ? `
                 <div class="checklist-stat">
                     <span class="checklist-stat-value">${baseSet}</span>
