@@ -340,11 +340,11 @@ function renderChecklistStats() {
     }).length;
     const relics = checklist.filter(c => {
         const setType = (c.set_type || c.set_name || '').toLowerCase();
-        return setType === 'relic' || (setType.includes('relic') && !setType.includes('auto'));
+        return (setType === 'relic' || (setType.includes('relic') && !setType.includes('auto'))) && !setType.includes('redemption');
     }).length;
     const autoRelics = checklist.filter(c => {
         const setType = (c.set_type || c.set_name || '').toLowerCase();
-        return setType === 'autograph_relic' || (setType.includes('auto') && setType.includes('relic'));
+        return (setType === 'autograph_relic' || (setType.includes('auto') && setType.includes('relic'))) && !setType.includes('redemption');
     }).length;
 
     container.innerHTML = `
