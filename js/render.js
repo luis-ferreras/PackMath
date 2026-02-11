@@ -568,7 +568,7 @@ function renderOddsTab() {
                 <path d="M12 16v-4"></path>
                 <path d="M12 8h.01"></path>
             </svg>
-            <span>View the official odds for each card type in this product. All data is sourced directly from the manufacturer's odds sheets included with the product.</span>
+            <span>View the official odds for each card type in this product. All data is sourced directly from the manufacturer's odds sheets included with the product. If you spot any errors, please let us know and we'll correct them as soon as possible.</span>
         </div>
     `;
 
@@ -825,7 +825,7 @@ function renderChecklistTab() {
                 <path d="M12 16v-4"></path>
                 <path d="M12 8h.01"></path>
             </svg>
-            <span>Browse all cards available in this product. Filter by set, team, or search for specific players. All data is sourced directly from the manufacturer's official checklists.</span>
+            <span>Browse all cards available in this product. Filter by set, team, or search for specific players. All data is sourced directly from the manufacturer's official checklists. If you spot any errors, please let us know and we'll correct them as soon as possible.</span>
         </div>
     `;
 
@@ -850,7 +850,7 @@ function renderInsightsTab() {
                 <path d="M12 16v-4"></path>
                 <path d="M12 8h.01"></path>
             </svg>
-            <span>Explore detailed analytics and statistics for this product. All calculations are based on official odds and checklist data from the manufacturer.</span>
+            <span>Explore detailed analytics and statistics for this product. All calculations are based on official odds and checklist data from the manufacturer. If you spot any errors, please let us know and we'll correct them as soon as possible.</span>
         </div>
     `;
 
