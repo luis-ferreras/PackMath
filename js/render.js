@@ -947,6 +947,9 @@ function renderProductScoreCard(productSlug, config) {
                         <span class="metric-value">${score.breakdown.value}</span>
                     </div>
                 </div>
+                <div class="insight-explanation">
+                    <strong>How it's calculated:</strong> Score = (Variety × 0.2) + (Chase × 0.3) + (Hits × 0.3) + (Value × 0.2). Variety measures total card types, Chase counts cards with 1:200+ odds, Hits uses autograph frequency, and Value considers packs per box.
+                </div>
             </div>
         </div>
     `;
@@ -1006,6 +1009,9 @@ function renderRiskMeter(productSlug, config) {
                         <span class="risk-stat-label">Odds Spread</span>
                     </div>
                 </div>
+                <div class="insight-explanation">
+                    <strong>How it's calculated:</strong> Risk is based on odds spread (highest odds ÷ lowest odds). High Risk = spread > 500x with 3+ chase cards. Medium Risk = spread > 100x. Low Risk = spread ≤ 100x.
+                </div>
             </div>
         </div>
     `;
@@ -1064,6 +1070,9 @@ function renderBreakevenChart(productSlug, config) {
                     <span class="legend-item legend-50"><span class="legend-dot"></span> 50% Chance</span>
                     <span class="legend-item legend-75"><span class="legend-dot"></span> 75% Chance</span>
                 </div>
+                <div class="insight-explanation">
+                    <strong>How it's calculated:</strong> Uses probability formula P = 1 − (1 − 1/odds)^packs. Shows how many boxes you'd need to open to have a 50% or 75% chance of pulling each chase card (1:200+ odds).
+                </div>
             </div>
         </div>
     `;
@@ -1120,6 +1129,9 @@ function renderRookieReport(productSlug, config) {
                         </div>
                     </div>
                 ` : ''}
+                <div class="insight-explanation">
+                    <strong>How it's calculated:</strong> Counts all cards marked as rookies in the official checklist. Percentage = (rookie cards ÷ total checklist cards) × 100.
+                </div>
             </div>
         </div>
     `;
@@ -1170,6 +1182,9 @@ function renderWhaleCardSpotlight(productSlug, config) {
                             <span class="whale-stat-label">for 90% chance</span>
                         </div>
                     </div>
+                </div>
+                <div class="insight-explanation">
+                    <strong>How it's calculated:</strong> Identifies the rarest card (highest odds, minimum 1:100). Box estimates use probability formula: boxes = ln(target) ÷ ln(1 − 1/odds) ÷ packs per box.
                 </div>
             </div>
         </div>
@@ -1263,6 +1278,9 @@ function renderOddsDistribution(productSlug, config) {
                         <span class="tier-odds">1:200+</span>
                     </div>
                 </div>
+                <div class="insight-explanation">
+                    <strong>How it's calculated:</strong> Groups all card types by their odds into four tiers: Common (1:1–1:10), Uncommon (1:11–1:50), Rare (1:51–1:200), and Chase (1:200+).
+                </div>
             </div>
         </div>
     `;
@@ -1317,6 +1335,9 @@ function renderSetCompletionEstimate(productSlug, config) {
                     </div>
                 </div>
                 <p class="completion-note">${estimate.note}</p>
+                <div class="insight-explanation">
+                    <strong>How it's calculated:</strong> Uses the Coupon Collector's Problem formula: expected cards = n × (ln(n) + 0.5772), where n = base set size and 0.5772 is the Euler-Mascheroni constant. Assumes random distribution with no trading.
+                </div>
             </div>
         </div>
     `;
