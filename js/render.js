@@ -510,8 +510,12 @@ export async function renderTabContent() {
 // Odds Tab
 // ========================================
 
+// Counter for generating unique type group IDs
+let oddsTypeGroupIdCounter = 0;
+
 function renderOddsTab() {
-    // Reset section ID counter for fresh IDs
+    // Reset ID counters for fresh IDs
+    oddsTypeGroupIdCounter = 0;
     oddsSectionIdCounter = 0;
 
     const product = getProduct(state.product);
@@ -580,12 +584,19 @@ function renderTypeGroup(typeName, setMap, selectedConfig) {
         return '';
     }
 
+    const groupId = `odds-type-group-${oddsTypeGroupIdCounter}`;
+    const isFirstGroup = oddsTypeGroupIdCounter === 0;
+    oddsTypeGroupIdCounter++;
+
     return `
-        <div class="odds-type-group">
-            <div class="odds-type-header">
+        <div class="odds-type-group${isFirstGroup ? '' : ' collapsed'}" id="${groupId}">
+            <button class="odds-type-header" onclick="toggleOddsTypeGroup('${groupId}')" aria-expanded="${isFirstGroup}">
                 <h2 class="odds-type-title">${typeName}</h2>
                 <span class="odds-type-count">${totalItems}</span>
-            </div>
+                <svg class="odds-type-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m6 9 6 6 6-6"/>
+                </svg>
+            </button>
             <div class="odds-type-content">
                 ${sectionsHtml}
             </div>

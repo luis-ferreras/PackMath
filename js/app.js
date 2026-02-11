@@ -196,6 +196,17 @@ function toggleOddsSection(sectionId) {
     }
 }
 
+function toggleOddsTypeGroup(groupId) {
+    const group = document.getElementById(groupId);
+    if (!group) return;
+
+    const isCollapsed = group.classList.toggle('collapsed');
+    const header = group.querySelector('.odds-type-header');
+    if (header) {
+        header.setAttribute('aria-expanded', !isCollapsed);
+    }
+}
+
 // Make handlers available globally
 window.setConfig = setConfig;
 window.setTab = setTab;
@@ -209,6 +220,7 @@ window.setChecklistSort = setChecklistSort;
 window.setChecklistSearch = setChecklistSearch;
 window.setSportFilter = setSportFilter;
 window.toggleOddsSection = toggleOddsSection;
+window.toggleOddsTypeGroup = toggleOddsTypeGroup;
 window.navigateToProduct = navigateToProduct;
 window.navigateToSearch = navigateToSearch;
 window.navigateToLanding = navigateToLanding;
