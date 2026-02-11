@@ -314,6 +314,11 @@ function renderProductHero() {
     const boxesPerCase = configInfo?.boxesPerCase || 0;
     const totalCards = packs * cardsPerPack;
 
+    // Clean up name: remove leading year (2025 or 2025-26 format) and brand if duplicated
+    let displayName = product.name
+        .replace(/^\d{4}(-\d{2})?\s+/, '')  // Remove leading year
+        .replace(new RegExp(`^${product.brand}\\s+`, 'i'), '');  // Remove brand
+
     // Brand: logo or text
     const brandLogo = getBrandLogo(product.brand);
     const brandDisplay = brandLogo
@@ -340,7 +345,7 @@ function renderProductHero() {
     document.getElementById('productHero').innerHTML = `
         <div class="hero-top">
             <div class="hero-info">
-                <h1 class="hero-name">${product.name}</h1>
+                <h1 class="hero-name">${displayName}</h1>
                 <p class="hero-meta">${metaParts.join(' &bull; ')}</p>
             </div>
             ${configs.length > 0 ? `
