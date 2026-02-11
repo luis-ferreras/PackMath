@@ -1588,6 +1588,46 @@ body {
    Odds Tab Styles
    ======================================== */
 
+/* Type-level grouping (Base, Inserts, Autographs, etc.) */
+.odds-type-group {
+    margin-bottom: 32px;
+}
+
+.odds-type-group:last-child {
+    margin-bottom: 0;
+}
+
+.odds-type-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.odds-type-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.odds-type-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: 10px;
+}
+
+.odds-type-content {
+    padding-left: 0;
+}
+
+/* Set-level sections (within type groups) */
 .odds-section {
     margin-bottom: 24px;
 }
