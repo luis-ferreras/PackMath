@@ -708,38 +708,59 @@ export function getAllInsertsForProduct(productId) {
     return inserts;
 }
 
+// Returns autographs grouped by set (card_type), then by parallel name
+// Structure: Map<setName, Map<parallelName, {config: odds}>>
 export function getAllAutographsForProduct(productId) {
-    const autos = new Map();
+    const setMap = new Map();
     ODDS_RAW.filter(row => row.product_id === productId && row.category === 'autograph').forEach(row => {
-        const name = row.card_type;
-        if (!autos.has(name)) autos.set(name, {});
-        autos.get(name)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
+        const setName = row.card_type || 'Autograph';
+        const parallelName = row.parallel || 'Base';
+
+        if (!setMap.has(setName)) setMap.set(setName, new Map());
+        const parallels = setMap.get(setName);
+
+        if (!parallels.has(parallelName)) parallels.set(parallelName, {});
+        parallels.get(parallelName)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
     });
-    return autos;
+    return setMap;
 }
 
+// Returns relics grouped by set (card_type), then by parallel name
+// Structure: Map<setName, Map<parallelName, {config: odds}>>
 export function getAllRelicsForProduct(productId) {
-    const relics = new Map();
+    const setMap = new Map();
     ODDS_RAW.filter(row => row.product_id === productId && row.category === 'relic').forEach(row => {
-        const name = row.card_type;
-        if (!relics.has(name)) relics.set(name, {});
-        relics.get(name)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
+        const setName = row.card_type || 'Memorabilia';
+        const parallelName = row.parallel || 'Base';
+
+        if (!setMap.has(setName)) setMap.set(setName, new Map());
+        const parallels = setMap.get(setName);
+
+        if (!parallels.has(parallelName)) parallels.set(parallelName, {});
+        parallels.get(parallelName)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
     });
-    return relics;
+    return setMap;
 }
 
+// Returns auto relics grouped by set (card_type), then by parallel name
+// Structure: Map<setName, Map<parallelName, {config: odds}>>
 export function getAllAutoRelicsForProduct(productId) {
-    const autoRelics = new Map();
+    const setMap = new Map();
     ODDS_RAW.filter(row => {
         if (row.product_id !== productId) return false;
         const cat = (row.category || '').toLowerCase().trim();
         return cat === 'autograph_relic' || cat === 'autograph relic' || cat === 'auto relic' || cat === 'auto_relic';
     }).forEach(row => {
-        const name = row.card_type;
-        if (!autoRelics.has(name)) autoRelics.set(name, {});
-        autoRelics.get(name)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
+        const setName = row.card_type || 'Auto Relic';
+        const parallelName = row.parallel || 'Base';
+
+        if (!setMap.has(setName)) setMap.set(setName, new Map());
+        const parallels = setMap.get(setName);
+
+        if (!parallels.has(parallelName)) parallels.set(parallelName, {});
+        parallels.get(parallelName)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
     });
-    return autoRelics;
+    return setMap;
 }
 
 // ========================================

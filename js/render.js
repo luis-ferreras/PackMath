@@ -544,19 +544,25 @@ function renderOddsTab() {
         html += renderOddsSection('Inserts', inserts, selectedConfig);
     }
 
-    // Autographs Section
+    // Autographs Section - grouped by set
     if (autographs.size > 0) {
-        html += renderOddsSection('Autographs', autographs, selectedConfig);
+        for (const [setName, parallels] of autographs) {
+            html += renderOddsSection(setName, parallels, selectedConfig, 'Parallel');
+        }
     }
 
-    // Relics Section
+    // Relics Section - grouped by set
     if (relics.size > 0) {
-        html += renderOddsSection('Memorabilia', relics, selectedConfig);
+        for (const [setName, parallels] of relics) {
+            html += renderOddsSection(setName, parallels, selectedConfig, 'Parallel');
+        }
     }
 
-    // Auto Relics Section
+    // Auto Relics Section - grouped by set
     if (autoRelics.size > 0) {
-        html += renderOddsSection('Auto Relics', autoRelics, selectedConfig);
+        for (const [setName, parallels] of autoRelics) {
+            html += renderOddsSection(setName, parallels, selectedConfig, 'Parallel');
+        }
     }
 
     return html;
