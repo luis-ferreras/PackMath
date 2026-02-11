@@ -332,22 +332,19 @@ function renderChecklistStats() {
     }).length;
     const inserts = checklist.filter(c => {
         const setType = (c.set_type || c.set_name || '').toLowerCase();
-        return setType.includes('insert') || (!setType.includes('base') && !setType.includes('auto') && !setType.includes('relic') && !setType.includes('mem') && setType !== '');
+        return setType.includes('insert') || (!setType.includes('base') && !setType.includes('auto') && !setType.includes('relic') && setType !== '');
     }).length;
     const autographs = checklist.filter(c => {
         const setType = (c.set_type || c.set_name || '').toLowerCase();
-        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
-        return setType.includes('auto') && !isRelic;
+        return setType.includes('auto') && !setType.includes('relic');
     }).length;
-    const memorabilia = checklist.filter(c => {
+    const relics = checklist.filter(c => {
         const setType = (c.set_type || c.set_name || '').toLowerCase();
-        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
-        return isRelic && !setType.includes('auto');
+        return setType === 'relic' || (setType.includes('relic') && !setType.includes('auto'));
     }).length;
     const autoRelics = checklist.filter(c => {
         const setType = (c.set_type || c.set_name || '').toLowerCase();
-        const isRelic = setType.includes('relic') || setType.includes('mem') || setType.includes('patch') || setType.includes('jersey');
-        return setType.includes('auto') && isRelic;
+        return setType === 'autograph_relic' || (setType.includes('auto') && setType.includes('relic'));
     }).length;
 
     container.innerHTML = `
@@ -369,10 +366,10 @@ function renderChecklistStats() {
                 <span class="checklist-stat-label">Autographs</span>
             </div>
         ` : ''}
-        ${memorabilia > 0 ? `
+        ${relics > 0 ? `
             <div class="checklist-stat">
-                <span class="checklist-stat-value">${memorabilia}</span>
-                <span class="checklist-stat-label">Memorabilia</span>
+                <span class="checklist-stat-value">${relics}</span>
+                <span class="checklist-stat-label">Relics</span>
             </div>
         ` : ''}
         ${autoRelics > 0 ? `
