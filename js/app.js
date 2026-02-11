@@ -181,6 +181,21 @@ function setSportFilter(sport) {
     updateURL(true); // pushState for navigation
 }
 
+// ========================================
+// Odds Section Toggle
+// ========================================
+
+function toggleOddsSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+
+    const isCollapsed = section.classList.toggle('collapsed');
+    const header = section.querySelector('.odds-section-header');
+    if (header) {
+        header.setAttribute('aria-expanded', !isCollapsed);
+    }
+}
+
 // Make handlers available globally
 window.setConfig = setConfig;
 window.setTab = setTab;
@@ -193,6 +208,7 @@ window.setChecklistRookieOnly = setChecklistRookieOnly;
 window.setChecklistSort = setChecklistSort;
 window.setChecklistSearch = setChecklistSearch;
 window.setSportFilter = setSportFilter;
+window.toggleOddsSection = toggleOddsSection;
 window.navigateToProduct = navigateToProduct;
 window.navigateToSearch = navigateToSearch;
 window.navigateToLanding = navigateToLanding;

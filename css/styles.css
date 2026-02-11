@@ -1677,6 +1677,63 @@ body {
     vertical-align: middle;
 }
 
+/* Collapsible Odds Sections */
+.odds-section-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0;
+    margin-bottom: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+.odds-section-header:hover .odds-section-title {
+    color: var(--accent);
+}
+
+.odds-section-header .odds-section-title {
+    margin: 0;
+    transition: color var(--transition-fast);
+}
+
+.odds-section-count {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    padding: 2px 8px;
+    border-radius: 9999px;
+}
+
+.odds-section-chevron {
+    width: 20px;
+    height: 20px;
+    color: var(--text-muted);
+    margin-left: auto;
+    transition: transform var(--transition-normal);
+    flex-shrink: 0;
+}
+
+.odds-section.collapsed .odds-section-chevron {
+    transform: rotate(-90deg);
+}
+
+.odds-section-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+    max-height: 2000px; /* Large enough to show content */
+    opacity: 1;
+}
+
+.odds-section.collapsed .odds-section-content {
+    max-height: 0;
+    opacity: 0;
+}
+
 /* Responsive odds table */
 @media (max-width: 640px) {
     .odds-table th,
