@@ -672,8 +672,9 @@ export function getOddsForProduct(productId, config) {
 export function getAllParallelsForProduct(productId) {
     const parallels = new Map();
     ODDS_RAW.filter(row => row.product_id === productId && row.category === 'base').forEach(row => {
-        // For base category, use card_type as the parallel name (e.g., "Base", "Refractor")
-        const name = row.card_type || 'Base';
+        // For base category, use parallel name first (e.g., "Zodiac", "Refractor"),
+        // then fall back to card_type, then "Base"
+        const name = row.parallel || row.card_type || 'Base';
         if (!parallels.has(name)) parallels.set(name, {});
         parallels.get(name)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
     });
