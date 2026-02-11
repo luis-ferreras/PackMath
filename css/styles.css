@@ -3462,3 +3462,239 @@ body {
         height: 24px;
     }
 }
+
+/* ========================================
+   Comparison Tab
+   ======================================== */
+
+.comparison-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.compare-selectors {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    justify-content: center;
+}
+
+.compare-selector {
+    flex: 1;
+    max-width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.compare-selector-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+}
+
+.compare-select {
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 0.9375rem;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color var(--transition-fast);
+}
+
+.compare-select:hover {
+    border-color: var(--border-light);
+}
+
+.compare-select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.compare-vs {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    padding-top: 20px;
+}
+
+/* Compare card body */
+.compare-body {
+    padding: 16px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.compare-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 16px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.compare-row:last-child {
+    border-bottom: none;
+}
+
+.compare-row-header {
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 12px;
+    margin-bottom: 4px;
+}
+
+.compare-col-header {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.compare-label {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    text-align: center;
+    white-space: nowrap;
+    min-width: 100px;
+}
+
+.compare-val {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-align: center;
+    font-family: 'Geist Mono', monospace;
+}
+
+.compare-val.compare-win {
+    color: var(--emerald);
+    font-weight: 700;
+}
+
+.compare-val-odds {
+    font-size: 0.875rem;
+}
+
+/* Verdict card */
+.compare-verdict-card .insight-badge {
+    font-size: 0.8125rem;
+}
+
+.compare-verdict-a {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--emerald);
+}
+
+.compare-verdict-b {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--blue);
+}
+
+.compare-verdict-tie {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--amber);
+}
+
+.compare-verdict-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+.compare-verdict-col {
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+}
+
+.compare-verdict-col.compare-verdict-winner {
+    border-color: var(--emerald);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.compare-verdict-box-name {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.compare-adv-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.compare-adv-list li {
+    font-size: 0.8125rem;
+    color: var(--emerald);
+    padding-left: 16px;
+    position: relative;
+}
+
+.compare-adv-list li::before {
+    content: '+';
+    position: absolute;
+    left: 0;
+    font-weight: 700;
+}
+
+.compare-adv-list li.compare-adv-none {
+    color: var(--text-muted);
+}
+
+.compare-adv-list li.compare-adv-none::before {
+    content: '-';
+    color: var(--text-muted);
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+    .compare-selectors {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .compare-selector {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .compare-vs {
+        padding-top: 0;
+    }
+
+    .compare-row {
+        gap: 8px;
+    }
+
+    .compare-label {
+        min-width: 70px;
+        font-size: 0.75rem;
+    }
+
+    .compare-val {
+        font-size: 0.875rem;
+    }
+
+    .compare-verdict-cols {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}

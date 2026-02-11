@@ -113,6 +113,16 @@ function setCompareTab(tab) {
     renderTabContent();
 }
 
+function setCompareBoxA(config) {
+    state.compareBoxA = config;
+    renderTabContent();
+}
+
+function setCompareBoxB(config) {
+    state.compareBoxB = config;
+    renderTabContent();
+}
+
 function setBoxCount(count) {
     state.boxCount = count;
     renderTabContent();
@@ -211,6 +221,8 @@ function toggleOddsTypeGroup(groupId) {
 window.setConfig = setConfig;
 window.setTab = setTab;
 window.setCompareTab = setCompareTab;
+window.setCompareBoxA = setCompareBoxA;
+window.setCompareBoxB = setCompareBoxB;
 window.setBoxCount = setBoxCount;
 window.setCalcTargetCard = setCalcTargetCard;
 window.setChecklistSet = setChecklistSet;

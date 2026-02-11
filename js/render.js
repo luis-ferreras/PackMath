@@ -6,7 +6,7 @@ import {
     getAllRelicsForProduct, getAllAutoRelicsForProduct,
     loadChecklistForProduct, loadOddsForProduct, isChecklistLoaded, isOddsLoaded,
     loadConfigForProduct, isConfigLoaded,
-    parseOddsToNumber
+    parseOddsToNumber, getProductStats, ODDS_RAW
 } from './data.js';
 import {
     calculateProductScore, calculateVariance, calculateBreakeven,
@@ -461,7 +461,8 @@ export function renderProductTabs() {
     const tabs = [
         { id: 'odds', label: 'Odds' },
         { id: 'checklist', label: 'Checklist' },
-        { id: 'insights', label: 'Insights' }
+        { id: 'insights', label: 'Insights' },
+        { id: 'comparison', label: 'Comparison' }
     ];
 
     const tabsHtml = tabs.map(tab => `
@@ -513,6 +514,14 @@ export async function renderTabContent() {
                 await Promise.all(loadPromises);
             }
             container.innerHTML = renderInsightsTab();
+            break;
+        case 'comparison':
+            // Load odds data for comparison
+            if (!isOddsLoaded(productSlug)) {
+                showLoading();
+                await loadOddsForProduct(productSlug);
+            }
+            container.innerHTML = renderComparisonTab();
             break;
         default:
             if (!isOddsLoaded(productSlug)) {
@@ -1333,6 +1342,299 @@ function renderSetCompletionEstimate(productSlug, config) {
                 <p class="completion-note">${estimate.note}</p>
                 <div class="insight-explanation">
                     <strong>How it's calculated:</strong> Uses the Coupon Collector's Problem formula: expected cards = n × (ln(n) + 0.5772), where n = base set size and 0.5772 is the Euler-Mascheroni constant. Assumes random distribution with no trading.
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ========================================
+// Comparison Tab
+// ========================================
+
+function getComparisonConfigs(productSlug) {
+    const configs = getAvailableConfigs(productSlug);
+    let boxA = state.compareBoxA;
+    let boxB = state.compareBoxB;
+
+    if (!boxA || !configs.includes(boxA)) {
+        boxA = configs[0] || null;
+    }
+    if (!boxB || !configs.includes(boxB) || boxB === boxA) {
+        boxB = configs.find(c => c !== boxA) || null;
+    }
+
+    state.compareBoxA = boxA;
+    state.compareBoxB = boxB;
+
+    return { configs, boxA, boxB };
+}
+
+function getBestOdds(productSlug, config, category) {
+    const rows = ODDS_RAW.filter(row =>
+        row.product_id === productSlug && row.config === config && row.category === category
+    );
+    if (rows.length === 0) return null;
+
+    let best = null;
+    let bestVal = Infinity;
+    rows.forEach(row => {
+        const val = parseOddsToNumber(row.odds);
+        if (val > 0 && val < bestVal) {
+            bestVal = val;
+            best = row;
+        }
+    });
+    return best;
+}
+
+function formatOddsDisplay(odds) {
+    if (!odds) return '-';
+    return String(odds).trim();
+}
+
+function renderComparisonTab() {
+    const productSlug = state.product;
+    const { configs, boxA, boxB } = getComparisonConfigs(productSlug);
+
+    if (configs.length < 2) {
+        return `<div class="empty-state"><p class="empty-state-text">This product needs at least 2 box types to compare.</p></div>`;
+    }
+
+    const configLabel = (c) => c ? c.charAt(0).toUpperCase() + c.slice(1) : '';
+
+    const optionsHtml = (selected, other) => configs.map(c =>
+        `<option value="${c}" ${c === selected ? 'selected' : ''} ${c === other ? 'disabled' : ''}>${configLabel(c)}</option>`
+    ).join('');
+
+    let html = '<div class="comparison-container">';
+
+    html += `
+        <div class="data-source-info">
+            <svg class="data-source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
+            </svg>
+            <span>Compare two box types side-by-side to see which offers better value for your collecting goals. All data is sourced from official manufacturer odds sheets.</span>
+        </div>
+    `;
+
+    html += `
+        <div class="compare-selectors">
+            <div class="compare-selector">
+                <label class="compare-selector-label">Box A</label>
+                <select class="compare-select" onchange="setCompareBoxA(this.value)">
+                    ${optionsHtml(boxA, boxB)}
+                </select>
+            </div>
+            <div class="compare-vs">VS</div>
+            <div class="compare-selector">
+                <label class="compare-selector-label">Box B</label>
+                <select class="compare-select" onchange="setCompareBoxB(this.value)">
+                    ${optionsHtml(boxB, boxA)}
+                </select>
+            </div>
+        </div>
+    `;
+
+    if (!boxA || !boxB) {
+        html += `<div class="empty-state"><p class="empty-state-text">Select two box types to compare.</p></div>`;
+        html += '</div>';
+        return html;
+    }
+
+    const configA = getConfigInfo(productSlug, boxA);
+    const configB = getConfigInfo(productSlug, boxB);
+    const statsA = getProductStats(productSlug, boxA);
+    const statsB = getProductStats(productSlug, boxB);
+    const totalCardsA = (configA?.packs || 0) * (configA?.cardsPerPack || 0);
+    const totalCardsB = (configB?.packs || 0) * (configB?.cardsPerPack || 0);
+
+    html += renderCompareCard('Box Structure', [
+        { label: 'Packs', a: configA?.packs || '-', b: configB?.packs || '-', higherBetter: true },
+        { label: 'Cards / Pack', a: configA?.cardsPerPack || '-', b: configB?.cardsPerPack || '-', higherBetter: true },
+        { label: 'Total Cards', a: totalCardsA || '-', b: totalCardsB || '-', higherBetter: true },
+        { label: 'Boxes / Case', a: configA?.boxesPerCase || '-', b: configB?.boxesPerCase || '-', higherBetter: false },
+    ], boxA, boxB);
+
+    html += renderCompareCard('Category Counts', [
+        { label: 'Base Parallels', a: statsA.parallels, b: statsB.parallels, higherBetter: true },
+        { label: 'Inserts', a: statsA.inserts, b: statsB.inserts, higherBetter: true },
+        { label: 'Autographs', a: statsA.autographs, b: statsB.autographs, higherBetter: true },
+        { label: 'Relics', a: statsA.relics, b: statsB.relics, higherBetter: true },
+        { label: 'Auto Relics', a: statsA.autoRelics, b: statsB.autoRelics, higherBetter: true },
+    ], boxA, boxB);
+
+    const categories = [
+        { key: 'insert', label: 'Insert' },
+        { key: 'autograph', label: 'Autograph' },
+    ];
+    const bestOddsRows = [];
+    categories.forEach(({ key, label }) => {
+        const bestA = getBestOdds(productSlug, boxA, key);
+        const bestB = getBestOdds(productSlug, boxB, key);
+        const oddsA = bestA?.odds ? parseOddsToNumber(bestA.odds) : 0;
+        const oddsB = bestB?.odds ? parseOddsToNumber(bestB.odds) : 0;
+        const displayA = bestA?.odds ? formatOddsDisplay(bestA.odds) : '-';
+        const displayB = bestB?.odds ? formatOddsDisplay(bestB.odds) : '-';
+        bestOddsRows.push({ label: `Best ${label}`, a: displayA, b: displayB, rawA: oddsA, rawB: oddsB });
+    });
+    html += renderCompareOddsCard('Best Odds by Category', bestOddsRows, boxA, boxB);
+
+    html += renderCompareVerdict(productSlug, boxA, boxB, statsA, statsB, totalCardsA, totalCardsB);
+
+    html += '</div>';
+    return html;
+}
+
+function renderCompareCard(title, rows, boxA, boxB) {
+    const labelA = boxA.charAt(0).toUpperCase() + boxA.slice(1);
+    const labelB = boxB.charAt(0).toUpperCase() + boxB.slice(1);
+
+    const rowsHtml = rows.filter(r => !(r.a === 0 && r.b === 0)).map(row => {
+        const numA = typeof row.a === 'number' ? row.a : parseFloat(row.a);
+        const numB = typeof row.b === 'number' ? row.b : parseFloat(row.b);
+        const isNumeric = !isNaN(numA) && !isNaN(numB) && numA !== numB;
+
+        let winA = '', winB = '';
+        if (isNumeric) {
+            if (row.higherBetter) {
+                if (numA > numB) winA = ' compare-win'; else if (numB > numA) winB = ' compare-win';
+            } else {
+                if (numA < numB) winA = ' compare-win'; else if (numB < numA) winB = ' compare-win';
+            }
+        }
+
+        return `
+            <div class="compare-row">
+                <span class="compare-val${winA}">${row.a}</span>
+                <span class="compare-label">${row.label}</span>
+                <span class="compare-val${winB}">${row.b}</span>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="insight-card">
+            <div class="insight-header">
+                <h3 class="insight-title">${title}</h3>
+            </div>
+            <div class="insight-body compare-body">
+                <div class="compare-row compare-row-header">
+                    <span class="compare-val compare-col-header">${labelA}</span>
+                    <span class="compare-label"></span>
+                    <span class="compare-val compare-col-header">${labelB}</span>
+                </div>
+                ${rowsHtml}
+            </div>
+        </div>
+    `;
+}
+
+function renderCompareOddsCard(title, rows, boxA, boxB) {
+    const labelA = boxA.charAt(0).toUpperCase() + boxA.slice(1);
+    const labelB = boxB.charAt(0).toUpperCase() + boxB.slice(1);
+
+    const rowsHtml = rows.map(row => {
+        let winA = '', winB = '';
+        if (row.rawA > 0 && row.rawB > 0 && row.rawA !== row.rawB) {
+            if (row.rawA < row.rawB) winA = ' compare-win'; else winB = ' compare-win';
+        } else if (row.rawA > 0 && row.rawB === 0) {
+            winA = ' compare-win';
+        } else if (row.rawB > 0 && row.rawA === 0) {
+            winB = ' compare-win';
+        }
+
+        return `
+            <div class="compare-row">
+                <span class="compare-val compare-val-odds${winA}">${row.a}</span>
+                <span class="compare-label">${row.label}</span>
+                <span class="compare-val compare-val-odds${winB}">${row.b}</span>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="insight-card">
+            <div class="insight-header">
+                <h3 class="insight-title">${title}</h3>
+            </div>
+            <div class="insight-body compare-body">
+                <div class="compare-row compare-row-header">
+                    <span class="compare-val compare-col-header">${labelA}</span>
+                    <span class="compare-label"></span>
+                    <span class="compare-val compare-col-header">${labelB}</span>
+                </div>
+                ${rowsHtml}
+            </div>
+        </div>
+    `;
+}
+
+function renderCompareVerdict(productSlug, boxA, boxB, statsA, statsB, totalCardsA, totalCardsB) {
+    const labelA = boxA.charAt(0).toUpperCase() + boxA.slice(1);
+    const labelB = boxB.charAt(0).toUpperCase() + boxB.slice(1);
+
+    let scoreA = 0, scoreB = 0;
+    const advantages = { a: [], b: [] };
+
+    if (statsA.total > statsB.total) { scoreA++; advantages.a.push('More variety'); }
+    else if (statsB.total > statsA.total) { scoreB++; advantages.b.push('More variety'); }
+
+    if (totalCardsA > totalCardsB) { scoreA++; advantages.a.push('More cards per box'); }
+    else if (totalCardsB > totalCardsA) { scoreB++; advantages.b.push('More cards per box'); }
+
+    if (statsA.autographs > statsB.autographs) { scoreA++; advantages.a.push('More autograph options'); }
+    else if (statsB.autographs > statsA.autographs) { scoreB++; advantages.b.push('More autograph options'); }
+
+    if (statsA.inserts > statsB.inserts) { scoreA++; advantages.a.push('More insert options'); }
+    else if (statsB.inserts > statsA.inserts) { scoreB++; advantages.b.push('More insert options'); }
+
+    const bestAutoA = getBestOdds(productSlug, boxA, 'autograph');
+    const bestAutoB = getBestOdds(productSlug, boxB, 'autograph');
+    const autoOddsA = bestAutoA?.odds ? parseOddsToNumber(bestAutoA.odds) : 0;
+    const autoOddsB = bestAutoB?.odds ? parseOddsToNumber(bestAutoB.odds) : 0;
+    if (autoOddsA > 0 && autoOddsB > 0) {
+        if (autoOddsA < autoOddsB) { scoreA++; advantages.a.push('Better autograph odds'); }
+        else if (autoOddsB < autoOddsA) { scoreB++; advantages.b.push('Better autograph odds'); }
+    }
+
+    let verdictClass, verdictText;
+    if (scoreA > scoreB) {
+        verdictClass = 'compare-verdict-a';
+        verdictText = `${labelA} wins ${scoreA}-${scoreB}`;
+    } else if (scoreB > scoreA) {
+        verdictClass = 'compare-verdict-b';
+        verdictText = `${labelB} wins ${scoreB}-${scoreA}`;
+    } else {
+        verdictClass = 'compare-verdict-tie';
+        verdictText = `Tie ${scoreA}-${scoreB}`;
+    }
+
+    const advHtml = (advList) => advList.length > 0
+        ? advList.map(a => `<li>${a}</li>`).join('')
+        : '<li class="compare-adv-none">No unique advantages</li>';
+
+    return `
+        <div class="insight-card compare-verdict-card">
+            <div class="insight-header">
+                <h3 class="insight-title">Verdict</h3>
+                <span class="insight-badge ${verdictClass}">${verdictText}</span>
+            </div>
+            <div class="insight-body compare-body">
+                <div class="compare-verdict-cols">
+                    <div class="compare-verdict-col ${scoreA >= scoreB && scoreA > 0 ? 'compare-verdict-winner' : ''}">
+                        <h4 class="compare-verdict-box-name">${labelA}</h4>
+                        <ul class="compare-adv-list">${advHtml(advantages.a)}</ul>
+                    </div>
+                    <div class="compare-verdict-col ${scoreB >= scoreA && scoreB > 0 ? 'compare-verdict-winner' : ''}">
+                        <h4 class="compare-verdict-box-name">${labelB}</h4>
+                        <ul class="compare-adv-list">${advHtml(advantages.b)}</ul>
+                    </div>
+                </div>
+                <div class="insight-explanation">
+                    <strong>How it's calculated:</strong> Each box earns a point per category it leads in: variety, total cards, autograph options, insert options, and best autograph odds. The box with the most points wins.
                 </div>
             </div>
         </div>
