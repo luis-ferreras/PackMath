@@ -539,9 +539,11 @@ function renderOddsTab() {
         }
     }
 
-    // Inserts Section
+    // Inserts Section - grouped by set
     if (inserts.size > 0) {
-        html += renderOddsSection('Inserts', inserts, selectedConfig);
+        for (const [setName, parallels] of inserts) {
+            html += renderOddsSection(setName, parallels, selectedConfig, 'Parallel');
+        }
     }
 
     // Autographs Section - grouped by set

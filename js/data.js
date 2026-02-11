@@ -698,14 +698,21 @@ export function getAllParallelsBySetForProduct(productId) {
     return setMap;
 }
 
+// Returns inserts grouped by set (card_type), then by parallel name
+// Structure: Map<setName, Map<parallelName, {config: odds}>>
 export function getAllInsertsForProduct(productId) {
-    const inserts = new Map();
+    const setMap = new Map();
     ODDS_RAW.filter(row => row.product_id === productId && row.category === 'insert').forEach(row => {
-        const name = row.card_type;
-        if (!inserts.has(name)) inserts.set(name, { isSSP: row.parallel === 'SSP' });
-        inserts.get(name)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
+        const setName = row.card_type || 'Insert';
+        const parallelName = row.parallel || 'Base';
+
+        if (!setMap.has(setName)) setMap.set(setName, new Map());
+        const parallels = setMap.get(setName);
+
+        if (!parallels.has(parallelName)) parallels.set(parallelName, {});
+        parallels.get(parallelName)[row.config] = row.odds ? formatOddsValue(row.odds) : null;
     });
-    return inserts;
+    return setMap;
 }
 
 // Returns autographs grouped by set (card_type), then by parallel name
